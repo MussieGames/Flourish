@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Flourish — A private, beautiful scrapbook for your child's first moments. Join the waitlist for early access.">
+<meta property="og:title" content="Flourish — Every First, Forever">
+<meta property="og:description" content="A private, beautiful scrapbook for your child's earliest moments. No ads. No algorithms. Just love.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://www.goflourish.com.au">
+<meta property="og:site_name" content="Flourish">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Flourish — Every First, Forever">
+<meta name="twitter:description" content="A private, beautiful scrapbook for your child's earliest moments. No ads. No algorithms. Just love.">
+<link rel="canonical" href="https://www.goflourish.com.au">
+<title>Flourish — Every First, Forever</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #FBF7F2;
+    --warm: #FEFCF9;
+    --blush: #F2D9CB;
+    --rose: #D4A9A0;
+    --sage: #B5C4B1;
+    --sage-d: #7A9E7E;
+    --sienna: #C17B5C;
+    --sienna-d: #A86040;
+    --ink: #2C2420;
+    --ink-l: #5C4A42;
+    --ink-m: #8C7870;
+    --gold: #C9A96E;
+    --gold-l: #E8D5B0;
+  }
+
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior:smooth; -webkit-font-smoothing:antialiased; }
+
+  body {
+    font-family:'DM Sans',sans-serif;
+    background:var(--cream);
+    color:var(--ink);
+    overflow-x:hidden;
+    cursor:default;
+  }
+
+  /* ── GRAIN OVERLAY ── */
+  body::before {
+    content:'';
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    opacity:.025;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    background-size:200px;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position:fixed; top:0; left:0; right:0; z-index:100;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:18px 48px;
+    background:rgba(251,247,242,0.85);
+    backdrop-filter:blur(16px) saturate(1.4);
+    border-bottom:1px solid rgba(196,169,160,0.18);
+    transition:padding .3s;
+  }
+  nav.scrolled { padding:12px 48px; }
+
+  .logo {
+    font-family:'Cormorant Garamond',serif;
+    font-size:22px; font-weight:300; letter-spacing:.06em;
+    color:var(--ink); text-decoration:none;
+  }
+  .logo em { font-style:italic; color:var(--sienna); }
+
+  .nav-right { display:flex; align-items:center; gap:32px; }
+  .nav-link {
+    font-size:12px; font-weight:400; letter-spacing:.08em;
+    text-transform:uppercase; color:var(--ink-l);
+    text-decoration:none; transition:color .2s;
+  }
+  .nav-link:hover { color:var(--sienna); }
+
+  .nav-btn {
+    background:var(--ink); color:var(--cream);
+    border:none; padding:10px 22px; font-family:'DM Sans',sans-serif;
+    font-size:11px; letter-spacing:.1em; text-transform:uppercase;
+    cursor:pointer; transition:background .25s, transform .2s;
+    border-radius:1px;
+  }
+  .nav-btn:hover { background:var(--sienna); transform:translateY(-1px); }
+
+  .nav-menu-btn {
+    display:none; background:none; border:none; cursor:pointer;
+    flex-direction:column; gap:5px; padding:4px;
+  }
+  .nav-menu-btn span {
+    display:block; width:22px; height:1.5px;
+    background:var(--ink); transition:all .3s;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    min-height:100vh;
+    display:flex; align-items:center;
+    padding:120px 80px 80px;
+    position:relative; overflow:hidden;
+  }
+
+  .hero-orb {
+    position:absolute; border-radius:50%; pointer-events:none;
+  }
+  .orb-1 {
+    width:700px; height:700px;
+    background:radial-gradient(circle,rgba(242,217,203,.55) 0%,transparent 70%);
+    top:-100px; right:-100px;
+    animation:drift1 12s ease-in-out infinite;
+  }
+  .orb-2 {
+    width:500px; height:500px;
+    background:radial-gradient(circle,rgba(181,196,177,.35) 0%,transparent 70%);
+    bottom:-50px; left:10%;
+    animation:drift2 15s ease-in-out infinite;
+  }
+  .orb-3 {
+    width:300px; height:300px;
+    background:radial-gradient(circle,rgba(201,169,110,.2) 0%,transparent 70%);
+    top:40%; left:50%;
+    animation:drift3 10s ease-in-out infinite;
+  }
+  @keyframes drift1 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-30px,20px) scale(1.05)} }
+  @keyframes drift2 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(20px,-25px) scale(1.03)} }
+  @keyframes drift3 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-15px,15px)} }
+
+  .hero-content {
+    position:relative; z-index:2;
+    max-width:680px;
+  }
+
+  .hero-eyebrow {
+    display:inline-flex; align-items:center; gap:10px;
+    font-size:10px; letter-spacing:.22em; text-transform:uppercase;
+    color:var(--sienna); margin-bottom:28px;
+    opacity:0; animation:riseUp .8s .1s ease forwards;
+  }
+  .hero-eyebrow::before { content:''; width:24px; height:1px; background:var(--sienna); }
+
+  h1 {
+    font-family:'Cormorant Garamond',serif;
+    font-size:clamp(52px,7vw,96px);
+    font-weight:300; line-height:1.02; color:var(--ink);
+    margin-bottom:28px;
+    opacity:0; animation:riseUp .9s .2s ease forwards;
+  }
+  h1 em { font-style:italic; color:var(--sienna); }
+
+  .hero-sub {
+    font-size:clamp(15px,1.8vw,18px); line-height:1.75;
+    color:var(--ink-l); font-weight:300; max-width:500px;
+    margin-bottom:48px;
+    opacity:0; animation:riseUp .9s .35s ease forwards;
+  }
+
+  /* ── EMAIL FORM ── */
+  .form-wrap {
+    opacity:0; animation:riseUp .9s .5s ease forwards;
+  }
+
+  .form-row {
+    display:flex; gap:0; max-width:480px;
+    box-shadow:0 12px 40px rgba(193,123,92,.2);
+  }
+
+  .email-in {
+    flex:1; padding:17px 22px;
+    border:1.5px solid rgba(196,169,160,.4); border-right:none;
+    background:rgba(254,252,249,.95);
+    font-family:'DM Sans',sans-serif; font-size:15px;
+    color:var(--ink); outline:none; border-radius:1px 0 0 1px;
+    transition:border-color .2s;
+  }
+  .email-in:focus { border-color:var(--sienna); }
+  .email-in::placeholder { color:var(--ink-m); }
+
+  .form-btn {
+    padding:17px 28px; background:var(--sienna); border:none;
+    color:white; font-family:'DM Sans',sans-serif;
+    font-size:12px; letter-spacing:.12em; text-transform:uppercase;
+    cursor:pointer; border-radius:0 1px 1px 0;
+    transition:background .25s, transform .2s; white-space:nowrap;
+  }
+  .form-btn:hover { background:var(--ink); }
+  .form-btn:active { transform:scale(.98); }
+  .form-btn.loading { opacity:.7; cursor:wait; }
+  .form-btn.success { background:var(--sage-d); }
+
+  .form-note {
+    margin-top:14px; font-size:12px; color:var(--ink-m);
+    display:flex; align-items:center; gap:6px;
+  }
+
+  .success-msg {
+    display:none; margin-top:20px;
+    padding:16px 20px;
+    background:rgba(122,158,126,.12);
+    border:1px solid rgba(122,158,126,.3);
+    border-radius:2px;
+  }
+  .success-msg p {
+    font-family:'Cormorant Garamond',serif;
+    font-size:18px; font-style:italic; color:var(--ink);
+    line-height:1.5;
+  }
+  .success-msg span { font-size:12px; color:var(--ink-m); display:block; margin-top:4px; }
+
+  /* ── FLOATING CARDS ── */
+  .hero-floats {
+    position:absolute; right:6%; top:50%;
+    transform:translateY(-50%);
+    display:flex; flex-direction:column; gap:14px;
+    z-index:3;
+    opacity:0; animation:riseUp .9s .7s ease forwards;
+  }
+
+  .float-card {
+    background:rgba(254,252,249,.9);
+    backdrop-filter:blur(12px);
+    border:1px solid rgba(196,169,160,.25);
+    border-radius:12px; padding:16px 20px;
+    box-shadow:0 8px 32px rgba(44,36,32,.1);
+    display:flex; align-items:center; gap:12px;
+    min-width:220px; max-width:260px;
+  }
+  .fc-icon { font-size:24px; flex-shrink:0; }
+  .fc-text { font-size:12px; line-height:1.5; color:var(--ink-l); }
+  .fc-text strong { color:var(--ink); font-size:13px; display:block; }
+
+  .float-card:nth-child(1) { animation:floatA 7s ease-in-out infinite; }
+  .float-card:nth-child(2) { animation:floatB 9s ease-in-out infinite; margin-left:24px; }
+  .float-card:nth-child(3) { animation:floatA 8s ease-in-out infinite 1s; }
+
+  @keyframes floatA { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+  @keyframes floatB { 0%,100%{transform:translateY(0)} 50%{transform:translateY(10px)} }
+
+  /* ── SOCIAL PROOF STRIP ── */
+  .proof-strip {
+    background:var(--ink); padding:20px 80px;
+    display:flex; align-items:center; justify-content:center;
+    gap:60px; flex-wrap:wrap;
+    position:relative; z-index:2;
+  }
+  .proof-item {
+    display:flex; align-items:center; gap:12px;
+    font-size:13px; color:rgba(251,247,242,.55);
+  }
+  .proof-num {
+    font-family:'Cormorant Garamond',serif;
+    font-size:28px; font-weight:300; color:var(--cream);
+    line-height:1;
+  }
+  .proof-div { width:1px; height:32px; background:rgba(255,255,255,.1); }
+
+  /* ── FEATURES ── */
+  .features {
+    padding:100px 80px;
+    background:var(--warm);
+    position:relative;
+  }
+
+  .section-tag {
+    font-size:10px; letter-spacing:.22em; text-transform:uppercase;
+    color:var(--sienna); margin-bottom:16px;
+    display:flex; align-items:center; gap:10px;
+  }
+  .section-tag::before { content:''; width:20px; height:1px; background:var(--sienna); }
+
+  h2 {
+    font-family:'Cormorant Garamond',serif;
+    font-size:clamp(32px,4vw,54px); font-weight:300; line-height:1.1;
+    margin-bottom:16px;
+  }
+  h2 em { font-style:italic; color:var(--sienna); }
+
+  .section-intro {
+    font-size:16px; color:var(--ink-l); line-height:1.7;
+    max-width:500px; font-weight:300; margin-bottom:64px;
+  }
+
+  .feat-grid {
+    display:grid; grid-template-columns:repeat(3,1fr);
+    gap:1.5px; background:rgba(196,169,160,.2);
+  }
+
+  .feat-card {
+    background:var(--warm); padding:44px 36px;
+    transition:background .3s;
+    position:relative; overflow:hidden;
+  }
+  .feat-card::before {
+    content:''; position:absolute; bottom:0; left:0;
+    width:100%; height:2px;
+    background:linear-gradient(90deg,var(--sienna),var(--gold));
+    transform:scaleX(0); transform-origin:left;
+    transition:transform .4s ease;
+  }
+  .feat-card:hover { background:var(--cream); }
+  .feat-card:hover::before { transform:scaleX(1); }
+
+  .feat-icon {
+    width:44px; height:44px; border-radius:10px;
+    background:var(--cream); display:flex; align-items:center;
+    justify-content:center; font-size:20px; margin-bottom:20px;
+    transition:transform .3s;
+  }
+  .feat-card:hover .feat-icon { transform:scale(1.1) rotate(-3deg); }
+
+  .feat-title {
+    font-family:'Cormorant Garamond',serif;
+    font-size:20px; font-weight:400; margin-bottom:10px;
+  }
+  .feat-desc { font-size:13.5px; color:var(--ink-l); line-height:1.7; }
+
+  /* ── PROMISE ── */
+  .promise {
+    padding:100px 80px;
+    background:var(--ink); position:relative; overflow:hidden;
+  }
+  .promise-orb {
+    position:absolute; border-radius:50%; pointer-events:none;
+    background:radial-gradient(circle,rgba(193,123,92,.18) 0%,transparent 65%);
+    width:700px; height:700px; top:-100px; right:-150px;
+  }
+
+  .promise-grid {
+    display:grid; grid-template-columns:1fr 1fr;
+    gap:80px; align-items:center; position:relative; z-index:1;
+  }
+
+  .promise h2 { color:var(--cream); }
+  .promise h2 em { color:var(--rose); }
+  .promise .section-tag { color:var(--gold); }
+  .promise .section-tag::before { background:var(--gold); }
+  .promise .section-intro { color:rgba(251,247,242,.5); margin-bottom:40px; }
+
+  .promise-list { display:flex; flex-direction:column; gap:20px; }
+  .promise-item {
+    display:flex; gap:16px; align-items:flex-start;
+    padding:20px; background:rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.07);
+    transition:all .3s;
+  }
+  .promise-item:hover {
+    background:rgba(255,255,255,.08);
+    border-color:rgba(193,123,92,.3);
+  }
+  .pi-icon { font-size:20px; flex-shrink:0; margin-top:2px; }
+  .pi-title {
+    font-family:'Cormorant Garamond',serif;
+    font-size:17px; color:var(--cream); margin-bottom:4px;
+  }
+  .pi-text { font-size:12.5px; color:rgba(251,247,242,.42); line-height:1.6; }
+
+  /* Scrapbook visual */
+  .scrap-visual {
+    position:relative; height:440px;
+  }
+  .scrap-page {
+    position:absolute; background:var(--warm);
+    border-radius:3px; box-shadow:0 12px 48px rgba(0,0,0,.35);
+  }
+  .sp-back-2 {
+    width:280px; height:340px; background:var(--gold-l);
+    left:50%; top:50%; transform:translate(-54%,-46%) rotate(5deg);
+  }
+  .sp-back-1 {
+    width:290px; height:350px; background:var(--sage);
+    left:50%; top:50%; transform:translate(-44%,-54%) rotate(-4deg);
+  }
+  .sp-main {
+    width:300px; height:360px;
+    left:50%; top:50%; transform:translate(-50%,-50%) rotate(-1deg);
+    padding:20px; z-index:3;
+  }
+  .sp-tape {
+    position:absolute; top:-8px; left:50%;
+    transform:translateX(-50%);
+    width:54px; height:18px;
+    background:rgba(201,169,110,.35); border-radius:1px;
+    z-index:4;
+  }
+  .sp-photo {
+    width:100%; height:160px;
+    background:linear-gradient(135deg,#E8C4B0,#C4907A);
+    border-radius:2px; display:flex; align-items:center;
+    justify-content:center; font-size:44px; margin-bottom:14px;
+    position:relative; overflow:hidden;
+  }
+  .sp-photo::after {
+    content:''; position:absolute; inset:0;
+    background:linear-gradient(to bottom,transparent 60%,rgba(0,0,0,.12));
+  }
+  .sp-caption {
+    font-family:'Cormorant Garamond',serif;
+    font-size:12px; font-style:italic; color:var(--ink-m);
+    text-align:center; margin-bottom:8px;
+  }
+  .sp-date {
+    font-size:9px; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--sienna); text-align:center; margin-bottom:14px;
+  }
+  .sp-tags { display:flex; gap:5px; flex-wrap:wrap; justify-content:center; }
+  .sp-tag {
+    font-size:8px; padding:3px 9px; border-radius:20px;
+    background:var(--cream); color:var(--ink-m);
+  }
+  .sp-sticker {
+    position:absolute; font-size:22px;
+    animation:wiggle 3s ease-in-out infinite;
+  }
+  @keyframes wiggle { 0%,100%{transform:rotate(-6deg)} 50%{transform:rotate(6deg)} }
+
+  /* ── TESTIMONIALS ── */
+  .testimonials {
+    padding:100px 80px; background:var(--cream);
+  }
+  .testi-grid {
+    display:grid; grid-template-columns:repeat(3,1fr);
+    gap:24px; margin-top:56px;
+  }
+  .testi-card {
+    background:var(--warm); padding:36px 30px;
+    border-radius:2px; transition:transform .3s, box-shadow .3s;
+  }
+  .testi-card:hover {
+    transform:translateY(-6px);
+    box-shadow:0 20px 60px rgba(44,36,32,.1);
+  }
+  .testi-stars { color:var(--gold); font-size:13px; margin-bottom:14px; }
+  .testi-text {
+    font-family:'Cormorant Garamond',serif;
+    font-size:19px; font-style:italic; line-height:1.6;
+    color:var(--ink); margin-bottom:20px;
+  }
+  .testi-author { font-size:11px; color:var(--ink-m); letter-spacing:.05em; }
+
+  /* ── MAIN CTA ── */
+  .main-cta {
+    padding:140px 80px;
+    background:linear-gradient(150deg, var(--cream) 0%, var(--blush) 50%, var(--rose) 100%);
+    text-align:center; position:relative; overflow:hidden;
+  }
+  .cta-blob {
+    position:absolute; border-radius:50%; pointer-events:none;
+  }
+  .blob-1 {
+    width:600px; height:600px;
+    background:radial-gradient(circle,rgba(193,123,92,.18) 0%,transparent 70%);
+    top:-150px; left:-100px;
+  }
+  .blob-2 {
+    width:500px; height:500px;
+    background:radial-gradient(circle,rgba(181,196,177,.25) 0%,transparent 70%);
+    bottom:-100px; right:-80px;
+  }
+
+  .cta-eyebrow {
+    font-size:10px; letter-spacing:.22em; text-transform:uppercase;
+    color:var(--sienna); display:block; margin-bottom:20px;
+  }
+  .main-cta h2 {
+    font-size:clamp(40px,6vw,80px); max-width:680px;
+    margin:0 auto 20px;
+  }
+  .cta-sub {
+    font-size:17px; color:var(--ink-l); line-height:1.75;
+    max-width:480px; margin:0 auto 52px; font-weight:300;
+  }
+
+  .cta-form {
+    display:flex; gap:0; max-width:460px;
+    margin:0 auto; position:relative; z-index:2;
+    box-shadow:0 16px 56px rgba(193,123,92,.25);
+  }
+
+  .cta-perks {
+    display:flex; justify-content:center; gap:40px;
+    margin-top:64px; padding-top:48px;
+    border-top:1px solid rgba(196,169,160,.3);
+    flex-wrap:wrap; position:relative; z-index:2;
+  }
+  .perk { text-align:center; }
+  .perk-icon { font-size:22px; margin-bottom:8px; }
+  .perk-text { font-size:12.5px; color:var(--ink-l); }
+
+  /* ── FOOTER ── */
+  footer {
+    background:var(--ink); padding:48px 80px;
+    display:flex; justify-content:space-between; align-items:center;
+    flex-wrap:wrap; gap:20px;
+  }
+  .foot-logo {
+    font-family:'Cormorant Garamond',serif;
+    font-size:20px; color:var(--cream); font-weight:300;
+  }
+  .foot-logo em { font-style:italic; color:var(--rose); }
+  .foot-copy { font-size:12px; color:rgba(251,247,242,.3); }
+  .foot-links { display:flex; gap:24px; }
+  .foot-link {
+    font-size:11px; letter-spacing:.06em;
+    color:rgba(251,247,242,.3); text-decoration:none;
+    transition:color .2s;
+  }
+  .foot-link:hover { color:var(--rose); }
+
+  /* ── MOBILE NAV DRAWER ── */
+  .mobile-nav {
+    position:fixed; inset:0; z-index:200;
+    background:var(--cream);
+    display:flex; flex-direction:column; align-items:center;
+    justify-content:center; gap:36px;
+    transform:translateX(100%);
+    transition:transform .35s ease;
+  }
+  .mobile-nav.open { transform:translateX(0); }
+  .mobile-nav a {
+    font-family:'Cormorant Garamond',serif;
+    font-size:36px; font-weight:300; color:var(--ink);
+    text-decoration:none; font-style:italic;
+    transition:color .2s;
+  }
+  .mobile-nav a:hover { color:var(--sienna); }
+  .mobile-close {
+    position:absolute; top:24px; right:28px;
+    background:none; border:none; font-size:28px;
+    cursor:pointer; color:var(--ink);
+  }
+  .mobile-nav-cta {
+    background:var(--sienna); color:white;
+    border:none; padding:14px 36px;
+    font-family:'DM Sans',sans-serif; font-size:13px;
+    letter-spacing:.1em; text-transform:uppercase;
+    cursor:pointer; margin-top:16px;
+  }
+
+  /* ── ANIMATIONS ── */
+  @keyframes riseUp {
+    from { opacity:0; transform:translateY(24px); }
+    to { opacity:1; transform:translateY(0); }
+  }
+
+  .reveal {
+    opacity:0; transform:translateY(20px);
+    transition:opacity .7s ease, transform .7s ease;
+  }
+  .reveal.visible { opacity:1; transform:translateY(0); }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width:1024px) {
+    .hero-floats { display:none; }
+    .promise-grid { grid-template-columns:1fr; }
+    .scrap-visual { display:none; }
+    .feat-grid { grid-template-columns:repeat(2,1fr); }
+  }
+
+  @media (max-width:768px) {
+    nav { padding:14px 24px; }
+    nav.scrolled { padding:10px 24px; }
+    .nav-right { display:none; }
+    .nav-menu-btn { display:flex; }
+
+    .hero { padding:100px 28px 60px; min-height:auto; }
+    .proof-strip { padding:20px 28px; gap:24px; }
+    .proof-div { display:none; }
+
+    .features, .promise, .testimonials, .main-cta { padding:72px 28px; }
+    footer { padding:40px 28px; flex-direction:column; gap:16px; }
+
+    .feat-grid { grid-template-columns:1fr; gap:1px; }
+    .testi-grid { grid-template-columns:1fr; }
+
+    .form-row, .cta-form {
+      flex-direction:column; box-shadow:none; max-width:100%;
+    }
+    .email-in {
+      border-right:1.5px solid rgba(196,169,160,.4);
+      border-bottom:none; border-radius:1px 1px 0 0;
+    }
+    .form-btn { border-radius:0 0 1px 1px; text-align:center; }
+
+    .cta-perks { gap:28px; }
+    .foot-links { flex-wrap:wrap; justify-content:center; }
+
+    h1 { font-size:clamp(42px,10vw,64px); }
+    h2 { font-size:clamp(28px,7vw,44px); }
+  }
+
+  @media (max-width:400px) {
+    .hero { padding:90px 20px 48px; }
+    .features, .promise, .testimonials, .main-cta { padding:60px 20px; }
+    footer { padding:32px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- MOBILE NAV -->
+<div class="mobile-nav" id="mobileNav">
+  <button class="mobile-close" onclick="closeMobileNav()">✕</button>
+  <a href="#features" onclick="closeMobileNav()">Features</a>
+  <a href="#promise" onclick="closeMobileNav()">Our Promise</a>
+  <a href="#cta" onclick="closeMobileNav()">Early Access</a>
+  <button class="mobile-nav-cta" onclick="closeMobileNav(); document.getElementById('cta').scrollIntoView({behavior:'smooth'})">Join Waitlist</button>
+</div>
+
+<!-- NAV -->
+<nav id="mainNav">
+  <a href="#" class="logo">flour<em>ish</em></a>
+  <div class="nav-right">
+    <a href="#features" class="nav-link">Features</a>
+    <a href="#promise" class="nav-link">Our Promise</a>
+    <a href="#cta" class="nav-link">Early Access</a>
+    <button class="nav-btn" onclick="document.getElementById('cta').scrollIntoView({behavior:'smooth'})">Join Waitlist</button>
+  </div>
+  <button class="nav-menu-btn" id="menuBtn" onclick="openMobileNav()" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-orb orb-1"></div>
+  <div class="hero-orb orb-2"></div>
+  <div class="hero-orb orb-3"></div>
+
+  <div class="hero-content">
+    <div class="hero-eyebrow">Memory-keeping, reimagined</div>
+    <h1>Every <em>first</em><br>lasts forever.</h1>
+    <p class="hero-sub">A private, beautiful scrapbook for your child's earliest moments. Milestone alerts. Printed keepsakes. No ads. No algorithms. Just the love you don't want to forget.</p>
+
+    <div class="form-wrap">
+      <div class="form-row">
+        <input type="email" class="email-in" id="heroEmail" placeholder="your@email.com" aria-label="Email address">
+        <button class="form-btn" id="heroBtn" onclick="submitEmail('heroEmail','heroBtn','heroSuccess')">Get Early Access</button>
+      </div>
+      <p class="form-note">🔒 No spam. Just a gentle note when we launch.</p>
+      <div class="success-msg" id="heroSuccess">
+        <p>"You're on the list. We'll be in touch."</p>
+        <span>You'll receive early access + 3 months of Flourish premium, free.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating cards — hidden on mobile -->
+  <div class="hero-floats">
+    <div class="float-card">
+      <span class="fc-icon">😊</span>
+      <div class="fc-text"><strong>First Smile Detected</strong>Week 7 — capture it now 📸</div>
+    </div>
+    <div class="float-card">
+      <span class="fc-icon">📖</span>
+      <div class="fc-text"><strong>Oliver's Scrapbook</strong>32 memories this month</div>
+    </div>
+    <div class="float-card">
+      <span class="fc-icon">🔒</span>
+      <div class="fc-text"><strong>Private & secure</strong>Zero ads. Zero data sharing.</div>
+    </div>
+  </div>
+</section>
+
+<!-- PROOF STRIP -->
+<div class="proof-strip">
+  <div class="proof-item">
+    <div class="proof-num">200+</div>
+    <div>milestones<br>tracked</div>
+  </div>
+  <div class="proof-div"></div>
+  <div class="proof-item">
+    <div class="proof-num">∞</div>
+    <div>memories<br>stored</div>
+  </div>
+  <div class="proof-div"></div>
+  <div class="proof-item">
+    <div class="proof-num">0</div>
+    <div>ads or data<br>sold. Ever.</div>
+  </div>
+  <div class="proof-div"></div>
+  <div class="proof-item">
+    <div class="proof-num">1</div>
+    <div>childhood<br>preserved</div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section class="features" id="features">
+  <div class="reveal">
+    <div class="section-tag">Built for new parents</div>
+    <h2>Everything you need,<br><em>beautifully</em> together</h2>
+    <p class="section-intro">Intuitive enough for 3am. Beautiful enough to cherish forever.</p>
+  </div>
+
+  <div class="feat-grid reveal">
+    <div class="feat-card">
+      <div class="feat-icon">📸</div>
+      <div class="feat-title">Capture & Import</div>
+      <p class="feat-desc">Shoot in-app or import from your camera roll. Photos, videos, voice memos — all in one beautiful place, instantly organised.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">📖</div>
+      <div class="feat-title">Scrapbook Layouts</div>
+      <p class="feat-desc">Tactile, layered pages that feel like real keepsakes. Tape, stickers, handwritten captions. Every page is yours to treasure.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">⭐</div>
+      <div class="feat-title">Firsts Tracker</div>
+      <p class="feat-desc">200+ developmental milestones, quietly tracked. Gentle notifications when a "first" is near — so you're always ready to capture it.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">👨‍👩‍👧</div>
+      <div class="feat-title">Private Family Sharing</div>
+      <p class="feat-desc">Share a private album with grandparents and family. You choose who sees what. Not the internet. Not advertisers. Just love.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">📚</div>
+      <div class="feat-title">Printed Keepsakes</div>
+      <p class="feat-desc">Turn your digital scrapbook into a real, hardcover book. Order anytime. The most meaningful gift you can give — or keep.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🔒</div>
+      <div class="feat-title">Private by Design</div>
+      <p class="feat-desc">End-to-end encrypted. Your baby's face never trains AI. No ads. No data sold. A space that respects the intimacy of new parenthood.</p>
+    </div>
+  </div>
+</section>
+
+<!-- PROMISE -->
+<section class="promise" id="promise">
+  <div class="promise-orb"></div>
+  <div class="promise-grid">
+    <div class="reveal">
+      <div class="section-tag">Why Flourish exists</div>
+      <h2>Your child's story<br>deserves <em>more</em><br>than a folder.</h2>
+      <p class="section-intro">Google Photos stores. Facebook shares. Neither one treasures. We built Flourish because we couldn't find anything worthy of the most important moments of our lives.</p>
+      <div class="promise-list">
+        <div class="promise-item">
+          <span class="pi-icon">🌿</span>
+          <div>
+            <div class="pi-title">Zero data sharing. Always.</div>
+            <p class="pi-text">Unlike Google and Tinybeans, your child's photos never train AI or reach advertisers. Our business model is subscriptions — not your data.</p>
+          </div>
+        </div>
+        <div class="promise-item">
+          <span class="pi-icon">💛</span>
+          <div>
+            <div class="pi-title">Emotional, not algorithmic.</div>
+            <p class="pi-text">You choose what surfaces. Your child's story, told by you — not by an algorithm deciding which memories to show.</p>
+          </div>
+        </div>
+        <div class="promise-item">
+          <span class="pi-icon">📦</span>
+          <div>
+            <div class="pi-title">Real things, not just digital.</div>
+            <p class="pi-text">Print a hardcover scrapbook anytime. Something to hold. Something that outlasts any app, any phone, any cloud service.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scrapbook visual -->
+    <div class="scrap-visual reveal">
+      <div class="scrap-page sp-back-2"></div>
+      <div class="scrap-page sp-back-1"></div>
+      <div class="scrap-page sp-main">
+        <div class="sp-tape"></div>
+        <div class="sp-photo">
+          🍼
+          <span class="sp-sticker" style="bottom:8px;right:10px">⭐</span>
+          <span class="sp-sticker" style="top:8px;left:10px;animation-delay:1s">🌙</span>
+        </div>
+        <p class="sp-caption">"The morning everything changed..."</p>
+        <p class="sp-date">Day 1 · April 14, 2026</p>
+        <div class="sp-tags">
+          <span class="sp-tag">Hospital</span>
+          <span class="sp-tag">First Day</span>
+          <span class="sp-tag">Family</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="testimonials">
+  <div class="reveal">
+    <div class="section-tag">Early testers</div>
+    <h2>Words from <em>real parents</em></h2>
+  </div>
+  <div class="testi-grid">
+    <div class="testi-card reveal">
+      <div class="testi-stars">★★★★★</div>
+      <p class="testi-text">"I cry every time I open it. I didn't think a phone app could feel this warm."</p>
+      <div class="testi-author">— Emma T., mother of Leo, 4 months</div>
+    </div>
+    <div class="testi-card reveal">
+      <div class="testi-stars">★★★★★</div>
+      <p class="testi-text">"The milestone notifications are brilliant. It reminded me to watch for her first giggle — and I caught it."</p>
+      <div class="testi-author">— James K., father of Aria, 7 months</div>
+    </div>
+    <div class="testi-card reveal">
+      <div class="testi-stars">★★★★★</div>
+      <p class="testi-text">"I gave the printed scrapbook to my mother for Christmas. She cried for ten minutes. This is what technology should feel like."</p>
+      <div class="testi-author">— Priya M., mother of twins, 1 year</div>
+    </div>
+  </div>
+</section>
+
+<!-- MAIN CTA -->
+<section class="main-cta" id="cta">
+  <div class="cta-blob blob-1"></div>
+  <div class="cta-blob blob-2"></div>
+  <span class="cta-eyebrow">They grow so fast</span>
+  <h2>Don't let a single<br><em>moment</em> slip away.</h2>
+  <p class="cta-sub">Join the waitlist. Early access members get 3 months of Flourish premium free — and first access to the printed book feature.</p>
+
+  <div class="cta-form">
+    <input type="email" class="email-in" id="ctaEmail" placeholder="your@email.com" aria-label="Email address">
+    <button class="form-btn" id="ctaBtn" onclick="submitEmail('ctaEmail','ctaBtn','ctaSuccess')">Reserve My Spot</button>
+  </div>
+  <p class="form-note" style="justify-content:center;margin-top:14px">🔒 No spam, ever. Just a gentle note when we launch.</p>
+  <div class="success-msg" id="ctaSuccess" style="max-width:460px;margin:20px auto 0">
+    <p>"You're on the list. We'll be in touch."</p>
+    <span>You'll receive early access + 3 months of Flourish premium, free.</span>
+  </div>
+
+  <div class="cta-perks">
+    <div class="perk">
+      <div class="perk-icon">🎁</div>
+      <div class="perk-text">3 months Bloom, free</div>
+    </div>
+    <div class="perk">
+      <div class="perk-icon">📚</div>
+      <div class="perk-text">First access to print books</div>
+    </div>
+    <div class="perk">
+      <div class="perk-icon">💌</div>
+      <div class="perk-text">Founder pricing, locked in</div>
+    </div>
+    <div class="perk">
+      <div class="perk-icon">🌱</div>
+      <div class="perk-text">Shape the product with us</div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="foot-logo">flour<em>ish</em></div>
+  <p class="foot-copy">© 2026 Flourish · goflourish.com.au 🌿</p>
+  <div class="foot-links">
+    <a href="#" class="foot-link">Privacy</a>
+    <a href="#" class="foot-link">Terms</a>
+    <a href="mailto:hello@goflourish.com.au" class="foot-link">Contact</a>
+  </div>
+</footer>
+
+<script>
+  // Nav scroll effect
+  const nav = document.getElementById('mainNav');
+  window.addEventListener('scroll', () => {
+    nav.classList.toggle('scrolled', window.scrollY > 40);
+  });
+
+  // Mobile nav
+  function openMobileNav() { document.getElementById('mobileNav').classList.add('open'); }
+  function closeMobileNav() { document.getElementById('mobileNav').classList.remove('open'); }
+
+  // Scroll reveal
+  const revealEls = document.querySelectorAll('.reveal');
+  const revealObs = new IntersectionObserver((entries) => {
+    entries.forEach((e, i) => {
+      if (e.isIntersecting) {
+        setTimeout(() => e.target.classList.add('visible'), i * 80);
+        revealObs.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.12 });
+  revealEls.forEach(el => revealObs.observe(el));
+
+  // Email form
+  function submitEmail(inputId, btnId, successId) {
+    const input = document.getElementById(inputId);
+    const btn = document.getElementById(btnId);
+    const success = document.getElementById(successId);
+    const email = input.value.trim();
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      input.style.borderColor = '#C17B5C';
+      input.placeholder = 'Please enter a valid email';
+      input.value = '';
+      setTimeout(() => {
+        input.style.borderColor = '';
+        input.placeholder = 'your@email.com';
+      }, 2500);
+      return;
+    }
+
+    btn.textContent = 'Saving...';
+    btn.classList.add('loading');
+
+    // Simulate API call — replace with your real endpoint (Mailchimp, ConvertKit, etc.)
+    setTimeout(() => {
+      btn.textContent = '✓ You\'re in!';
+      btn.classList.remove('loading');
+      btn.classList.add('success');
+      input.value = '';
+      input.placeholder = 'your@email.com';
+      success.style.display = 'block';
+
+      // Store locally (for demo)
+      const emails = JSON.parse(localStorage.getItem('flourish_waitlist') || '[]');
+      emails.push({ email, date: new Date().toISOString() });
+      localStorage.setItem('flourish_waitlist', JSON.stringify(emails));
+    }, 900);
+  }
+
+  // Enter key submits
+  document.querySelectorAll('.email-in').forEach(input => {
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const btn = input.nextElementSibling;
+        if (btn) btn.click();
+      }
+    });
+  });
+</script>
+</body>
+</html>

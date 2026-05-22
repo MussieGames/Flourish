@@ -643,8 +643,8 @@
       </div>
       <p class="form-note">🔒 No spam. Just a gentle note when we launch.</p>
       <div class="success-msg" id="heroSuccess">
-        <p>"You're on the list. We'll be in touch."</p>
-        <span>You'll receive early access + 3 months of Flourish premium, free.</span>
+        <p>"Welcome! You're on the list. We'll be in touch."</p>
+        <span>You'll receive early access + 3 months of Bloom, free.</span>
       </div>
     </div>
   </div>
@@ -796,7 +796,7 @@
   <div class="testi-grid">
     <div class="testi-card reveal">
       <div class="testi-stars">★★★★★</div>
-      <p class="testi-text">"I cry every time I open it. I didn't think a phone app could feel this warm."</p>
+      <p class="testi-text">"I get emotional every time I open it. I didn't think a phone app could feel this warm."</p>
       <div class="testi-author">— Emma T., mother of Leo, 4 months</div>
     </div>
     <div class="testi-card reveal">
@@ -806,7 +806,7 @@
     </div>
     <div class="testi-card reveal">
       <div class="testi-stars">★★★★★</div>
-      <p class="testi-text">"I gave the printed scrapbook to my mother for Christmas. She cried for ten minutes. This is what technology should feel like."</p>
+      <p class="testi-text">"I gave the printed scrapbook to my mother as a gift. She cried for ten minutes. This is what technology should feel like."</p>
       <div class="testi-author">— Priya M., mother of twins, 1 year</div>
     </div>
   </div>
@@ -818,7 +818,7 @@
   <div class="cta-blob blob-2"></div>
   <span class="cta-eyebrow">They grow so fast</span>
   <h2>Don't let a single<br><em>moment</em> slip away.</h2>
-  <p class="cta-sub">Join the waitlist. Early access members get 3 months of Flourish premium free — and first access to the printed book feature.</p>
+  <p class="cta-sub">Join the waitlist. Early access members get 3 months of Bloom free — and first access to the printed book feature.</p>
 
   <div class="cta-form">
     <input type="email" class="email-in" id="ctaEmail" placeholder="your@email.com" aria-label="Email address">
@@ -827,7 +827,7 @@
   <p class="form-note" style="justify-content:center;margin-top:14px">🔒 No spam, ever. Just a gentle note when we launch.</p>
   <div class="success-msg" id="ctaSuccess" style="max-width:460px;margin:20px auto 0">
     <p>"You're on the list. We'll be in touch."</p>
-    <span>You'll receive early access + 3 months of Flourish premium, free.</span>
+    <span>You'll receive early access + 3 months of Bloom premium, free.</span>
   </div>
 
   <div class="cta-perks">
@@ -860,6 +860,31 @@
     <a href="mailto:hello@goflourish.com.au" class="foot-link">Contact</a>
   </div>
 </footer>
+
+<script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-analytics.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyBN-XRhWhKbZ0Adh5q6Xq6PBL9ggpYztag",
+    authDomain: "flourish-7b8c8.firebaseapp.com",
+    projectId: "flourish-7b8c8",
+    storageBucket: "flourish-7b8c8.firebasestorage.app",
+    messagingSenderId: "363698653156",
+    appId: "1:363698653156:web:85bf133afe0ccc1a34e9f1",
+    measurementId: "G-QK2JWFP317"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app); 
+
+</script>  
 
 <script>
   // Nav scroll effect

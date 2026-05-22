@@ -865,6 +865,7 @@
   // Import the functions you need from the SDKs you need
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
   import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-analytics.js";
+  import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
   // TODO: Add SDKs for Firebase products that you want to use
   // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -883,6 +884,10 @@
   // Initialize Firebase
   const app = initializeApp(firebaseConfig);
   const analytics = getAnalytics(app); 
+  const db = getFirestore(app);
+    window.db = db;
+    window.addDoc = addDoc;
+    window.collection = collection;
 
 </script>  
 
@@ -910,7 +915,7 @@
   revealEls.forEach(el => revealObs.observe(el));
 
   // Email form
-  function submitEmail(inputId, btnId, successId) {
+  async function submitEmail(inputId, btnId, successId) {
     const input = document.getElementById(inputId);
     const btn = document.getElementById(btnId);
     const success = document.getElementById(successId);
@@ -930,21 +935,36 @@
     btn.textContent = 'Saving...';
     btn.classList.add('loading');
 
-    // Simulate API call — replace with your real endpoint (Mailchimp, ConvertKit, etc.)
+    try {
+    // Send data to Firestore collection named 'waitlist'
+    await window.addDoc(window.collection(window.db, "waitlist"), {
+      email: email,
+      timestamp: new Date().toISOString()
+    });
+
+   // UI Updates on Success
+    btn.textContent = "✓ You're in!";
+    btn.classList.remove('loading');
+    btn.classList.add('success');
+    input.value = '';
+    input.placeholder = 'your@email.com';
+    success.style.display = 'block';
+
+  } catch (error) {
+    console.error("Error adding document: ", error);
+    btn.textContent = 'Oops! Can you please try again?';
+    btn.classList.remove('loading');
     setTimeout(() => {
-      btn.textContent = '✓ You\'re in!';
-      btn.classList.remove('loading');
-      btn.classList.add('success');
-      input.value = '';
-      input.placeholder = 'your@email.com';
-      success.style.display = 'block';
+      btn.textContent = inputId === 'heroEmail' ? 'Get Early Access' : 'Reserve My Spot';
+    }, 3000);
+  }
+}
 
       // Store locally (for demo)
-      const emails = JSON.parse(localStorage.getItem('flourish_waitlist') || '[]');
-      emails.push({ email, date: new Date().toISOString() });
-      localStorage.setItem('flourish_waitlist', JSON.stringify(emails));
-    }, 900);
-  }
+     // const emails = JSON.parse(localStorage.getItem('flourish_waitlist') || '[]');
+     // emails.push({ email, date: new Date().toISOString() });
+      //lo//00); 
+ // } 
 
   // Enter key submits
   document.querySelectorAll('.email-in').forEach(input => {

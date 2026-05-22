@@ -643,8 +643,8 @@
       </div>
       <p class="form-note">🔒 No spam. Just a gentle note when we launch.</p>
       <div class="success-msg" id="heroSuccess">
-        <p>"You're on the list. We'll be in touch."</p>
-        <span>You'll receive early access + 3 months of Flourish premium, free.</span>
+        <p>"Welcome! You're on the list. We'll be in touch."</p>
+        <span>You'll receive early access + 3 months of Bloom, free.</span>
       </div>
     </div>
   </div>
@@ -860,6 +860,31 @@
     <a href="mailto:hello@goflourish.com.au" class="foot-link">Contact</a>
   </div>
 </footer>
+
+<script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-analytics.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyBN-XRhWhKbZ0Adh5q6Xq6PBL9ggpYztag",
+    authDomain: "flourish-7b8c8.firebaseapp.com",
+    projectId: "flourish-7b8c8",
+    storageBucket: "flourish-7b8c8.firebasestorage.app",
+    messagingSenderId: "363698653156",
+    appId: "1:363698653156:web:85bf133afe0ccc1a34e9f1",
+    measurementId: "G-QK2JWFP317"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app); 
+
+</script>  
 
 <script>
   // Nav scroll effect

@@ -16,7 +16,8 @@
 <title>Flourish — Every First, Forever</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-<style>
+<script src="https://www.google.com/recaptcha/enterprise.js?render=6LcCFvgsAAAAAP705VabKOxOQO-jzNv1HUpte9c9"></script>
+  <style>
   :root {
     --cream: #FBF7F2;
     --warm: #FEFCF9;
@@ -801,7 +802,7 @@
     </div>
     <div class="testi-card reveal">
       <div class="testi-stars">★★★★★</div>
-      <p class="testi-text">"The milestone notifications are brilliant. It reminded me to watch for her first giggle — and I caught it."</p>
+      <p class="testi-text">"The milestone notifications are brilliant. It reminded me to watch for her first giggle — and I caught it!"</p>
       <div class="testi-author">— James K., father of Aria, 7 months</div>
     </div>
     <div class="testi-card reveal">
@@ -826,8 +827,8 @@
   </div>
   <p class="form-note" style="justify-content:center;margin-top:14px">🔒 No spam, ever. Just a gentle note when we launch.</p>
   <div class="success-msg" id="ctaSuccess" style="max-width:460px;margin:20px auto 0">
-    <p>"You're on the list. We'll be in touch."</p>
-    <span>You'll receive early access + 3 months of Bloom premium, free.</span>
+    <p>"Welcome! You're on the list. We'll be in touch."</p>
+    <span>You'll receive early access + 3 months of Bloom, free.</span>
   </div>
 
   <div class="cta-perks">
@@ -915,7 +916,24 @@
   revealEls.forEach(el => revealObs.observe(el));
 
   // Email form
-  async function submitEmail(inputId, btnId, successId) {
+
+document.getElementById('heroBtn').addEventListener('click', handleFormSubmit);
+document.getElementById('ctaBtn').addEventListener('click', handleFormSubmit);
+  
+ function handleFormSubmit(e) {
+  e.preventDefault();
+  const isHero = e.target.id === 'heroBtn';
+  const inputId = isHero ? 'heroEmail' : 'ctaEmail';
+  const successId = isHero ? 'heroSuccess' : 'ctaSuccess';
+  
+  grecaptcha.enterprise.ready(async () => {
+    const token = await grecaptcha.enterprise.execute('6LcCFvgsAAAAAP705VabKOxOQO-jzNv1HUpte9c9', {action: 'SUBMIT'});
+    // Call the submitEmail function here and pass the token!
+    submitEmail(inputId, e.target.id, successId, token);
+  });
+}
+  
+  async function submitEmail(inputId, btnId, successId, recaptchaToken) {
     const input = document.getElementById(inputId);
     const btn = document.getElementById(btnId);
     const success = document.getElementById(successId);

@@ -958,6 +958,11 @@ document.getElementById('ctaBtn').addEventListener('click', handleFormSubmit);
     await window.addDoc(window.collection(window.db, "waitlist"), {
       email: email,
       timestamp: new Date().toISOString()
+      page: 'cta section",
+      source: window.location.href,
+      to: userEmailInput
+      template: {
+        name: "Flourish v1",
     });
 
    // UI Updates on Success

@@ -956,9 +956,24 @@ document.getElementById('ctaBtn').addEventListener('click', handleFormSubmit);
     try {
     // Send data to Firestore collection named 'waitlist'
     await window.addDoc(window.collection(window.db, "waitlist"), {
-      email: email,
-      timestamp: new Date().toISOString()
+  email: email, 
+  timestamp: new Date().toISOString(), // Added missing comma
+  page: 'cta section',                 // Fixed mismatched quotes
+  source: window.location.href, 
     });
+
+ await window.addDoc(window.collection(window.db, "auto_reply"), {
+    to: email,
+    template: {
+      templateId: "d-d05b9e636230405b9b39b4362dc44174",
+      data: {
+        email: email,
+      },
+    },
+  });
+  } catch (err) {
+  console.error("Waitlist/email error:", err);
+}
 
    // UI Updates on Success
     btn.textContent = "✓ You're in!";

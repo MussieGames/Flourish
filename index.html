@@ -964,15 +964,14 @@ document.getElementById('ctaBtn').addEventListener('click', handleFormSubmit);
 
  await window.addDoc(window.collection(window.db, "auto_reply"), {
     to: email,
-    message: {},
-    sendGrid: {
+    template: {
       templateId: "d-d05b9e636230405b9b39b4362dc44174",
-      dynamicTemplateData: {
-        email,
+      data: {
+        email: email,
       },
     },
   });
-} catch (err) {
+  } catch (err) {
   console.error("Waitlist/email error:", err);
 }
 

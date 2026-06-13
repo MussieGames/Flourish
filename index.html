@@ -960,13 +960,21 @@ document.getElementById('ctaBtn').addEventListener('click', handleFormSubmit);
   timestamp: new Date().toISOString(), // Added missing comma
   page: 'cta section',                 // Fixed mismatched quotes
   source: window.location.href, 
-  to: email, 
-  template: {
-    id: "d-d05b9e636230405b9b39b4362dc44174",
-    data: {},
-      // Closed the object properly
-  }                                    // Closed template object
-});
+  ));
+
+ await window.addDoc(window.collection(window.db, "mail"), {
+    to: email,
+    message: {},
+    sendGrid: {
+      templateId: "d-d05b9e636230405b9b39b4362dc44174",
+      dynamicTemplateData: {
+        email,
+      },
+    },
+  });
+} catch (err) {
+  console.error("Waitlist/email error:", err);
+}
 
    // UI Updates on Success
     btn.textContent = "✓ You're in!";

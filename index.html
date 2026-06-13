@@ -915,23 +915,21 @@
   }, { threshold: 0.12 });
   revealEls.forEach(el => revealObs.observe(el));
 
-  // Email form
-
-document.getElementById('heroBtn').addEventListener('click', handleFormSubmit);
-document.getElementById('ctaBtn').addEventListener('click', handleFormSubmit);
+  // Email form handling
+  document.getElementById('heroBtn').addEventListener('click', handleFormSubmit);
+  document.getElementById('ctaBtn').addEventListener('click', handleFormSubmit);
   
- function handleFormSubmit(e) {
-  e.preventDefault();
-  const isHero = e.target.id === 'heroBtn';
-  const inputId = isHero ? 'heroEmail' : 'ctaEmail';
-  const successId = isHero ? 'heroSuccess' : 'ctaSuccess';
-  
-  grecaptcha.enterprise.ready(async () => {
-    const token = await grecaptcha.enterprise.execute('6LcCFvgsAAAAAP705VabKOxOQO-jzNv1HUpte9c9', {action: 'SUBMIT'});
-    // Call the submitEmail function here and pass the token!
-    submitEmail(inputId, e.target.id, successId, token);
-  });
-}
+  function handleFormSubmit(e) {
+    e.preventDefault();
+    const isHero = e.target.id === 'heroBtn';
+    const inputId = isHero ? 'heroEmail' : 'ctaEmail';
+    const successId = isHero ? 'heroSuccess' : 'ctaSuccess';
+    
+    grecaptcha.enterprise.ready(async () => {
+      const token = await grecaptcha.enterprise.execute('6LcCFvgsAAAAAP705VabKOxOQO-jzNv1HUpte9c9', {action: 'SUBMIT'});
+      submitEmail(inputId, e.target.id, successId, token);
+    });
+  }
   
   async function submitEmail(inputId, btnId, successId, recaptchaToken) {
     const input = document.getElementById(inputId);
@@ -954,50 +952,33 @@ document.getElementById('ctaBtn').addEventListener('click', handleFormSubmit);
     btn.classList.add('loading');
 
     try {
-    // Send data to Firestore collection named 'waitlist'
-    await window.addDoc(window.collection(window.db, "waitlist"), {
-  email: email, 
-  timestamp: new Date().toISOString(), // Added missing comma
-  page: 'cta section',                 // Fixed mismatched quotes
-  source: window.location.href, 
-    });
+      // 1. Simply add the user data to the 'waitlist' collection.
+      // Your Australia-based Cloud Function will notice this and instantly handle the rest!
+      await window.addDoc(window.collection(window.db, "waitlist"), {
+        email: email, 
+        timestamp: new Date().toISOString(),
+        page: inputId === 'heroEmail' ? 'hero section' : 'cta section',                 
+        source: window.location.href,
+        userAgent: navigator.userAgent
+      });
 
- await window.addDoc(window.collection(window.db, "auto_reply"), {
-    to: email,
-    template: {
-      templateId: "d-d05b9e636230405b9b39b4362dc44174",
-      data: {
-        email: email,
-      },
-    },
-  });
-  } catch (err) {
-  console.error("Waitlist/email error:", err);
-}
+      // UI Updates on Success
+      btn.textContent = "✓ You're in!";
+      btn.classList.remove('loading');
+      btn.classList.add('success');
+      input.value = '';
+      input.placeholder = 'your@email.com';
+      success.style.display = 'block';
 
-   // UI Updates on Success
-    btn.textContent = "✓ You're in!";
-    btn.classList.remove('loading');
-    btn.classList.add('success');
-    input.value = '';
-    input.placeholder = 'your@email.com';
-    success.style.display = 'block';
-
-  } catch (error) {
-    console.error("Error adding document: ", error);
-    btn.textContent = 'Oops! Can you please try again?';
-    btn.classList.remove('loading');
-    setTimeout(() => {
-      btn.textContent = inputId === 'heroEmail' ? 'Get Early Access' : 'Reserve My Spot';
-    }, 3000);
+    } catch (err) {
+      console.error("Waitlist submit error:", err);
+      btn.textContent = 'Oops! Can you please try again?';
+      btn.classList.remove('loading');
+      setTimeout(() => {
+        btn.textContent = btnId === 'heroBtn' ? 'Get Early Access' : 'Reserve My Spot';
+      }, 3000);
+    }
   }
-}
-
-      // Store locally (for demo)
-     // const emails = JSON.parse(localStorage.getItem('flourish_waitlist') || '[]');
-     // emails.push({ email, date: new Date().toISOString() });
-      //lo//00); 
- // } 
 
   // Enter key submits
   document.querySelectorAll('.email-in').forEach(input => {

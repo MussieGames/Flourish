@@ -962,7 +962,7 @@ document.getElementById('ctaBtn').addEventListener('click', handleFormSubmit);
   source: window.location.href, 
   ));
 
- await window.addDoc(window.collection(window.db, "mail"), {
+ await window.addDoc(window.collection(window.db, "auto_reply"), {
     to: email,
     message: {},
     sendGrid: {

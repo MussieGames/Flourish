@@ -1,0 +1,66 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function childPath(childId) {
+      return /databases/(default)/documents/children/$(childId);
+    }
+
+    function childExists(childId) {
+      return firestore.exists(childPath(childId));
+    }
+
+    function childData(childId) {
+      return firestore.get(childPath(childId)).data;
+    }
+
+    function isChildOwner(childId) {
+      return signedIn() &&
+        childExists(childId) &&
+        childData(childId).ownerUid == request.auth.uid;
+    }
+
+    function isChildMember(childId) {
+      return signedIn() &&
+        childExists(childId) &&
+        (
+          childData(childId).ownerUid == request.auth.uid ||
+          childData(childId).caregiverUids[request.auth.uid] == true
+        );
+    }
+
+    function isAllowedMedia() {
+      return request.resource.contentType in [
+        'image/jpeg',
+        'image/png',
+        'video/mp4'
+      ];
+    }
+
+    match /users/{uploaderUid}/children/{childId}/memories/{memoryId}/{fileName} {
+      allow read: if isChildMember(childId);
+
+      allow create: if signedIn() &&
+        request.auth.uid == uploaderUid &&
+        isChildMember(childId) &&
+        request.resource.size < 104857600 &&
+        isAllowedMedia() &&
+        request.resource.metadata.ownerUid == request.auth.uid &&
+        request.resource.metadata.childId == childId &&
+        request.resource.metadata.memoryId == memoryId;
+
+      allow update: if false;
+
+      allow delete: if signedIn() &&
+        (request.auth.uid == uploaderUid || isChildOwner(childId));
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

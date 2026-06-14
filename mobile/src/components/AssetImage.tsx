@@ -1,5 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, View, type ViewStyle } from "react-native";
+import {
+  StyleSheet,
+  type ImageStyle,
+  type StyleProp,
+  type ViewStyle,
+} from "react-native";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -12,7 +17,7 @@ interface Props {
   /** Fallback emoji shown when there is no image. */
   fallbackEmoji?: string;
   gradient?: [string, string];
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   emojiSize?: number;
 }
 
@@ -58,7 +63,7 @@ export function AssetImage({
     return (
       <Image
         source={{ uri: url }}
-        style={[styles.base, style]}
+        style={[styles.base, style] as StyleProp<ImageStyle>}
         contentFit="cover"
         transition={200}
       />

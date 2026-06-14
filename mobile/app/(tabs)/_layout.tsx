@@ -6,14 +6,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../src/theme/tokens";
 import { fonts } from "../../src/theme/typography";
 
-type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
-
-function icon(name: IoniconName) {
-  return ({ color, size }: { color: string; size: number }) => (
-    <Ionicons name={name} size={size} color={color} />
-  );
-}
-
 export default function TabsLayout() {
   return (
     <Tabs
@@ -38,23 +30,48 @@ export default function TabsLayout() {
     >
       <Tabs.Screen
         name="index"
-        options={{ title: "Home", tabBarIcon: icon("home-outline") }}
+        options={{
+          title: "Home",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="home-outline" size={size} color={color} />
+          ),
+        }}
       />
       <Tabs.Screen
         name="calendar"
-        options={{ title: "Calendar", tabBarIcon: icon("calendar-outline") }}
+        options={{
+          title: "Calendar",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="calendar-outline" size={size} color={color} />
+          ),
+        }}
       />
       <Tabs.Screen
         name="firsts"
-        options={{ title: "Firsts", tabBarIcon: icon("star-outline") }}
+        options={{
+          title: "Firsts",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="star-outline" size={size} color={color} />
+          ),
+        }}
       />
       <Tabs.Screen
         name="journal"
-        options={{ title: "Journal", tabBarIcon: icon("book-outline") }}
+        options={{
+          title: "Journal",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="book-outline" size={size} color={color} />
+          ),
+        }}
       />
       <Tabs.Screen
         name="profile"
-        options={{ title: "Profile", tabBarIcon: icon("person-outline") }}
+        options={{
+          title: "Profile",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="person-outline" size={size} color={color} />
+          ),
+        }}
       />
     </Tabs>
   );

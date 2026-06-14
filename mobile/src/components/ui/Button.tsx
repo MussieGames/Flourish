@@ -4,6 +4,7 @@ import {
   Pressable,
   StyleSheet,
   View,
+  type StyleProp,
   type ViewStyle,
 } from "react-native";
 
@@ -20,7 +21,7 @@ interface Props {
   variant?: Variant;
   loading?: boolean;
   disabled?: boolean;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   /** Render lighter for dark backgrounds. */
   onDark?: boolean;
 }
@@ -41,8 +42,8 @@ export function Button({
     onPress?.();
   };
 
-  const containerStyle: ViewStyle[] = [styles.base];
-  let textColor = colors.white;
+  const containerStyle: StyleProp<ViewStyle>[] = [styles.base];
+  let textColor: string = colors.white;
 
   if (variant === "primary") {
     containerStyle.push(styles.primary);

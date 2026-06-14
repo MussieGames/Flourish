@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, View, type ViewStyle } from "react-native";
+import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 
 import { colors, radius, shadow } from "../../theme/tokens";
 
@@ -9,7 +9,7 @@ export function Card({
   soft = false,
 }: {
   children: React.ReactNode;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   soft?: boolean;
 }) {
   return (

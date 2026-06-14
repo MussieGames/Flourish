@@ -9,6 +9,7 @@ import {
   query,
   serverTimestamp,
   Timestamp,
+  type QueryConstraint,
 } from "firebase/firestore";
 
 import { db } from "../config/firebase";
@@ -43,7 +44,7 @@ export function subscribeMemories(
   cb: (items: Memory[]) => void,
   options?: { limit?: number; onError?: (e: Error) => void },
 ): () => void {
-  const constraints = [orderBy("createdAt", "desc")];
+  const constraints: QueryConstraint[] = [orderBy("createdAt", "desc")];
   if (options?.limit) constraints.push(fbLimit(options.limit));
   const q = query(memoriesCol(childId), ...constraints);
   return onSnapshot(

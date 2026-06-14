@@ -11,7 +11,7 @@ export function Reassure({
   children,
 }: {
   title: string;
-  children: string;
+  children: React.ReactNode;
 }) {
   return (
     <View style={styles.box}>

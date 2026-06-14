@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, View, type ViewStyle } from "react-native";
+import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { colors } from "../../theme/tokens";
@@ -9,7 +9,7 @@ interface Props {
   /** Glow colour (defaults to the warm sienna used in the mockup heroes). */
   glow?: string;
   background?: string;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   /** Corner the glow emanates from. */
   glowCorner?: "top-right" | "bottom-left" | "bottom-right" | "center";
 }

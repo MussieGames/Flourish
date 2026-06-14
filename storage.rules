@@ -1,0 +1,53 @@
+rules_version = '2';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Flourish — Cloud Storage security rules
+//
+// Assets live at:  children/{childId}/{uploaderUid}/{fileName}
+//
+// • Writes: only the authenticated uploader may write to their own folder, and
+//   only images/videos up to 15 MB are accepted (mirrors uploadChildAsset()).
+// • Reads: the uploader, plus any family member of that child. Membership is
+//   carried in a custom auth claim `childIds`, kept in sync by the
+//   `syncChildClaims` Cloud Function whenever a child's members change.
+// • Everything else is denied.
+//
+// App Check enforcement for Storage is enabled in the Firebase console.
+// ─────────────────────────────────────────────────────────────────────────────
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isMemberOf(childId) {
+      return isSignedIn()
+        && ('childIds' in request.auth.token)
+        && (childId in request.auth.token.childIds);
+    }
+
+    function isValidUpload() {
+      return request.resource.size < 15 * 1024 * 1024
+        && request.resource.contentType != null
+        && request.resource.contentType.matches('image/.*|video/.*');
+    }
+
+    match /children/{childId}/{uploaderUid}/{fileName} {
+      allow read: if isMemberOf(childId)
+        || (isSignedIn() && request.auth.uid == uploaderUid);
+
+      allow create, update: if isSignedIn()
+        && request.auth.uid == uploaderUid
+        && isValidUpload();
+
+      allow delete: if isSignedIn() && request.auth.uid == uploaderUid;
+    }
+
+    // Default deny.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

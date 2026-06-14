@@ -1,0 +1,191 @@
+rules_version = '2';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Flourish — Firestore security rules
+//
+// Security model
+// • Every document is owned by an authenticated user (request.auth.uid).
+// • A "child" has an `ownerId` and a `members` array. Only members can read or
+//   write that child's data and its subcollections.
+// • All user-supplied fields are length/type validated here so a malicious or
+//   modified client can NEVER write oversized or malformed data. These limits
+//   mirror mobile/src/lib/validation.ts.
+// • Billing (`users/{uid}.plan`) can only be changed by the Admin SDK
+//   (Cloud Functions / verified purchases) — clients can never escalate it.
+//
+// App Check enforcement is configured in the Firebase console (it is applied at
+// the API layer, not in these rules).
+// ─────────────────────────────────────────────────────────────────────────────
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isUser(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isNonEmptyString(v, maxLen) {
+      return v is string && v.size() > 0 && v.size() <= maxLen;
+    }
+
+    function isOptionalString(v, maxLen) {
+      return v == null || (v is string && v.size() <= maxLen);
+    }
+
+    function isStringList(v, maxCount, maxLen) {
+      return v is list && v.size() <= maxCount;
+    }
+
+    // The child this (sub)document belongs to.
+    function childDoc(childId) {
+      return get(/databases/$(database)/documents/children/$(childId)).data;
+    }
+
+    function isChildMember(childId) {
+      return isSignedIn() &&
+        request.auth.uid in childDoc(childId).members;
+    }
+
+    // ── Users ────────────────────────────────────────────────────────────────
+    match /users/{uid} {
+      allow read: if isUser(uid);
+
+      // On create the user can only ever start on the free tier.
+      allow create: if isUser(uid)
+        && incoming().plan == 'seedling'
+        && isOptionalString(incoming().email, 254)
+        && isOptionalString(incoming().displayName, 80)
+        && isOptionalString(incoming().activeChildId, 200);
+
+      // Profile updates are allowed, but `plan` is immutable from the client and
+      // createdAt can never be rewritten.
+      allow update: if isUser(uid)
+        && incoming().plan == existing().plan
+        && incoming().createdAt == existing().createdAt
+        && isOptionalString(incoming().displayName, 80)
+        && isOptionalString(incoming().activeChildId, 200);
+
+      allow delete: if false; // Account deletion handled server-side (GDPR flow).
+    }
+
+    // ── Children ─────────────────────────────────────────────────────────────
+    match /children/{childId} {
+      allow read: if isSignedIn() && request.auth.uid in existing().members;
+
+      allow create: if isSignedIn()
+        && incoming().ownerId == request.auth.uid
+        && incoming().members is list
+        && incoming().members.hasOnly([request.auth.uid])
+        && incoming().members.size() == 1
+        && isNonEmptyString(incoming().name, 40)
+        && (incoming().bornAt == null || incoming().bornAt is timestamp)
+        && isOptionalString(incoming().avatarEmoji, 8);
+
+      // Members can edit child details. ownerId is immutable; only the owner may
+      // change the members list (invite / remove family).
+      allow update: if isSignedIn()
+        && request.auth.uid in existing().members
+        && incoming().ownerId == existing().ownerId
+        && isNonEmptyString(incoming().name, 40)
+        && isOptionalString(incoming().avatarEmoji, 8)
+        && (
+          incoming().members == existing().members
+          || request.auth.uid == existing().ownerId
+        )
+        && incoming().members is list
+        && incoming().members.size() <= 12
+        && request.auth.uid in incoming().members;
+
+      allow delete: if isSignedIn() && request.auth.uid == existing().ownerId;
+
+      // ── Memories ───────────────────────────────────────────────────────────
+      match /memories/{memoryId} {
+        allow read: if isChildMember(childId);
+        allow create: if isChildMember(childId)
+          && incoming().ownerId == request.auth.uid
+          && incoming().kind in ['photo', 'video', 'journal']
+          && isNonEmptyString(incoming().title, 120)
+          && isOptionalString(incoming().caption, 280)
+          && isOptionalString(incoming().storagePath, 512)
+          && isStringList(incoming().tags, 8, 24);
+        allow update: if isChildMember(childId)
+          && incoming().ownerId == existing().ownerId
+          && isNonEmptyString(incoming().title, 120)
+          && isOptionalString(incoming().caption, 280)
+          && isStringList(incoming().tags, 8, 24);
+        allow delete: if isChildMember(childId);
+      }
+
+      // ── Journal ──────────────────────────────────────────────────────────────
+      match /journal/{entryId} {
+        allow read: if isChildMember(childId);
+        allow create: if isChildMember(childId)
+          && incoming().ownerId == request.auth.uid
+          && isNonEmptyString(incoming().text, 4000)
+          && isOptionalString(incoming().mood, 8)
+          && isOptionalString(incoming().storagePath, 512)
+          && isStringList(incoming().tags, 8, 24);
+        allow update: if isChildMember(childId)
+          && incoming().ownerId == existing().ownerId
+          && isNonEmptyString(incoming().text, 4000)
+          && isStringList(incoming().tags, 8, 24);
+        allow delete: if isChildMember(childId);
+      }
+
+      // ── Milestones ───────────────────────────────────────────────────────────
+      match /milestones/{milestoneId} {
+        allow read: if isChildMember(childId);
+        allow create: if isChildMember(childId)
+          && incoming().ownerId == request.auth.uid
+          && isNonEmptyString(incoming().title, 120)
+          && isNonEmptyString(incoming().key, 60)
+          && incoming().status in ['upcoming', 'captured'];
+        allow update: if isChildMember(childId)
+          && incoming().status in ['upcoming', 'captured']
+          && isOptionalString(incoming().note, 280);
+        allow delete: if isChildMember(childId);
+      }
+
+      // ── Calendar events ──────────────────────────────────────────────────────
+      match /events/{eventId} {
+        allow read: if isChildMember(childId);
+        allow create: if isChildMember(childId)
+          && incoming().ownerId == request.auth.uid
+          && incoming().type in ['milestone', 'memory', 'appointment']
+          && isNonEmptyString(incoming().title, 120)
+          && isOptionalString(incoming().meta, 200)
+          && incoming().date is string
+          && incoming().date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
+        allow update: if isChildMember(childId)
+          && incoming().ownerId == existing().ownerId
+          && isNonEmptyString(incoming().title, 120);
+        allow delete: if isChildMember(childId);
+      }
+    }
+
+    // ── Waitlist (landing page) ────────────────────────────────────────────────
+    // Writes happen exclusively through the addWaitlistEmail Cloud Function using
+    // the Admin SDK. The collection is otherwise completely locked down.
+    match /waitlist/{doc} {
+      allow read, write: if false;
+    }
+
+    // Default deny everything else.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

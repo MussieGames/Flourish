@@ -1,0 +1,135 @@
+rules_version = '2';
+
+// ═══════════════════════════════════════════════════════════════
+// Firestore Security Rules for Flourish
+//
+// Design principles:
+//  - All data is user-scoped: users can only read/write their own documents
+//  - Every write is validated for required fields and correct types
+//  - No document may be read or written without authentication
+//  - No cross-user access is possible at the database level
+//  - Admin-only collections (subscriptions) are read-only for end users
+// ═══════════════════════════════════════════════════════════════
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers ──────────────────────────────────────────────────
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isAuthenticated() && request.auth.uid == uid;
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.parentId;
+    }
+
+    function hasFields(fields) {
+      return fields.toSet().difference(request.resource.data.keys().toSet()).size() == 0;
+    }
+
+    function isValidString(field, maxLen) {
+      return request.resource.data[field] is string
+        && request.resource.data[field].size() > 0
+        && request.resource.data[field].size() <= maxLen;
+    }
+
+    function isValidTimestamp(field) {
+      return request.resource.data[field] is timestamp;
+    }
+
+    function noNewFields(allowed) {
+      return request.resource.data.keys().toSet().difference(allowed.toSet()).size() == 0;
+    }
+
+    // ── User profiles ─────────────────────────────────────────────
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId)
+        && hasFields(['email', 'displayName', 'createdAt'])
+        && isValidString('email', 255)
+        && isValidString('displayName', 100);
+      allow update: if isOwner(userId)
+        && noNewFields(['displayName', 'photoURL', 'updatedAt']);
+      allow delete: if false; // deletion handled by Cloud Functions
+    }
+
+    // ── Babies ────────────────────────────────────────────────────
+    match /babies/{babyId} {
+      allow read: if isAuthenticated() && resource.data.parentId == request.auth.uid;
+      allow create: if isAuthenticated()
+        && request.resource.data.parentId == request.auth.uid
+        && hasFields(['name', 'birthDate', 'parentId', 'createdAt', 'updatedAt'])
+        && isValidString('name', 100)
+        && isValidTimestamp('birthDate')
+        && isValidTimestamp('createdAt');
+      allow update: if isDocOwner()
+        && noNewFields(['name', 'photoURL', 'updatedAt']);
+      allow delete: if isDocOwner();
+    }
+
+    // ── Memories ──────────────────────────────────────────────────
+    match /memories/{memoryId} {
+      allow read: if isAuthenticated() && resource.data.parentId == request.auth.uid;
+      allow create: if isAuthenticated()
+        && request.resource.data.parentId == request.auth.uid
+        && hasFields(['babyId', 'parentId', 'type', 'title', 'capturedAt', 'createdAt'])
+        && isValidString('title', 200)
+        && request.resource.data.type in ['photo', 'video', 'journal'];
+      allow update: if isDocOwner()
+        && noNewFields(['title', 'description', 'stickers', 'tags', 'mood', 'updatedAt']);
+      allow delete: if isDocOwner();
+    }
+
+    // ── Milestones ────────────────────────────────────────────────
+    match /milestones/{milestoneId} {
+      allow read: if isAuthenticated() && resource.data.parentId == request.auth.uid;
+      allow create: if isAuthenticated()
+        && request.resource.data.parentId == request.auth.uid
+        && hasFields(['babyId', 'parentId', 'type', 'title', 'isCaptured', 'createdAt'])
+        && isValidString('title', 200);
+      allow update: if isDocOwner()
+        && noNewFields(['isCaptured', 'capturedAt', 'memoryId', 'updatedAt']);
+      allow delete: if isDocOwner();
+    }
+
+    // ── Journal entries ────────────────────────────────────────────
+    match /journal_entries/{entryId} {
+      allow read: if isAuthenticated() && resource.data.parentId == request.auth.uid;
+      allow create: if isAuthenticated()
+        && request.resource.data.parentId == request.auth.uid
+        && hasFields(['babyId', 'parentId', 'text', 'capturedAt', 'createdAt'])
+        && isValidString('text', 5000);
+      allow update: if isDocOwner()
+        && noNewFields(['text', 'mood', 'tags', 'photoURL', 'updatedAt']);
+      allow delete: if isDocOwner();
+    }
+
+    // ── Calendar events ────────────────────────────────────────────
+    match /calendar_events/{eventId} {
+      allow read: if isAuthenticated() && resource.data.parentId == request.auth.uid;
+      allow create: if isAuthenticated()
+        && request.resource.data.parentId == request.auth.uid
+        && hasFields(['babyId', 'parentId', 'type', 'title', 'date', 'createdAt'])
+        && isValidString('title', 200)
+        && request.resource.data.type in ['milestone', 'memory', 'appointment'];
+      allow update: if isDocOwner()
+        && noNewFields(['title', 'description', 'date', 'updatedAt']);
+      allow delete: if isDocOwner();
+    }
+
+    // ── Subscriptions — read-only for users; managed by Cloud Functions ──
+    match /subscriptions/{userId} {
+      allow read: if isOwner(userId);
+      allow write: if false; // only writable by Cloud Functions with admin SDK
+    }
+
+    // ── Catch-all: deny everything else ───────────────────────────
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

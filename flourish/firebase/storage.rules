@@ -1,0 +1,86 @@
+rules_version = '2';
+
+// ═══════════════════════════════════════════════════════════════
+// Firebase Storage Security Rules for Flourish
+//
+// Design principles:
+//  - All uploads must be authenticated
+//  - Files are stored under the user's UID prefix — no cross-user access
+//  - File type is validated (only images/videos allowed)
+//  - Individual file size caps enforced
+//  - No public reads (all access is authenticated)
+// ═══════════════════════════════════════════════════════════════
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ── Helpers ──────────────────────────────────────────────────
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwnerPath(uid) {
+      return isAuthenticated() && request.auth.uid == uid;
+    }
+
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    function isVideo() {
+      return request.resource.contentType.matches('video/.*');
+    }
+
+    function isAllowedMediaType() {
+      return isImage() || isVideo();
+    }
+
+    function maxSizeMB(mb) {
+      return request.resource.size <= mb * 1024 * 1024;
+    }
+
+    // ── User profile photos ───────────────────────────────────────
+    // Path: /users/{uid}/profile/avatar.{ext}
+    match /users/{uid}/profile/{filename} {
+      allow read: if isOwnerPath(uid);
+      allow write: if isOwnerPath(uid)
+        && isImage()
+        && maxSizeMB(5);
+    }
+
+    // ── Baby memory photos ────────────────────────────────────────
+    // Path: /users/{uid}/babies/{babyId}/memories/{memoryId}/{filename}
+    match /users/{uid}/babies/{babyId}/memories/{memoryId}/{filename} {
+      allow read: if isOwnerPath(uid);
+      allow create: if isOwnerPath(uid)
+        && isAllowedMediaType()
+        && maxSizeMB(50); // 50MB cap per file (for video)
+      allow update: if false; // memories are immutable after upload
+      allow delete: if isOwnerPath(uid);
+    }
+
+    // ── Baby profile photos ───────────────────────────────────────
+    // Path: /users/{uid}/babies/{babyId}/profile/{filename}
+    match /users/{uid}/babies/{babyId}/profile/{filename} {
+      allow read: if isOwnerPath(uid);
+      allow write: if isOwnerPath(uid)
+        && isImage()
+        && maxSizeMB(5);
+    }
+
+    // ── Journal entry photos ──────────────────────────────────────
+    // Path: /users/{uid}/journals/{entryId}/{filename}
+    match /users/{uid}/journals/{entryId}/{filename} {
+      allow read: if isOwnerPath(uid);
+      allow create: if isOwnerPath(uid)
+        && isImage()
+        && maxSizeMB(10);
+      allow delete: if isOwnerPath(uid);
+    }
+
+    // ── Catch-all: deny everything else ──────────────────────────
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

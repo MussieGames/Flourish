@@ -1,14 +1,8 @@
 import Constants from "expo-constants";
-import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
-import {
-  Auth,
-  getAuth,
-  getReactNativePersistence,
-  initializeAuth,
-} from "firebase/auth";
+import { initializeApp, getApps, getApp, FirebaseApp, FirebaseOptions } from "firebase/app";
+import { Auth, getAuth } from "firebase/auth";
 import { getFirestore, Firestore } from "firebase/firestore";
 import { getStorage, FirebaseStorage } from "firebase/storage";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { z } from "zod";
 
 const firebaseConfigSchema = z.object({
@@ -37,20 +31,20 @@ const parsedConfig = firebaseConfigSchema.safeParse(rawConfig);
 let cachedClient: FirebaseClient | null = null;
 
 function createClient(config: FirebaseConfig): FirebaseClient {
-  const app = getApps().length ? getApp() : initializeApp(config);
-
-  let auth: Auth;
-  try {
-    auth = initializeAuth(app, {
-      persistence: getReactNativePersistence(AsyncStorage),
-    });
-  } catch {
-    auth = getAuth(app);
-  }
+  const firebaseOptions: FirebaseOptions = {
+    apiKey: config.apiKey,
+    authDomain: config.authDomain,
+    projectId: config.projectId,
+    storageBucket: config.storageBucket,
+    messagingSenderId: config.messagingSenderId,
+    appId: config.appId,
+    ...(config.measurementId ? { measurementId: config.measurementId } : {}),
+  };
+  const app = getApps().length ? getApp() : initializeApp(firebaseOptions);
 
   return {
     app,
-    auth,
+    auth: getAuth(app),
     db: getFirestore(app),
     storage: getStorage(app),
     projectId: config.projectId,

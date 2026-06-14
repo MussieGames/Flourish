@@ -74,7 +74,13 @@ export function MainApp({ previewMode = false }: { previewMode?: boolean }) {
         return;
       }
 
-      const uploaded = await uploadMemoryAsset({ childId: child.id, asset: result.assets[0] });
+      const asset = result.assets[0];
+      if (!asset) {
+        Alert.alert("No media selected", "Choose a photo or video to save a memory.");
+        return;
+      }
+
+      const uploaded = await uploadMemoryAsset({ childId: child.id, asset });
       await saveMemory({
         childId: child.id,
         kind,
@@ -349,7 +355,7 @@ function CalendarScreen({ childName }: { childName: string }) {
           <CalendarDay key={`old-${day}`} day={day} muted />
         ))}
         {Array.from({ length: 31 }, (_, index) => index + 1).map((day) => (
-          <CalendarDay key={day} day={day} today={day === 19} events={eventMap[day]} />
+          <CalendarDay key={day} day={day} today={day === 19} events={eventMap[day] ?? []} />
         ))}
       </View>
       <View style={styles.legend}>
@@ -501,7 +507,7 @@ function PlanCard({
   variant?: "filled" | "outline";
 }) {
   return (
-    <Card style={[styles.planCard, badge ? { borderColor: colors.sienna } : null]}>
+    <Card style={[styles.planCard, badge ? { borderColor: colors.sienna } : undefined]}>
       {badge ? <Text style={styles.planBadge}>{badge}</Text> : null}
       <View style={styles.planTop}>
         <Text style={styles.planName}>{name}</Text>

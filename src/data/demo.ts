@@ -1,4 +1,4 @@
-import { StickerEraData } from "@/types";
+import { StickerEra, StickerEraData } from "@/types";
 import { colors } from "@/theme";
 
 export const demoChild = {
@@ -43,7 +43,7 @@ export const firsts = [
   { emoji: "😂", name: "First giggle", age: "~3-4 mo", done: false },
 ];
 
-export const eraData: Record<string, StickerEraData> = {
+export const eraData: Record<StickerEra, StickerEraData> = {
   baby: {
     label: "Baby Era · 0-2 years",
     note: "Auto-selected",

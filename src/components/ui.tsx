@@ -2,9 +2,11 @@ import React from "react";
 import {
   Pressable,
   StyleSheet,
+  StyleProp,
   Text,
   TextInput,
   TextInputProps,
+  TextStyle,
   View,
   ViewStyle,
 } from "react-native";
@@ -40,7 +42,7 @@ export function BodyText({
 }: {
   children: React.ReactNode;
   light?: boolean;
-  style?: ViewStyle;
+  style?: StyleProp<TextStyle>;
 }) {
   return <Text style={[styles.body, light && styles.lightBody, style]}>{children}</Text>;
 }
@@ -101,7 +103,7 @@ export function Card({
   style,
 }: {
   children: React.ReactNode;
-  style?: ViewStyle | ViewStyle[];
+  style?: StyleProp<ViewStyle>;
 }) {
   return <View style={[styles.card, style]}>{children}</View>;
 }
@@ -113,7 +115,7 @@ export function GradientCard({
 }: {
   colors: readonly [string, string];
   children: React.ReactNode;
-  style?: ViewStyle | ViewStyle[];
+  style?: StyleProp<ViewStyle>;
 }) {
   return (
     <LinearGradient colors={gradientColors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.gradient, style]}>

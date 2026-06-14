@@ -118,7 +118,9 @@ export default function Profile() {
             icon="camera-outline"
             label="Capture a memory"
             sub="Photo or video"
-            onPress={() => router.push("/capture?kind=photo")}
+            onPress={() =>
+              router.push({ pathname: "/capture", params: { kind: "photo" } })
+            }
           />
         </Card>
       </View>

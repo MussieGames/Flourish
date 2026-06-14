@@ -166,7 +166,12 @@ export default function MilestoneMoment() {
             <>
               <Button
                 label="📸 Add a photo of this moment"
-                onPress={() => router.replace("/capture?kind=photo")}
+                onPress={() =>
+                  router.replace({
+                    pathname: "/capture",
+                    params: { kind: "photo" },
+                  })
+                }
               />
               <Button
                 label="Back to firsts →"

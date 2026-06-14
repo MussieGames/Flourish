@@ -16,7 +16,7 @@ import {
   Text,
 } from "../../src/components/ui";
 import { AssetImage } from "../../src/components/AssetImage";
-import { colors, radius, spacing } from "../../src/theme/tokens";
+import { colors, radius } from "../../src/theme/tokens";
 import { fonts } from "../../src/theme/typography";
 import { useAuth } from "../../src/context/AuthContext";
 import { useChild } from "../../src/context/ChildContext";
@@ -114,17 +114,23 @@ export default function Dashboard() {
             icon="📸"
             label="Photo"
             highlighted
-            onPress={() => router.push("/capture?kind=photo")}
+            onPress={() =>
+              router.push({ pathname: "/capture", params: { kind: "photo" } })
+            }
           />
           <QuickButton
             icon="🎥"
             label="Video"
-            onPress={() => router.push("/capture?kind=video")}
+            onPress={() =>
+              router.push({ pathname: "/capture", params: { kind: "video" } })
+            }
           />
           <QuickButton
             icon="✍️"
             label="Journal"
-            onPress={() => router.push("/(tabs)/journal?compose=1")}
+            onPress={() =>
+              router.push({ pathname: "/(tabs)/journal", params: { compose: "1" } })
+            }
           />
         </View>
       </View>

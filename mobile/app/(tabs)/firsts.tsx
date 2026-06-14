@@ -78,9 +78,10 @@ export default function Firsts() {
                     milestone={m}
                     onPress={() => {
                       haptics.tap();
-                      router.push(
-                        `/milestone?childId=${m.childId}&milestoneId=${m.id}`,
-                      );
+                      router.push({
+                        pathname: "/milestone",
+                        params: { childId: m.childId, milestoneId: m.id },
+                      });
                     }}
                   />
                 ))}
@@ -99,9 +100,10 @@ export default function Firsts() {
                     done
                     onPress={() => {
                       haptics.tap();
-                      router.push(
-                        `/milestone?childId=${m.childId}&milestoneId=${m.id}`,
-                      );
+                      router.push({
+                        pathname: "/milestone",
+                        params: { childId: m.childId, milestoneId: m.id },
+                      });
                     }}
                   />
                 ))}

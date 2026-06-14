@@ -1,0 +1,46 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function childExists(childId) {
+      return firestore.exists(/databases/(default)/documents/children/$(childId));
+    }
+
+    function roleFor(childId) {
+      return firestore.get(/databases/(default)/documents/children/$(childId)).data.members[request.auth.uid];
+    }
+
+    function canReadChild(childId) {
+      return signedIn()
+        && childExists(childId)
+        && roleFor(childId) in ["owner", "editor", "viewer"];
+    }
+
+    function canEditChild(childId) {
+      return signedIn()
+        && childExists(childId)
+        && roleFor(childId) in ["owner", "editor"];
+    }
+
+    match /children/{childId}/users/{uid}/{fileName=**} {
+      allow read: if canReadChild(childId);
+
+      allow create, update: if canEditChild(childId)
+        && request.auth.uid == uid
+        && request.resource.size <= 25 * 1024 * 1024
+        && request.resource.contentType.matches("image/.*|video/.*");
+
+      allow delete: if signedIn()
+        && request.auth.uid == uid
+        && canEditChild(childId);
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

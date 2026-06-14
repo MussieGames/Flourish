@@ -1,0 +1,200 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function validServerTimestamps() {
+      return request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+    }
+
+    function childDoc(childId) {
+      return get(/databases/$(database)/documents/children/$(childId));
+    }
+
+    function childExists(childId) {
+      return exists(/databases/$(database)/documents/children/$(childId));
+    }
+
+    function roleFor(childId) {
+      return childDoc(childId).data.members[request.auth.uid];
+    }
+
+    function canReadChild(childId) {
+      return signedIn()
+        && childExists(childId)
+        && roleFor(childId) in ["owner", "editor", "viewer"];
+    }
+
+    function canEditChild(childId) {
+      return signedIn()
+        && childExists(childId)
+        && roleFor(childId) in ["owner", "editor"];
+    }
+
+    function canOwnChild() {
+      return signedIn()
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.members[request.auth.uid] == "owner";
+    }
+
+    match /users/{uid} {
+      allow create: if isSelf(uid)
+        && request.resource.data.uid == uid
+        && request.resource.data.email is string
+        && request.resource.data.email.size() <= 254
+        && request.resource.data.acceptedPrivacyVersion is string
+        && request.resource.data.marketingOptIn is bool
+        && request.resource.data.keys().hasOnly([
+          "uid",
+          "email",
+          "displayName",
+          "acceptedPrivacyVersion",
+          "marketingOptIn",
+          "createdAt",
+          "updatedAt"
+        ])
+        && validServerTimestamps();
+
+      allow read: if isSelf(uid);
+
+      allow update: if isSelf(uid)
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.keys().hasOnly([
+          "uid",
+          "email",
+          "displayName",
+          "acceptedPrivacyVersion",
+          "marketingOptIn",
+          "createdAt",
+          "updatedAt"
+        ])
+        && request.resource.data.updatedAt == request.time;
+
+      allow delete: if false;
+    }
+
+    match /children/{childId} {
+      allow create: if canOwnChild()
+        && request.resource.data.id == childId
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 80
+        && request.resource.data.archived is bool
+        && request.resource.data.keys().hasOnly([
+          "id",
+          "ownerId",
+          "name",
+          "birthDate",
+          "members",
+          "archived",
+          "createdAt",
+          "updatedAt"
+        ])
+        && validServerTimestamps();
+
+      allow read: if canReadChild(childId);
+
+      allow update: if canEditChild(childId)
+        && request.resource.data.id == resource.data.id
+        && request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.members == resource.data.members
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 80
+        && request.resource.data.archived is bool
+        && request.resource.data.keys().hasOnly([
+          "id",
+          "ownerId",
+          "name",
+          "birthDate",
+          "members",
+          "archived",
+          "createdAt",
+          "updatedAt"
+        ])
+        && request.resource.data.updatedAt == request.time;
+
+      allow delete: if signedIn()
+        && resource.data.ownerId == request.auth.uid;
+
+      match /memories/{memoryId} {
+        allow create: if canEditChild(childId)
+          && request.resource.data.ownerId == request.auth.uid
+          && request.resource.data.childId == childId
+          && request.resource.data.kind in ["photo", "video", "journal", "milestone"]
+          && request.resource.data.title is string
+          && request.resource.data.title.size() > 0
+          && request.resource.data.title.size() <= 120
+          && request.resource.data.occurredAtIso is string
+          && request.resource.data.visibility in ["private", "family"]
+          && request.resource.data.keys().hasOnly([
+            "ownerId",
+            "childId",
+            "kind",
+            "title",
+            "caption",
+            "mediaPath",
+            "occurredAtIso",
+            "tags",
+            "stickers",
+            "visibility",
+            "createdAt",
+            "updatedAt"
+          ])
+          && validServerTimestamps();
+
+        allow read: if canReadChild(childId);
+
+        allow update: if canEditChild(childId)
+          && request.resource.data.ownerId == resource.data.ownerId
+          && request.resource.data.childId == resource.data.childId
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.kind in ["photo", "video", "journal", "milestone"]
+          && request.resource.data.title is string
+          && request.resource.data.title.size() > 0
+          && request.resource.data.title.size() <= 120
+          && request.resource.data.visibility in ["private", "family"]
+          && request.resource.data.keys().hasOnly([
+            "ownerId",
+            "childId",
+            "kind",
+            "title",
+            "caption",
+            "mediaPath",
+            "occurredAtIso",
+            "tags",
+            "stickers",
+            "visibility",
+            "createdAt",
+            "updatedAt"
+          ])
+          && request.resource.data.updatedAt == request.time;
+
+        allow delete: if canEditChild(childId);
+      }
+    }
+
+    match /waitlist/{document=**} {
+      allow read, write: if false;
+    }
+
+    match /waitlistRateLimits/{document=**} {
+      allow read, write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

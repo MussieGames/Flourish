@@ -1,0 +1,49 @@
+rules_version = '2';
+
+// ─────────────────────────────────────────────────────────────────────────
+// Flourish — Cloud Storage Security Rules
+//
+// Photos & videos are stored under an owner-scoped, unguessable path:
+//   babies/{babyId}/memories/{uid}/{file}
+//
+// Writes are locked to the authenticated uploader and validated for content
+// type and size (mirrors the client-side checks in src/firebase/storage.ts so
+// a tampered client cannot bypass them).
+//
+// NOTE on reads: Storage Rules cannot query Firestore, so they cannot verify
+// baby-membership here. Reads therefore require (a) an authenticated user and
+// (b) knowledge of the full, unguessable object path (which is only obtainable
+// from a Firestore document the user already has read access to). For stricter,
+// per-member enforcement, serve media through a Cloud Function / signed URLs or
+// move to a custom-claims membership model.
+// ─────────────────────────────────────────────────────────────────────────
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidMedia() {
+      return request.resource.size < 15 * 1024 * 1024
+        && (
+          request.resource.contentType.matches('image/.*')
+          || request.resource.contentType.matches('video/.*')
+        );
+    }
+
+    match /babies/{babyId}/memories/{uid}/{fileName} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn()
+        && request.auth.uid == uid
+        && isValidMedia();
+      allow delete: if isSignedIn() && request.auth.uid == uid;
+    }
+
+    // Default deny everything else.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

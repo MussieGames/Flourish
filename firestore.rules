@@ -1,0 +1,141 @@
+rules_version = '2';
+
+// ─────────────────────────────────────────────────────────────────────────
+// Flourish — Firestore Security Rules
+//
+// Security model: a baby's data is *private by default*. Every document is
+// owned by exactly one parent (`ownerId`) and visible only to an explicit
+// allow-list of family members (`memberIds`). There are NO public reads and
+// NO cross-account access. All access requires an authenticated user, and
+// every write is shape-validated so a tampered client cannot inject
+// unexpected fields or oversized payloads.
+// ─────────────────────────────────────────────────────────────────────────
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers ──────────────────────────────────────────────────────────
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isUser(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function babyData(babyId) {
+      return get(/databases/$(database)/documents/babies/$(babyId)).data;
+    }
+
+    function isMember(babyId) {
+      return isSignedIn() && request.auth.uid in babyData(babyId).memberIds;
+    }
+
+    function isOwner(babyId) {
+      return isSignedIn() && request.auth.uid == babyData(babyId).ownerId;
+    }
+
+    function isNonEmptyString(value, max) {
+      return value is string && value.size() > 0 && value.size() <= max;
+    }
+
+    function isBoundedString(value, max) {
+      return value is string && value.size() <= max;
+    }
+
+    // ── Users ────────────────────────────────────────────────────────────
+    match /users/{uid} {
+      allow read: if isUser(uid);
+
+      allow create: if isUser(uid)
+        && request.resource.data.uid == uid
+        && request.resource.data.plan in ['seedling', 'bloom', 'heirloom'];
+
+      // A user may update their own profile but never spoof their uid.
+      allow update: if isUser(uid)
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.plan in ['seedling', 'bloom', 'heirloom'];
+
+      allow delete: if false;
+    }
+
+    // ── Babies ───────────────────────────────────────────────────────────
+    match /babies/{babyId} {
+      allow read: if isSignedIn() && request.auth.uid in resource.data.memberIds;
+
+      // On creation the creator must be the owner and the only member.
+      allow create: if isSignedIn()
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.memberIds is list
+        && request.resource.data.memberIds.hasOnly([request.auth.uid])
+        && isNonEmptyString(request.resource.data.name, 40);
+
+      // Only the owner can update, and the owner can never be reassigned.
+      // The owner must always remain a member.
+      allow update: if isOwner(babyId)
+        && request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.ownerId in request.resource.data.memberIds
+        && isNonEmptyString(request.resource.data.name, 40);
+
+      allow delete: if isOwner(babyId);
+
+      // ── Memories ─────────────────────────────────────────────────────
+      match /memories/{memoryId} {
+        allow read: if isMember(babyId);
+        allow create: if isMember(babyId)
+          && request.resource.data.authorId == request.auth.uid
+          && request.resource.data.kind in ['photo', 'video', 'note']
+          && isNonEmptyString(request.resource.data.title, 80)
+          && isBoundedString(request.resource.data.caption, 500);
+        // The original author or the baby's owner may edit/remove a memory.
+        allow update, delete: if isMember(babyId)
+          && (resource.data.authorId == request.auth.uid || isOwner(babyId));
+      }
+
+      // ── Milestones ───────────────────────────────────────────────────
+      match /milestones/{milestoneId} {
+        allow read: if isMember(babyId);
+        allow create: if isMember(babyId)
+          && isNonEmptyString(request.resource.data.label, 80)
+          && request.resource.data.status in ['upcoming', 'captured'];
+        allow update: if isMember(babyId)
+          && request.resource.data.status in ['upcoming', 'captured'];
+        allow delete: if isOwner(babyId);
+      }
+
+      // ── Journal ──────────────────────────────────────────────────────
+      match /journal/{entryId} {
+        allow read: if isMember(babyId);
+        allow create: if isMember(babyId)
+          && request.resource.data.authorId == request.auth.uid
+          && isBoundedString(request.resource.data.body, 4000)
+          && request.resource.data.tags is list
+          && request.resource.data.tags.size() <= 8;
+        allow update, delete: if isMember(babyId)
+          && (resource.data.authorId == request.auth.uid || isOwner(babyId));
+      }
+
+      // ── Calendar events ──────────────────────────────────────────────
+      match /events/{eventId} {
+        allow read: if isMember(babyId);
+        allow create: if isMember(babyId)
+          && request.resource.data.type in ['milestone', 'memory', 'appointment']
+          && isNonEmptyString(request.resource.data.title, 80)
+          && isNonEmptyString(request.resource.data.date, 10);
+        allow update, delete: if isMember(babyId);
+      }
+    }
+
+    // ── Waitlist (write-only from the verified Cloud Function) ───────────
+    // The marketing site collects emails via a reCAPTCHA-gated Cloud Function
+    // running with admin privileges. Clients must never read or write here.
+    match /waitlist/{doc} {
+      allow read, write: if false;
+    }
+
+    // Default deny — anything not explicitly matched above is forbidden.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

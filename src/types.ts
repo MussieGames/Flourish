@@ -10,6 +10,31 @@ export type AppScreen =
 
 export type StickerEra = "baby" | "little" | "growing" | "teen";
 
+export type SubscriptionTierId = "seedling" | "bloom" | "heirloom";
+
+export type SubscriptionStatus = "free" | "trialing" | "active" | "expired" | "cancelled";
+
+export type SubscriptionSource =
+  | "seedling_default"
+  | "cta_signup"
+  | "in_app_bloom"
+  | "in_app_heirloom"
+  | "app_store"
+  | "google_play"
+  | "admin";
+
+export type UserSubscription = {
+  tier: SubscriptionTierId;
+  status: SubscriptionStatus;
+  source: SubscriptionSource;
+  startedAt?: unknown;
+  updatedAt?: unknown;
+  expiresAtIso?: string;
+  bloomAccessUntilIso?: string;
+  provider?: "app_store" | "google_play" | "manual" | "demo";
+  providerTransactionId?: string;
+};
+
 export type UserProfile = {
   uid: string;
   email: string;
@@ -19,6 +44,7 @@ export type UserProfile = {
   acceptedPrivacyVersion: string;
   acceptedTermsVersion: string;
   acceptedLegalAt?: unknown;
+  subscription?: UserSubscription;
 };
 
 export type ChildProfile = {

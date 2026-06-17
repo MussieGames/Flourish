@@ -54,6 +54,25 @@ Recommended Firebase console hardening:
 4. Keep Firebase API keys restricted to the app bundle IDs/package names and authorized domains.
 5. Use separate Firebase projects for development, staging, and production.
 
+## Subscription tiers and offers
+
+Tier and offer rules live in one clear app-side file:
+
+- `src/subscriptions/tiers.ts`
+
+Current rules:
+
+- CTA sign-ups receive `3` months of Bloom free.
+- Bloom is the monthly tier.
+- Heirloom includes `12` months of Bloom access.
+
+The app calls the backend `confirmSubscription` function when a user subscribes to Bloom or Heirloom. That function
+updates `users/{uid}.subscription`, and the Plan screen listens to that field so the app automatically shows the new
+tier after subscription.
+
+Before production, replace the demo provider branch in `functions/index.js` with App Store / Google Play receipt
+validation. Keep entitlement writes backend-owned; do not allow clients to directly grant themselves paid tiers.
+
 ## Functions
 
 The waitlist endpoint in `functions/index.js` uses reCAPTCHA Enterprise, strict CORS, JSON-only POST requests, no-store

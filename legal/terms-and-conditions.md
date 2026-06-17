@@ -98,8 +98,9 @@ access, revoke their access promptly.
 ## 7. Plans, subscriptions, gifts, and printed books
 
 Paid features may include monthly subscriptions, one-time gifts, printed books, premium layouts, increased storage,
-family sharing limits, and other benefits. Prices, inclusions, renewal terms, billing periods, cancellation rights,
-shipping costs, taxes, and refund rules must be displayed before purchase.
+family sharing limits, and other benefits. Current launch offers may include three months of Bloom access for CTA
+sign-ups and 12 months of Bloom access with the Heirloom tier. Prices, inclusions, renewal terms, billing periods,
+cancellation rights, shipping costs, taxes, trial expiry dates, and refund rules must be displayed before purchase.
 
 Payments should be processed by the Apple App Store, Google Play, or a PCI-compliant payment provider. Flourish should
 not store raw payment-card details.

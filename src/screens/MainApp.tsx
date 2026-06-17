@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Pressable,
@@ -21,10 +21,18 @@ import {
   privacyHighlights,
   termsHighlights,
 } from "@/legal/policyContent";
-import { createChildProfile, logout, saveMemory, uploadMemoryAsset } from "@/services/flourishData";
+import { createChildProfile, logout, saveMemory, subscribeToTier, uploadMemoryAsset, watchCurrentUserSubscription } from "@/services/flourishData";
 import { setAppLockEnabled } from "@/services/secureDevice";
+import {
+  addMonthsIso,
+  createCtaSignupBloomTrialEntitlement,
+  createSeedlingEntitlement,
+  getBloomAccessLabel,
+  getEffectiveTier,
+  subscriptionTiers,
+} from "@/subscriptions/tiers";
 import { colors, fontFamily, shadow, spacing } from "@/theme";
-import { AppScreen, ChildProfile, StickerEra } from "@/types";
+import { AppScreen, ChildProfile, StickerEra, SubscriptionTierId, UserSubscription } from "@/types";
 
 const screens: Array<{ id: AppScreen; label: string; icon: string }> = [
   { id: "welcome", label: "Welcome", icon: "🌿" },
@@ -43,6 +51,19 @@ export function MainApp({ previewMode = false }: { previewMode?: boolean }) {
   const [child, setChild] = useState<ChildProfile>(demoChild);
   const [babyName, setBabyName] = useState(demoChild.name);
   const [appLock, setAppLock] = useState(false);
+  const [subscription, setSubscription] = useState<UserSubscription>(createCtaSignupBloomTrialEntitlement());
+
+  useEffect(() => {
+    if (previewMode) {
+      setSubscription(createCtaSignupBloomTrialEntitlement());
+      return undefined;
+    }
+
+    return watchCurrentUserSubscription(
+      (nextSubscription) => setSubscription(nextSubscription ?? createSeedlingEntitlement()),
+      (error) => Alert.alert("Could not load plan", error.message),
+    );
+  }, [previewMode, user?.uid]);
 
   async function saveChild() {
     try {
@@ -107,6 +128,38 @@ export function MainApp({ previewMode = false }: { previewMode?: boolean }) {
     await setAppLockEnabled(value);
   }
 
+  async function handleSubscribe(tier: Exclude<SubscriptionTierId, "seedling">) {
+    try {
+      if (previewMode) {
+        const now = new Date();
+        const previewSubscription: UserSubscription =
+          tier === "bloom"
+            ? {
+                ...createCtaSignupBloomTrialEntitlement(now),
+                source: "in_app_bloom",
+                provider: "demo",
+              }
+            : {
+                tier: "heirloom",
+                status: "active",
+                source: "in_app_heirloom",
+                provider: "demo",
+                expiresAtIso: addMonthsIso(now, 12),
+                bloomAccessUntilIso: addMonthsIso(now, 12),
+              };
+
+        setSubscription(previewSubscription);
+        Alert.alert("Plan updated", `${subscriptionTiers[tier].name} access is active in preview mode.`);
+        return;
+      }
+
+      setSubscription(await subscribeToTier(tier));
+      Alert.alert("Plan updated", `${subscriptionTiers[tier].name} access is now active.`);
+    } catch (error) {
+      Alert.alert("Could not update plan", error instanceof Error ? error.message : "Please try again.");
+    }
+  }
+
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.appHeader}>
@@ -153,7 +206,12 @@ export function MainApp({ previewMode = false }: { previewMode?: boolean }) {
       {activeScreen === "stickers" ? <StickersScreen childName={child.name} /> : null}
       {activeScreen === "calendar" ? <CalendarScreen childName={child.name} /> : null}
       {activeScreen === "plan" ? (
-        <PlanScreen appLock={appLock} onToggleAppLock={toggleAppLock} />
+        <PlanScreen
+          appLock={appLock}
+          onSubscribe={handleSubscribe}
+          onToggleAppLock={toggleAppLock}
+          subscription={subscription}
+        />
       ) : null}
       {activeScreen === "milestone" ? <MilestoneScreen childName={child.name} /> : null}
       {activeScreen === "journal" ? <JournalScreen childName={child.name} /> : null}
@@ -425,7 +483,20 @@ function UpcomingEvent({ date, color, title, meta }: { date: string; color: stri
   );
 }
 
-function PlanScreen({ appLock, onToggleAppLock }: { appLock: boolean; onToggleAppLock: (value: boolean) => void }) {
+function PlanScreen({
+  appLock,
+  onSubscribe,
+  onToggleAppLock,
+  subscription,
+}: {
+  appLock: boolean;
+  onSubscribe: (tier: Exclude<SubscriptionTierId, "seedling">) => void;
+  onToggleAppLock: (value: boolean) => void;
+  subscription: UserSubscription;
+}) {
+  const effectiveTier = getEffectiveTier(subscription);
+  const currentTier = subscriptionTiers[effectiveTier];
+
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.screenContent}>
       <LinearGradient colors={[colors.ink, "#3D2820"]} style={styles.darkHeroCompact}>
@@ -436,43 +507,35 @@ function PlanScreen({ appLock, onToggleAppLock }: { appLock: boolean; onToggleAp
       <View style={styles.padded}>
         <LinearGradient colors={[colors.ink, "#3D2820"]} style={styles.currentPlan}>
           <Text style={styles.currentBadge}>Current plan</Text>
-          <Text style={styles.currentPlanName}>Seedling</Text>
-          <Text style={styles.currentPlanPrice}>Free forever</Text>
-          {["500 photos & videos", "25 milestones tracked", "Basic scrapbook layouts", "Share with 2 family members"].map(
-            (item) => (
-              <Text key={item} style={styles.currentFeature}>
-                ✓ {item}
-              </Text>
-            ),
-          )}
+          <Text style={styles.currentPlanName}>{currentTier.name}</Text>
+          <Text style={styles.currentPlanPrice}>
+            {subscription.status === "trialing" ? "Bloom trial active" : currentTier.priceLabel}
+          </Text>
+          <Text style={styles.currentPlanAccess}>{getBloomAccessLabel(subscription)}</Text>
+          {currentTier.features.map((item) => (
+            <Text key={item} style={styles.currentFeature}>
+              ✓ {item}
+            </Text>
+          ))}
         </LinearGradient>
         <PlanCard
           badge="Most loved"
-          button="Upgrade to Bloom"
-          features={[
-            "Unlimited photos & videos",
-            "All 200+ milestones",
-            "Premium scrapbook layouts",
-            "Share with 10 family members",
-            "Yearly video montage",
-            "Printed book discounts",
-          ]}
-          name="Bloom"
-          price="$8"
-          sub="per month · billed monthly"
+          button={effectiveTier === "bloom" ? "Bloom active" : subscriptionTiers.bloom.ctaLabel}
+          disabled={effectiveTier === "bloom"}
+          features={subscriptionTiers.bloom.features}
+          name={subscriptionTiers.bloom.name}
+          onPress={() => onSubscribe("bloom")}
+          price={subscriptionTiers.bloom.priceLabel}
+          sub={subscriptionTiers.bloom.billingLabel}
         />
         <PlanCard
-          button="Buy as a gift"
-          features={[
-            "1 printed hardcover scrapbook",
-            "12 months of Bloom included",
-            "Shipped to your door",
-            "No subscription started",
-            "Perfect baby shower gift",
-          ]}
-          name="Heirloom"
-          price="$79"
-          sub="one-time · gift"
+          button={effectiveTier === "heirloom" ? "Heirloom active" : subscriptionTiers.heirloom.ctaLabel}
+          disabled={effectiveTier === "heirloom"}
+          features={subscriptionTiers.heirloom.features}
+          name={subscriptionTiers.heirloom.name}
+          onPress={() => onSubscribe("heirloom")}
+          price={subscriptionTiers.heirloom.priceLabel}
+          sub={subscriptionTiers.heirloom.billingLabel}
           variant="outline"
         />
         <Card style={styles.securityPanel}>
@@ -500,16 +563,20 @@ function PlanScreen({ appLock, onToggleAppLock }: { appLock: boolean; onToggleAp
 function PlanCard({
   badge,
   button,
+  disabled = false,
   features,
   name,
+  onPress,
   price,
   sub,
   variant = "filled",
 }: {
   badge?: string;
   button: string;
+  disabled?: boolean;
   features: string[];
   name: string;
+  onPress: () => void;
   price: string;
   sub: string;
   variant?: "filled" | "outline";
@@ -530,7 +597,7 @@ function PlanCard({
         </Text>
       ))}
       <View style={{ height: spacing.lg }} />
-      <FlourishButton onPress={() => Alert.alert(name, "Plan selection will connect to your billing provider.")} title={button} variant={variant} />
+      <FlourishButton disabled={disabled} onPress={onPress} title={button} variant={variant} />
     </Card>
   );
 }
@@ -1216,6 +1283,12 @@ const styles = StyleSheet.create({
     color: "rgba(251,247,242,0.48)",
     fontFamily: fontFamily.sans,
     fontSize: 13,
+    marginBottom: spacing.md,
+  },
+  currentPlanAccess: {
+    color: colors.goldLight,
+    fontFamily: fontFamily.sansMedium,
+    fontSize: 12,
     marginBottom: spacing.md,
   },
   currentFeature: {

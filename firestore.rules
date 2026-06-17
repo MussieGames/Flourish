@@ -45,6 +45,28 @@ service cloud.firestore {
         && request.resource.data.members[request.auth.uid] == "owner";
     }
 
+    function validCtaSignupSubscription() {
+      return request.resource.data.subscription is map
+        && request.resource.data.subscription.tier == "bloom"
+        && request.resource.data.subscription.status == "trialing"
+        && request.resource.data.subscription.source == "cta_signup"
+        && request.resource.data.subscription.provider == "manual"
+        && request.resource.data.subscription.expiresAtIso is string
+        && request.resource.data.subscription.bloomAccessUntilIso is string
+        && request.resource.data.subscription.startedAt == request.time
+        && request.resource.data.subscription.updatedAt == request.time
+        && request.resource.data.subscription.keys().hasOnly([
+          "tier",
+          "status",
+          "source",
+          "provider",
+          "expiresAtIso",
+          "bloomAccessUntilIso",
+          "startedAt",
+          "updatedAt"
+        ]);
+    }
+
     match /users/{uid} {
       allow create: if isSelf(uid)
         && request.resource.data.uid == uid
@@ -54,6 +76,7 @@ service cloud.firestore {
         && request.resource.data.acceptedTermsVersion is string
         && request.resource.data.acceptedLegalAt == request.time
         && request.resource.data.marketingOptIn is bool
+        && validCtaSignupSubscription()
         && request.resource.data.keys().hasOnly([
           "uid",
           "email",
@@ -62,6 +85,7 @@ service cloud.firestore {
           "acceptedTermsVersion",
           "acceptedLegalAt",
           "marketingOptIn",
+          "subscription",
           "createdAt",
           "updatedAt"
         ])
@@ -73,6 +97,7 @@ service cloud.firestore {
         && request.resource.data.uid == resource.data.uid
         && request.resource.data.email == resource.data.email
         && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.subscription == resource.data.subscription
         && request.resource.data.acceptedPrivacyVersion is string
         && request.resource.data.acceptedTermsVersion is string
         && (
@@ -91,6 +116,7 @@ service cloud.firestore {
           "acceptedTermsVersion",
           "acceptedLegalAt",
           "marketingOptIn",
+          "subscription",
           "createdAt",
           "updatedAt"
         ])
@@ -206,6 +232,10 @@ service cloud.firestore {
     }
 
     match /waitlistRateLimits/{document=**} {
+      allow read, write: if false;
+    }
+
+    match /subscriptionEvents/{document=**} {
       allow read, write: if false;
     }
 

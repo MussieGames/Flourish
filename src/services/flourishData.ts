@@ -15,12 +15,15 @@ import {
   setDoc,
   addDoc,
   updateDoc,
+  onSnapshot,
 } from "firebase/firestore";
+import { httpsCallable } from "firebase/functions";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { z } from "zod";
 
 import { requireFirebaseClient } from "@/config/firebase";
-import { ChildProfile, MemoryInput } from "@/types";
+import { createCtaSignupBloomTrialEntitlement } from "@/subscriptions/tiers";
+import { ChildProfile, MemoryInput, SubscriptionTierId, UserSubscription } from "@/types";
 
 const legalPolicyVersion = "2026-06-17";
 
@@ -49,6 +52,8 @@ const memorySchema = z.object({
   stickers: z.array(z.string().trim().min(1).max(32)).max(30).optional(),
 });
 
+const subscriptionTierSchema = z.enum(["bloom", "heirloom"]);
+
 export async function registerWithEmail(params: {
   email: string;
   password: string;
@@ -73,6 +78,11 @@ export async function registerWithEmail(params: {
     acceptedTermsVersion: legalPolicyVersion,
     acceptedLegalAt: serverTimestamp(),
     marketingOptIn: false,
+    subscription: {
+      ...createCtaSignupBloomTrialEntitlement(),
+      startedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    },
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
@@ -96,6 +106,39 @@ export async function requestPasswordReset(emailInput: string): Promise<void> {
 export async function logout(): Promise<void> {
   const { auth } = requireFirebaseClient();
   await signOut(auth);
+}
+
+export function watchCurrentUserSubscription(
+  onChange: (subscription: UserSubscription | undefined) => void,
+  onError?: (error: Error) => void,
+): () => void {
+  const { auth, db } = requireFirebaseClient();
+  if (!auth.currentUser) {
+    onChange(undefined);
+    return () => undefined;
+  }
+
+  return onSnapshot(
+    doc(db, "users", auth.currentUser.uid),
+    (snapshot) => {
+      onChange(snapshot.data()?.subscription as UserSubscription | undefined);
+    },
+    (error) => onError?.(error),
+  );
+}
+
+export async function subscribeToTier(tierInput: SubscriptionTierId): Promise<UserSubscription> {
+  const { functions } = requireFirebaseClient();
+  const tier = subscriptionTierSchema.parse(tierInput);
+  const confirmSubscription = httpsCallable<
+    { tier: "bloom" | "heirloom"; provider: "demo" },
+    { subscription: UserSubscription }
+  >(functions, "confirmSubscription");
+
+  // The callable owns entitlement writes. Replace provider/demo with App Store or
+  // Google Play receipt validation before production launch.
+  const result = await confirmSubscription({ tier, provider: "demo" });
+  return result.data.subscription;
 }
 
 export async function createChildProfile(input: {

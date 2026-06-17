@@ -1,7 +1,7 @@
 const crypto = require("crypto");
 const { logger } = require("firebase-functions");
 const { defineSecret, defineString } = require("firebase-functions/params");
-const { onRequest } = require("firebase-functions/v2/https");
+const { HttpsError, onCall, onRequest } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 
 admin.initializeApp();
@@ -22,6 +22,65 @@ const allowedOrigins = [
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const rateLimitWindowMs = 60 * 60 * 1000;
 const maxSubmissionsPerWindow = 5;
+
+const ctaBloomTrialMonths = 3;
+const heirloomBloomIncludedMonths = 12;
+
+function addMonthsIso(date, months) {
+  const next = new Date(date);
+  next.setMonth(next.getMonth() + months);
+  return next.toISOString();
+}
+
+function buildSubscriptionEntitlement(tier, provider = "demo") {
+  const now = new Date();
+
+  if (tier === "bloom") {
+    const bloomAccessUntilIso = addMonthsIso(now, ctaBloomTrialMonths);
+    return {
+      tier: "bloom",
+      status: "trialing",
+      source: "in_app_bloom",
+      provider,
+      startedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      expiresAtIso: bloomAccessUntilIso,
+      bloomAccessUntilIso,
+    };
+  }
+
+  if (tier === "heirloom") {
+    const bloomAccessUntilIso = addMonthsIso(now, heirloomBloomIncludedMonths);
+    return {
+      tier: "heirloom",
+      status: "active",
+      source: "in_app_heirloom",
+      provider,
+      startedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      expiresAtIso: bloomAccessUntilIso,
+      bloomAccessUntilIso,
+    };
+  }
+
+  throw new HttpsError("invalid-argument", "Unsupported subscription tier.");
+}
+
+async function verifyPurchaseWithProvider({ tier, provider }) {
+  // Production hook:
+  // Validate App Store / Google Play receipts here, then return the verified
+  // provider transaction id. Keeping this function isolated makes future tier
+  // automation simple without allowing direct client entitlement writes.
+  if (!["bloom", "heirloom"].includes(tier)) {
+    throw new HttpsError("invalid-argument", "Unsupported subscription tier.");
+  }
+
+  if (provider !== "demo") {
+    throw new HttpsError("failed-precondition", "Payment provider verification is not configured.");
+  }
+
+  return `demo-${tier}-${Date.now()}`;
+}
 
 function sha256(value) {
   return crypto.createHash("sha256").update(value).digest("hex");
@@ -178,3 +237,46 @@ exports.addWaitlistEmail = onRequest(
     return res.status(500).json({ error: "Internal server error." });
   }
 });
+
+exports.confirmSubscription = onCall(
+  {
+    maxInstances: 10,
+  },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "Sign in before subscribing.");
+    }
+
+    const tier = request.data?.tier;
+    const provider = request.data?.provider || "demo";
+    const providerTransactionId = await verifyPurchaseWithProvider({ tier, provider });
+    const subscription = {
+      ...buildSubscriptionEntitlement(tier, provider),
+      providerTransactionId,
+    };
+
+    await db.collection("users").doc(request.auth.uid).set(
+      {
+        subscription,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+
+    await db.collection("subscriptionEvents").add({
+      uid: request.auth.uid,
+      tier,
+      provider,
+      providerTransactionId,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    return {
+      subscription: {
+        ...subscription,
+        startedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    };
+  },
+);

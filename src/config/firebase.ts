@@ -2,6 +2,7 @@ import Constants from "expo-constants";
 import { initializeApp, getApps, getApp, FirebaseApp, FirebaseOptions } from "firebase/app";
 import { Auth, getAuth } from "firebase/auth";
 import { getFirestore, Firestore } from "firebase/firestore";
+import { Functions, getFunctions } from "firebase/functions";
 import { getStorage, FirebaseStorage } from "firebase/storage";
 import { z } from "zod";
 
@@ -21,6 +22,7 @@ type FirebaseClient = {
   app: FirebaseApp;
   auth: Auth;
   db: Firestore;
+  functions: Functions;
   storage: FirebaseStorage;
   projectId: string;
 };
@@ -46,6 +48,7 @@ function createClient(config: FirebaseConfig): FirebaseClient {
     app,
     auth: getAuth(app),
     db: getFirestore(app),
+    functions: getFunctions(app),
     storage: getStorage(app),
     projectId: config.projectId,
   };

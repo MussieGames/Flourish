@@ -2,7 +2,7 @@
   "name": "flourish",
   "version": "1.0.0",
   "description": "Flourish mobile app for iOS and Android.",
-  "main": "expo/AppEntry",
+  "main": "index.js",
   "scripts": {
     "start": "expo start",
     "ios": "expo start --ios",

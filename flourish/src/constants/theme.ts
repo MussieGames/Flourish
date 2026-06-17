@@ -75,6 +75,7 @@ export const Spacing = {
   xs: 4,
   sm: 8,
   md: 12,
+  mdPlus: 16, // replaces "Spacing.md + 4" arithmetic in styles
   lg: 16,
   xl: 20,
   '2xl': 24,

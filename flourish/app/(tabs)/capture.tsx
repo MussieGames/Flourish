@@ -1,5 +1,8 @@
 /**
- * Capture screen — photo/video picker and journal quick-entry.
+ * Capture screen — opens camera or library, then saves a memory.
+ *
+ * Fix: Photo/Video buttons now open the camera directly.
+ * Previously both routed to '/(tabs)/capture' (circular).
  */
 import React, { useState } from 'react';
 import {
@@ -15,7 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../src/hooks/useAuth';
-import { useBaby } from '../../src/hooks/useBaby';
+import { useBabyContext } from '../../src/contexts/BabyContext';
 import { createMemory } from '../../src/services/firestore';
 import { Colors, Typography, Spacing } from '../../src/constants/theme';
 import { EyebrowLabel } from '../../src/components/EyebrowLabel';
@@ -26,31 +29,10 @@ export default function CaptureScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user } = useAuth();
-  const { activeBaby } = useBaby(user?.uid ?? null);
+  const { activeBaby } = useBabyContext();
 
-  const [pickedImage, setPickedImage] = useState<string | null>(null);
+  const [pickedUri, setPickedUri] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-
-  const openPhotoPicker = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert(
-        'Permission needed',
-        'Flourish needs access to your photo library to save memories.',
-        [{ text: 'OK' }]
-      );
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
-      allowsEditing: true,
-      quality: 0.85,
-      exif: false, // strip EXIF for privacy
-    });
-    if (!result.canceled && result.assets[0]) {
-      setPickedImage(result.assets[0].uri);
-    }
-  };
 
   const openCamera = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
@@ -63,9 +45,22 @@ export default function CaptureScreen() {
       quality: 0.85,
       exif: false,
     });
-    if (!result.canceled && result.assets[0]) {
-      setPickedImage(result.assets[0].uri);
+    if (!result.canceled && result.assets[0]) setPickedUri(result.assets[0].uri);
+  };
+
+  const openLibrary = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Flourish needs access to your photo library.');
+      return;
     }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      allowsEditing: true,
+      quality: 0.85,
+      exif: false,
+    });
+    if (!result.canceled && result.assets[0]) setPickedUri(result.assets[0].uri);
   };
 
   const saveMemory = async () => {
@@ -77,18 +72,16 @@ export default function CaptureScreen() {
     try {
       await createMemory(user.uid, {
         babyId: activeBaby.id,
-        type: pickedImage ? 'photo' : 'journal',
+        type: 'photo',
         title: sanitizeName('New memory'),
+        // In production: upload pickedUri to Firebase Storage first, store the download URL
+        mediaURL: pickedUri ?? undefined,
         capturedAt: new Date(),
       });
       Alert.alert('Saved! 🌿', 'Your memory has been preserved.', [
-        {
-          text: 'View memories',
-          onPress: () => router.replace('/(tabs)/'),
-        },
-        { text: 'Capture more' },
+        { text: 'View memories', onPress: () => router.replace('/(tabs)/') },
+        { text: 'Capture more', onPress: () => setPickedUri(null) },
       ]);
-      setPickedImage(null);
     } catch (err) {
       Alert.alert('Save failed', (err as Error).message);
     } finally {
@@ -110,32 +103,22 @@ export default function CaptureScreen() {
       </View>
 
       <View style={styles.content}>
-        {pickedImage ? (
+        {pickedUri ? (
           <View style={styles.previewWrap}>
-            <Image
-              source={{ uri: pickedImage }}
-              style={styles.preview}
-              resizeMode="cover"
-            />
-            <TouchableOpacity
-              style={styles.clearBtn}
-              onPress={() => setPickedImage(null)}
-            >
+            <Image source={{ uri: pickedUri }} style={styles.preview} resizeMode="cover" />
+            <TouchableOpacity style={styles.clearBtn} onPress={() => setPickedUri(null)}>
               <Text style={styles.clearBtnText}>✕ Clear</Text>
             </TouchableOpacity>
           </View>
         ) : (
           <View style={styles.captureBtns}>
+            {/* Fixed: opens camera, not circular route */}
             <TouchableOpacity style={styles.bigBtn} onPress={openCamera} activeOpacity={0.8}>
               <Text style={styles.bigBtnIcon}>📸</Text>
               <Text style={styles.bigBtnLabel}>Take a photo</Text>
               <Text style={styles.bigBtnSub}>Open camera</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.bigBtn, styles.bigBtnSecond]}
-              onPress={openPhotoPicker}
-              activeOpacity={0.8}
-            >
+            <TouchableOpacity style={styles.bigBtn} onPress={openLibrary} activeOpacity={0.8}>
               <Text style={styles.bigBtnIcon}>🖼️</Text>
               <Text style={styles.bigBtnLabel}>From library</Text>
               <Text style={styles.bigBtnSub}>Choose existing</Text>
@@ -143,7 +126,7 @@ export default function CaptureScreen() {
           </View>
         )}
 
-        {pickedImage && (
+        {pickedUri && (
           <Button
             onPress={saveMemory}
             title="Save this memory →"
@@ -152,7 +135,6 @@ export default function CaptureScreen() {
           />
         )}
 
-        {/* Quick journal */}
         <View style={styles.journalSection}>
           <EyebrowLabel>Or write it down</EyebrowLabel>
           <TouchableOpacity
@@ -161,11 +143,9 @@ export default function CaptureScreen() {
             activeOpacity={0.8}
           >
             <Text style={styles.journalIcon}>✍️</Text>
-            <View>
+            <View style={{ flex: 1 }}>
               <Text style={styles.journalTitle}>Write a journal entry</Text>
-              <Text style={styles.journalSub}>
-                The things photos can't capture
-              </Text>
+              <Text style={styles.journalSub}>The things photos can't capture</Text>
             </View>
             <Text style={styles.journalArrow}>›</Text>
           </TouchableOpacity>
@@ -198,7 +178,6 @@ const styles = StyleSheet.create({
     color: 'rgba(251,247,242,0.45)',
   },
   content: { padding: Spacing['2xl'] },
-
   captureBtns: { gap: 12 },
   bigBtn: {
     backgroundColor: Colors.warm,
@@ -208,9 +187,6 @@ const styles = StyleSheet.create({
     padding: Spacing['2xl'],
     alignItems: 'center',
     gap: 8,
-  },
-  bigBtnSecond: {
-    borderColor: 'rgba(196,169,160,0.25)',
   },
   bigBtnIcon: { fontSize: 36 },
   bigBtnLabel: {
@@ -224,12 +200,7 @@ const styles = StyleSheet.create({
     color: Colors.inkMedium,
     letterSpacing: 0.6,
   },
-
-  previewWrap: {
-    borderRadius: 4,
-    overflow: 'hidden',
-    position: 'relative',
-  },
+  previewWrap: { borderRadius: 4, overflow: 'hidden', position: 'relative' },
   preview: { width: '100%', height: 280 },
   clearBtn: {
     position: 'absolute',
@@ -245,7 +216,6 @@ const styles = StyleSheet.create({
     fontSize: Typography.sizes.xs,
     color: Colors.cream,
   },
-
   journalSection: { marginTop: Spacing['3xl'] },
   journalCard: {
     flexDirection: 'row',
@@ -269,5 +239,5 @@ const styles = StyleSheet.create({
     color: Colors.inkMedium,
     marginTop: 2,
   },
-  journalArrow: { marginLeft: 'auto', fontSize: 20, color: Colors.inkMedium },
+  journalArrow: { fontSize: 20, color: Colors.inkMedium },
 });

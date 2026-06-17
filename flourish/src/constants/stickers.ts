@@ -115,17 +115,110 @@ export const STICKER_ERAS: Record<BabyEra, StickerEraData> = {
   },
 };
 
+// Each milestone has unique celebration copy that's specific to THAT first.
+// A parent reading "first bath" copy should feel seen — not like they got
+// the same paragraph as every other milestone.
 export const MILESTONE_TEMPLATES = [
-  { id: 'first-day-home', emoji: '🏥', title: 'First day home', expectedAgeWeeks: 0, expectedAgeLabel: 'Day 2', era: 'baby' as const },
-  { id: 'first-bath', emoji: '🛁', title: 'First bath', expectedAgeWeeks: 1, expectedAgeLabel: 'Week 1', era: 'baby' as const },
-  { id: 'first-smile', emoji: '😊', title: 'First smile', expectedAgeWeeks: 7, expectedAgeLabel: '~6–8 wks', era: 'baby' as const },
-  { id: 'first-giggle', emoji: '😂', title: 'First giggle', expectedAgeWeeks: 14, expectedAgeLabel: '~3–4 mo', era: 'baby' as const },
-  { id: 'first-roll', emoji: '🔄', title: 'First roll over', expectedAgeWeeks: 18, expectedAgeLabel: '~4–5 mo', era: 'baby' as const },
-  { id: 'first-solid-food', emoji: '🥄', title: 'First solid food', expectedAgeWeeks: 26, expectedAgeLabel: '~6 mo', era: 'baby' as const },
-  { id: 'first-sit', emoji: '🪑', title: 'Sitting up', expectedAgeWeeks: 26, expectedAgeLabel: '~6–7 mo', era: 'baby' as const },
-  { id: 'first-word', emoji: '💬', title: 'First word', expectedAgeWeeks: 52, expectedAgeLabel: '~12 mo', era: 'baby' as const },
-  { id: 'first-steps', emoji: '👶', title: 'First steps', expectedAgeWeeks: 52, expectedAgeLabel: '~9–12 mo', era: 'baby' as const },
-  { id: 'first-birthday', emoji: '🎂', title: 'First birthday', expectedAgeWeeks: 52, expectedAgeLabel: '12 mo', era: 'baby' as const },
+  {
+    id: 'first-day-home',
+    emoji: '🏥',
+    title: 'First day home',
+    expectedAgeWeeks: 0,
+    expectedAgeLabel: 'Day 2',
+    era: 'baby' as const,
+    celebrationText:
+      'Your whole world walked through that door today. The car seat, the blanket, the tiny hands — everything is different now. The house is the same house. You are not the same people.',
+  },
+  {
+    id: 'first-bath',
+    emoji: '🛁',
+    title: 'First bath',
+    expectedAgeWeeks: 1,
+    expectedAgeLabel: 'Week 1',
+    era: 'baby' as const,
+    celebrationText:
+      'That look of total surprise. The squirming, the tiny splashing fists, the way they eventually went still and warm in the water. You survived it. So did they. Consider yourselves a team.',
+  },
+  {
+    id: 'first-smile',
+    emoji: '😊',
+    title: 'First smile',
+    expectedAgeWeeks: 7,
+    expectedAgeLabel: '~6–8 wks',
+    era: 'baby' as const,
+    celebrationText:
+      'You caught it. The one that changes everything. That first real, full-face, eyes-crinkling smile — and it was meant just for you. Every sleepless night led exactly here.',
+  },
+  {
+    id: 'first-giggle',
+    emoji: '😂',
+    title: 'First giggle',
+    expectedAgeWeeks: 14,
+    expectedAgeLabel: '~3–4 mo',
+    era: 'baby' as const,
+    celebrationText:
+      "There is no sound on earth like it. That tiny, surprised, delighted laugh — like they just discovered that joy is a thing that exists, and can\'t quite believe it. You\'ll hear it in your sleep tonight.",
+  },
+  {
+    id: 'first-roll',
+    emoji: '🔄',
+    title: 'First roll over',
+    expectedAgeWeeks: 18,
+    expectedAgeLabel: '~4–5 mo',
+    era: 'baby' as const,
+    celebrationText:
+      "They looked as shocked as you did. One moment on their back, the next — staring up at the ceiling with an expression that said: wait, I can do things. Everything changes from here.",
+  },
+  {
+    id: 'first-solid-food',
+    emoji: '🥄',
+    title: 'First solid food',
+    expectedAgeWeeks: 26,
+    expectedAgeLabel: '~6 mo',
+    era: 'baby' as const,
+    celebrationText:
+      'That face. Whatever they thought food was going to taste like, it was not this. The curiosity, the scrunch, the tentative second bite — the beginning of a lifetime of meals together.',
+  },
+  {
+    id: 'first-sit',
+    emoji: '🪑',
+    title: 'Sitting up',
+    expectedAgeWeeks: 26,
+    expectedAgeLabel: '~6–7 mo',
+    era: 'baby' as const,
+    celebrationText:
+      'They can see the whole room now. Their world just doubled in size — and from the look on their face, they are extremely pleased about it.',
+  },
+  {
+    id: 'first-word',
+    emoji: '💬',
+    title: 'First word',
+    expectedAgeWeeks: 52,
+    expectedAgeLabel: '~12 mo',
+    era: 'baby' as const,
+    celebrationText:
+      "It happened. The first real, deliberate, meant-for-you word. Simple and perfect and yours. Write it down exactly as they said it — you\'ll want that detail forever.",
+  },
+  {
+    id: 'first-steps',
+    emoji: '👶',
+    title: 'First steps',
+    expectedAgeWeeks: 52,
+    expectedAgeLabel: '~9–12 mo',
+    era: 'baby' as const,
+    celebrationText:
+      "Two steps. Maybe three. Then down. But for one moment they were upright, independent, moving through the world under their own power. You\'ll spend the rest of your life watching them walk away — and that\'s exactly what you wanted.",
+  },
+  {
+    id: 'first-birthday',
+    emoji: '🎂',
+    title: 'First birthday',
+    expectedAgeWeeks: 52,
+    expectedAgeLabel: '12 mo',
+    era: 'baby' as const,
+    celebrationText:
+      "A whole year. You made it. They made it. You learned more in twelve months than in the years before it. The cake is for them — but this day belongs to you too. You did something extraordinary.",
+  },
 ];
 
 export const getEraForAge = (ageInYears: number): BabyEra => {

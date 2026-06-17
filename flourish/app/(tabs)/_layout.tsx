@@ -24,26 +24,11 @@ export default function TabsLayout() {
         },
       }}
     >
-      <Tabs.Screen
-        name="index"
-        options={{ title: 'Home', tabBarIcon: ({ focused }) => null, tabBarLabel: '🏠  Home' }}
-      />
-      <Tabs.Screen
-        name="capture"
-        options={{ title: 'Capture', tabBarLabel: '📸  Capture' }}
-      />
-      <Tabs.Screen
-        name="scrapbook"
-        options={{ title: 'Scrapbook', tabBarLabel: '📖  Scrapbook' }}
-      />
-      <Tabs.Screen
-        name="firsts"
-        options={{ title: 'Firsts', tabBarLabel: '⭐  Firsts' }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{ title: 'Profile', tabBarLabel: '👤  Profile' }}
-      />
+      <Tabs.Screen name="index" options={{ title: 'Home', tabBarLabel: '🏠  Home' }} />
+      <Tabs.Screen name="capture" options={{ title: 'Capture', tabBarLabel: '📸  Capture' }} />
+      <Tabs.Screen name="scrapbook" options={{ title: 'Scrapbook', tabBarLabel: '📖  Scrapbook' }} />
+      <Tabs.Screen name="firsts" options={{ title: 'Firsts', tabBarLabel: '⭐  Firsts' }} />
+      <Tabs.Screen name="profile" options={{ title: 'Profile', tabBarLabel: '👤  Profile' }} />
     </Tabs>
   );
 }

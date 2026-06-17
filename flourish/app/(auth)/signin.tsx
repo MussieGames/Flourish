@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { signIn, resetPassword, getAuthErrorMessage } from '../../src/services/auth';
 import { Button } from '../../src/components/Button';
 import { Input } from '../../src/components/Input';
+import { WarmHero } from '../../src/components/WarmHero';
 import { Colors, Typography, Spacing } from '../../src/constants/theme';
 
 export default function SignInScreen() {
@@ -43,11 +44,7 @@ export default function SignInScreen() {
       router.replace('/(tabs)/');
     } catch (err: unknown) {
       const code = (err as { code?: string }).code ?? '';
-      // Custom rate limit error comes as plain Error
-      const message = code
-        ? getAuthErrorMessage(code)
-        : (err as Error).message;
-      Alert.alert('Sign In Failed', message);
+      Alert.alert('Sign In Failed', code ? getAuthErrorMessage(code) : (err as Error).message);
     } finally {
       setLoading(false);
     }
@@ -60,11 +57,7 @@ export default function SignInScreen() {
     }
     try {
       await resetPassword(email.trim().toLowerCase());
-      Alert.alert(
-        'Check your email',
-        "We've sent a password reset link to your inbox.",
-        [{ text: 'OK' }]
-      );
+      Alert.alert('Check your email', "We've sent a password reset link to your inbox.");
     } catch (err: unknown) {
       const code = (err as { code?: string }).code ?? '';
       Alert.alert('Error', getAuthErrorMessage(code));
@@ -78,33 +71,26 @@ export default function SignInScreen() {
     >
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[
-          styles.content,
-          { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 32 },
-        ]}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <TouchableOpacity
-          onPress={() => router.back()}
-          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-        >
-          <Text style={styles.backText}>‹ Back</Text>
-        </TouchableOpacity>
+        {/* Rich warm hero — matches Welcome screen language */}
+        <WarmHero style={[styles.hero, { paddingTop: insets.top + 20 }]}>
+          <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+            <Text style={styles.backText}>‹ Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.moonEmoji}>🌿</Text>
+          <Text style={styles.heroTitle}>
+            Sign back into{'\n'}
+            <Text style={styles.heroTitleItalic}>your story.</Text>
+          </Text>
+          <Text style={styles.heroPara}>
+            Their memories are right where you left them.
+          </Text>
+        </WarmHero>
 
-        <Text style={styles.moonEmoji}>🌿</Text>
-
-        <View style={styles.eyebrow}>
-          <View style={styles.eyebrowLine} />
-          <Text style={styles.eyebrowText}>WELCOME BACK</Text>
-        </View>
-
-        <Text style={styles.title}>
-          Sign back{'\n'}
-          <Text style={styles.titleItalic}>into your story.</Text>
-        </Text>
-
-        <View style={styles.formSection}>
+        <View style={styles.form}>
           <Input
             label="Email address"
             placeholder="you@example.com"
@@ -133,19 +119,19 @@ export default function SignInScreen() {
               </TouchableOpacity>
             }
           />
-        </View>
 
-        <TouchableOpacity onPress={handleForgotPassword} style={styles.forgotBtn}>
-          <Text style={styles.forgotText}>Forgot your password?</Text>
-        </TouchableOpacity>
-
-        <Button onPress={handleSignIn} title="Sign in →" loading={loading} />
-
-        <View style={styles.signupRow}>
-          <Text style={styles.signupText}>New to Flourish? </Text>
-          <TouchableOpacity onPress={() => router.replace('/(auth)/welcome')}>
-            <Text style={styles.signupLink}>Create an account</Text>
+          <TouchableOpacity onPress={handleForgotPassword} style={styles.forgotBtn}>
+            <Text style={styles.forgotText}>Forgot your password?</Text>
           </TouchableOpacity>
+
+          <Button onPress={handleSignIn} title="Sign in →" loading={loading} />
+
+          <View style={styles.signupRow}>
+            <Text style={styles.signupText}>New to Flourish? </Text>
+            <TouchableOpacity onPress={() => router.replace('/(auth)/welcome')}>
+              <Text style={styles.signupLink}>Create an account</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -154,46 +140,45 @@ export default function SignInScreen() {
 
 const styles = StyleSheet.create({
   scroll: { flex: 1, backgroundColor: Colors.cream },
-  content: { paddingHorizontal: 28 },
+
+  hero: {
+    paddingHorizontal: 28,
+    paddingBottom: 44,
+  },
   backText: {
     fontFamily: 'DMSans_400Regular',
     fontSize: Typography.sizes.lg,
-    color: Colors.sienna,
-    marginBottom: Spacing['3xl'],
+    color: 'rgba(251,247,242,0.7)',
+    marginBottom: Spacing['2xl'],
   },
-  moonEmoji: { fontSize: 36, marginBottom: Spacing.xl },
-  eyebrow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginBottom: Spacing.md,
-  },
-  eyebrowLine: { width: 16, height: 1, backgroundColor: Colors.sienna },
-  eyebrowText: {
-    fontFamily: 'DMSans_400Regular',
-    fontSize: Typography.sizes.xs,
-    letterSpacing: 1.8,
-    color: Colors.sienna,
-  },
-  title: {
+  moonEmoji: { fontSize: 32, marginBottom: Spacing.xl },
+  heroTitle: {
     fontFamily: 'CormorantGaramond_300Light',
     fontSize: 36,
-    color: Colors.ink,
+    color: Colors.cream,
     lineHeight: 42,
-    marginBottom: Spacing['4xl'],
+    marginBottom: 8,
   },
-  titleItalic: {
+  heroTitleItalic: {
     fontFamily: 'CormorantGaramond_300Light_Italic',
-    color: Colors.sienna,
+    color: Colors.rose,
   },
-  formSection: { marginBottom: Spacing.sm },
-  forgotBtn: { alignSelf: 'flex-end', marginBottom: Spacing['2xl'] },
+  heroPara: {
+    fontFamily: 'DMSans_300Light',
+    fontSize: Typography.sizes.sm,
+    color: 'rgba(251,247,242,0.5)',
+  },
+
+  form: { padding: Spacing['2xl'] },
+
+  forgotBtn: { alignSelf: 'flex-end', marginBottom: Spacing['2xl'], marginTop: -Spacing.sm },
   forgotText: {
     fontFamily: 'DMSans_400Regular',
     fontSize: Typography.sizes.sm,
     color: Colors.sienna,
     textDecorationLine: 'underline',
   },
+
   signupRow: {
     flexDirection: 'row',
     justifyContent: 'center',

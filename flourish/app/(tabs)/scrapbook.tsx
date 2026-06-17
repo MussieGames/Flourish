@@ -15,7 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../src/hooks/useAuth';
-import { useBaby } from '../../src/hooks/useBaby';
+import { useBabyContext } from '../../src/contexts/BabyContext';
 import { STICKER_ERAS } from '../../src/constants/stickers';
 import { Colors, Typography, Spacing } from '../../src/constants/theme';
 import { EyebrowLabel } from '../../src/components/EyebrowLabel';
@@ -32,7 +32,7 @@ export default function ScrapbookScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user } = useAuth();
-  const { activeBaby, ageInfo } = useBaby(user?.uid ?? null);
+  const { activeBaby, ageInfo } = useBabyContext();
 
   const currentEra = (ageInfo?.era ?? 'baby') as BabyEra;
   const [selectedEra, setSelectedEra] = useState<BabyEra>(currentEra);

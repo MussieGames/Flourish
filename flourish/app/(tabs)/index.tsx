@@ -1,72 +1,120 @@
 /**
- * Dashboard — post sign-in home screen.
- * Displays greeting, milestone alert, quick capture, memory grid, firsts tracker.
+ * Dashboard — the first screen a parent sees after sign-in.
+ *
+ * Improvements over v1:
+ *  - Uses BabyContext (no separate Firestore fetch)
+ *  - Dependency array uses activeBaby?.id, not the whole object
+ *  - Parent's first name in the greeting
+ *  - Real photo thumbnails via MemoryThumbnail
+ *  - Warm, story-led empty state
+ *  - Error surface when Firestore is unreachable
+ *  - No FlatList import (was never used)
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  FlatList,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../src/hooks/useAuth';
-import { useBaby } from '../../src/hooks/useBaby';
+import { useBabyContext } from '../../src/contexts/BabyContext';
 import { getMemoriesForBaby, getMilestonesForBaby } from '../../src/services/firestore';
-import { Colors, Typography, Spacing, Shadows } from '../../src/constants/theme';
+import { Colors, Typography, Spacing } from '../../src/constants/theme';
 import { EyebrowLabel } from '../../src/components/EyebrowLabel';
+import { MemoryThumbnail } from '../../src/components/MemoryThumbnail';
 import type { Memory, Milestone } from '../../src/types';
 import { MILESTONE_TEMPLATES } from '../../src/constants/stickers';
 
-const MEMORY_COLORS = [
-  ['#E8C4B0', '#C4907A'],
-  ['#C5D4C0', '#A8BFA8'],
-  ['#E8D5B0', '#D4B880'],
-  ['#D4C4D8', '#B4A0C0'],
-] as const;
-
-const MEMORY_EMOJIS = ['🍼', '😴', '👣', '🤱', '📸', '🌿', '💛', '⭐'];
-
-function getGreeting(): string {
+function getGreeting(firstName: string): string {
   const h = new Date().getHours();
-  if (h < 12) return 'Good morning';
-  if (h < 18) return 'Good afternoon';
-  return 'Good evening';
+  const time = h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+  return firstName ? `${time}, ${firstName}` : time;
+}
+
+// Empty state shown to a brand-new parent who hasn't captured anything yet
+function EmptyMemoriesState({ onCapture }: { onCapture: () => void }) {
+  return (
+    <TouchableOpacity style={styles.emptyState} onPress={onCapture} activeOpacity={0.85}>
+      <Text style={styles.emptyStateEmoji}>🌿</Text>
+      <Text style={styles.emptyStateTitle}>Your story starts here.</Text>
+      <Text style={styles.emptyStateSub}>
+        Every photo, every note, every tiny detail — preserved forever. Tap to
+        capture your first moment together.
+      </Text>
+      <View style={styles.emptyStateCta}>
+        <Text style={styles.emptyStateCtaText}>CAPTURE FIRST MOMENT →</Text>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+// Error state when Firestore is unreachable
+function ErrorBanner({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <View style={styles.errorBanner}>
+      <Text style={styles.errorText}>
+        Couldn't load memories right now. Check your connection.
+      </Text>
+      <TouchableOpacity onPress={onRetry}>
+        <Text style={styles.errorRetry}>Retry</Text>
+      </TouchableOpacity>
+    </View>
+  );
 }
 
 export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user } = useAuth();
-  const { activeBaby, ageInfo, loading: babyLoading } = useBaby(user?.uid ?? null);
+  const { activeBaby, ageInfo, loading: babyLoading, error: babyError, refresh } = useBabyContext();
 
   const [memories, setMemories] = useState<Memory[]>([]);
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [loadingData, setLoadingData] = useState(false);
+  const [dataError, setDataError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Use activeBaby.id — not the whole object — so this only re-fires when
+  // the baby actually changes, not on every render.
+  const fetchData = useCallback(async () => {
+    if (!user?.uid || !activeBaby?.id) return;
+    setLoadingData(true);
+    setDataError(null);
+    try {
+      const [mems, miles] = await Promise.all([
+        getMemoriesForBaby(user.uid, activeBaby.id, 4),
+        getMilestonesForBaby(user.uid, activeBaby.id),
+      ]);
+      setMemories(mems);
+      setMilestones(miles);
+    } catch (err) {
+      setDataError((err as Error).message);
+    } finally {
+      setLoadingData(false);
+    }
+  }, [user?.uid, activeBaby?.id]);
 
   useEffect(() => {
-    if (!user?.uid || !activeBaby) return;
-    setLoadingData(true);
-    Promise.all([
-      getMemoriesForBaby(user.uid, activeBaby.id, 4),
-      getMilestonesForBaby(user.uid, activeBaby.id),
-    ])
-      .then(([mems, miles]) => {
-        setMemories(mems);
-        setMilestones(miles);
-      })
-      .finally(() => setLoadingData(false));
-  }, [user?.uid, activeBaby]);
+    fetchData();
+  }, [fetchData]);
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([refresh(), fetchData()]);
+    setRefreshing(false);
+  };
+
+  const firstName = user?.displayName?.split(' ')[0] ?? '';
   const upcomingMilestone = MILESTONE_TEMPLATES.find(
     (t) => !milestones.find((m) => m.type === t.id && m.isCaptured)
   );
-
   const firstsToShow = MILESTONE_TEMPLATES.slice(0, 6).map((t) => ({
     ...t,
     done: !!milestones.find((m) => m.type === t.id && m.isCaptured),
@@ -85,8 +133,15 @@ export default function DashboardScreen() {
       style={styles.scroll}
       contentContainerStyle={{ paddingBottom: insets.bottom + 90 }}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          tintColor={Colors.sienna}
+        />
+      }
     >
-      {/* Dark top header */}
+      {/* Dark header */}
       <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <LinearGradient
           colors={['rgba(193,123,92,0.2)', 'transparent']}
@@ -94,13 +149,13 @@ export default function DashboardScreen() {
           start={{ x: 1, y: 1 }}
           end={{ x: 0, y: 0 }}
         />
-        <Text style={styles.greeting}>{getGreeting()}</Text>
+        <Text style={styles.greeting}>{getGreeting(firstName)}</Text>
         <Text style={styles.name}>
           {activeBaby?.name ?? 'Your'}'s{' '}
           <Text style={styles.nameItalic}>World</Text>
         </Text>
         <Text style={styles.age}>
-          {ageInfo?.displayAge ?? 'Welcome to Flourish'}{' '}
+          {ageInfo?.displayAge ?? 'Set up your baby\'s profile to begin'}{' '}
           {activeBaby
             ? `· Born ${activeBaby.birthDate.toLocaleDateString('en-GB', {
                 day: 'numeric',
@@ -129,6 +184,14 @@ export default function DashboardScreen() {
         </TouchableOpacity>
       )}
 
+      {/* Error surface */}
+      {(babyError || dataError) && (
+        <ErrorBanner
+          message={babyError ?? dataError ?? ''}
+          onRetry={handleRefresh}
+        />
+      )}
+
       {/* Quick capture */}
       <View style={styles.section}>
         <EyebrowLabel>Capture a moment</EyebrowLabel>
@@ -151,35 +214,26 @@ export default function DashboardScreen() {
         </View>
       </View>
 
-      {/* Recent memories grid */}
+      {/* Recent memories */}
       <View style={styles.section}>
         <EyebrowLabel>Recent memories</EyebrowLabel>
         {loadingData ? (
           <ActivityIndicator color={Colors.sienna} style={{ paddingVertical: 20 }} />
         ) : memories.length > 0 ? (
           <View style={styles.memoryGrid}>
-            {memories.slice(0, 4).map((mem, i) => (
+            {memories.map((mem, i) => (
               <TouchableOpacity
                 key={mem.id}
                 style={styles.memCard}
                 activeOpacity={0.8}
                 onPress={() => router.push('/(tabs)/scrapbook')}
               >
-                <LinearGradient
-                  colors={MEMORY_COLORS[i % MEMORY_COLORS.length] as unknown as [string, string]}
-                  style={styles.memPhoto}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                >
-                  <Text style={styles.memEmoji}>
-                    {MEMORY_EMOJIS[i % MEMORY_EMOJIS.length]}
-                  </Text>
-                  {i === 0 && (
-                    <View style={styles.newBadge}>
-                      <Text style={styles.newBadgeText}>New</Text>
-                    </View>
-                  )}
-                </LinearGradient>
+                <MemoryThumbnail memory={mem} index={i} height={90} />
+                {i === 0 && (
+                  <View style={styles.newBadge}>
+                    <Text style={styles.newBadgeText}>New</Text>
+                  </View>
+                )}
                 <View style={styles.memMeta}>
                   <Text style={styles.memTitle} numberOfLines={1}>
                     {mem.title}
@@ -195,16 +249,11 @@ export default function DashboardScreen() {
             ))}
           </View>
         ) : (
-          <View style={styles.emptyMemories}>
-            <Text style={styles.emptyIcon}>📸</Text>
-            <Text style={styles.emptyText}>
-              No memories yet. Capture your first moment.
-            </Text>
-          </View>
+          <EmptyMemoriesState onCapture={() => router.push('/(tabs)/capture')} />
         )}
       </View>
 
-      {/* Firsts tracker */}
+      {/* Firsts strip */}
       <View style={styles.section}>
         <EyebrowLabel>Firsts tracker</EyebrowLabel>
         <ScrollView
@@ -235,9 +284,13 @@ export default function DashboardScreen() {
 
 const styles = StyleSheet.create({
   scroll: { flex: 1, backgroundColor: Colors.cream },
-  loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.cream },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.cream,
+  },
 
-  // Header
   header: {
     backgroundColor: Colors.ink,
     paddingHorizontal: Spacing['2xl'],
@@ -247,8 +300,7 @@ const styles = StyleSheet.create({
   greeting: {
     fontFamily: 'DMSans_400Regular',
     fontSize: Typography.sizes.sm,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
+    letterSpacing: 0.5,
     color: 'rgba(251,247,242,0.4)',
     marginBottom: 6,
   },
@@ -269,7 +321,6 @@ const styles = StyleSheet.create({
     color: 'rgba(251,247,242,0.45)',
   },
 
-  // Milestone alert
   milestoneAlert: {
     backgroundColor: Colors.sienna,
     marginHorizontal: Spacing.xl,
@@ -283,14 +334,46 @@ const styles = StyleSheet.create({
   },
   alertIcon: { fontSize: 20 },
   alertText: { flex: 1 },
-  alertTitle: { fontFamily: 'DMSans_500Medium', fontSize: Typography.sizes.sm, color: '#fff' },
-  alertSub: { fontFamily: 'DMSans_400Regular', fontSize: Typography.sizes.xs, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
+  alertTitle: {
+    fontFamily: 'DMSans_500Medium',
+    fontSize: Typography.sizes.sm,
+    color: '#fff',
+  },
+  alertSub: {
+    fontFamily: 'DMSans_400Regular',
+    fontSize: Typography.sizes.xs,
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: 2,
+  },
   alertArrow: { fontSize: 18, color: 'rgba(255,255,255,0.6)' },
 
-  // Section
+  errorBanner: {
+    margin: Spacing.xl,
+    padding: Spacing.md,
+    backgroundColor: 'rgba(229,115,115,0.1)',
+    borderLeftWidth: 2,
+    borderLeftColor: '#e57373',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  errorText: {
+    flex: 1,
+    fontFamily: 'DMSans_400Regular',
+    fontSize: Typography.sizes.xs,
+    color: '#c62828',
+    lineHeight: 18,
+  },
+  errorRetry: {
+    fontFamily: 'DMSans_500Medium',
+    fontSize: Typography.sizes.xs,
+    color: Colors.sienna,
+    textDecorationLine: 'underline',
+  },
+
   section: { paddingHorizontal: Spacing.xl, paddingTop: Spacing['2xl'] },
 
-  // Quick capture
   captureRow: { flexDirection: 'row', gap: 10, marginBottom: Spacing['2xl'] },
   captureBtn: {
     flex: 1,
@@ -312,7 +395,6 @@ const styles = StyleSheet.create({
     color: Colors.inkLight,
   },
 
-  // Memory grid
   memoryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -324,15 +406,13 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.warm,
     borderRadius: 4,
     overflow: 'hidden',
-    ...Shadows.sm,
-  },
-  memPhoto: {
-    height: 90,
-    alignItems: 'center',
-    justifyContent: 'center',
+    shadowColor: '#2C2420',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 2,
     position: 'relative',
   },
-  memEmoji: { fontSize: 32 },
   newBadge: {
     position: 'absolute',
     top: 6,
@@ -341,6 +421,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     paddingHorizontal: 6,
     borderRadius: 10,
+    zIndex: 1,
   },
   newBadgeText: {
     fontFamily: 'DMSans_400Regular',
@@ -350,23 +431,56 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   memMeta: { padding: 10 },
-  memTitle: { fontFamily: 'DMSans_500Medium', fontSize: 12, color: Colors.ink },
-  memDate: { fontFamily: 'DMSans_400Regular', fontSize: 10, color: Colors.inkMedium, marginTop: 2 },
-
-  emptyMemories: {
-    alignItems: 'center',
-    paddingVertical: 32,
-    gap: 8,
+  memTitle: {
+    fontFamily: 'DMSans_500Medium',
+    fontSize: 12,
+    color: Colors.ink,
   },
-  emptyIcon: { fontSize: 32, opacity: 0.4 },
-  emptyText: {
-    fontFamily: 'CormorantGaramond_300Light_Italic',
-    fontSize: Typography.sizes.lg,
+  memDate: {
+    fontFamily: 'DMSans_400Regular',
+    fontSize: 10,
     color: Colors.inkMedium,
+    marginTop: 2,
+  },
+
+  // Warm empty state
+  emptyState: {
+    backgroundColor: Colors.warm,
+    borderWidth: 1,
+    borderColor: 'rgba(196,169,160,0.2)',
+    padding: Spacing['3xl'],
+    marginBottom: Spacing['2xl'],
+    alignItems: 'center',
+    gap: 10,
+  },
+  emptyStateEmoji: { fontSize: 36, marginBottom: 4 },
+  emptyStateTitle: {
+    fontFamily: 'CormorantGaramond_300Light_Italic',
+    fontSize: 22,
+    color: Colors.ink,
     textAlign: 'center',
   },
+  emptyStateSub: {
+    fontFamily: 'DMSans_400Regular',
+    fontSize: Typography.sizes.sm,
+    color: Colors.inkMedium,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  emptyStateCta: {
+    marginTop: 8,
+    paddingVertical: 10,
+    paddingHorizontal: Spacing.xl,
+    backgroundColor: Colors.sienna,
+    borderRadius: 2,
+  },
+  emptyStateCtaText: {
+    fontFamily: 'DMSans_400Regular',
+    fontSize: Typography.sizes.xs,
+    letterSpacing: 1.2,
+    color: '#fff',
+  },
 
-  // Firsts strip
   firstsStrip: { gap: 10, paddingBottom: 8, paddingRight: Spacing.xl },
   firstChip: {
     flexDirection: 'row',
@@ -384,7 +498,15 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(122,158,126,0.3)',
   },
   firstEmoji: { fontSize: 18 },
-  firstName: { fontFamily: 'DMSans_500Medium', fontSize: 11, color: Colors.ink },
-  firstAge: { fontFamily: 'DMSans_400Regular', fontSize: 9, color: Colors.inkMedium },
+  firstName: {
+    fontFamily: 'DMSans_500Medium',
+    fontSize: 11,
+    color: Colors.ink,
+  },
+  firstAge: {
+    fontFamily: 'DMSans_400Regular',
+    fontSize: 9,
+    color: Colors.inkMedium,
+  },
   firstTick: { fontSize: 14, color: Colors.sageDark, marginLeft: 4 },
 });

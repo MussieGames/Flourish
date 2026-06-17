@@ -26,7 +26,7 @@ import {
   subMonths,
 } from 'date-fns';
 import { useAuth } from '../../src/hooks/useAuth';
-import { useBaby } from '../../src/hooks/useBaby';
+import { useBabyContext } from '../../src/contexts/BabyContext';
 import {
   getMilestonesForBaby,
   captureMilestone,
@@ -55,7 +55,7 @@ export default function FirstsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user } = useAuth();
-  const { activeBaby, ageInfo } = useBaby(user?.uid ?? null);
+  const { activeBaby, ageInfo } = useBabyContext();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [milestones, setMilestones] = useState<Milestone[]>([]);
 

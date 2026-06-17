@@ -1,8 +1,14 @@
 /**
- * Milestone Moment screen — full-screen celebration modal.
- * Displayed when a "first" is captured.
+ * Milestone Moment — full-screen celebration. Non-scrollable by design.
+ *
+ * Improvements over v1:
+ *  - View instead of ScrollView — immersive, held-breath feel
+ *  - Direct Firestore getDoc instead of fetching all milestones
+ *  - Milestone-specific celebrationText from MILESTONE_TEMPLATES
+ *  - Three Animated.loop values consolidated via usePulse hook
+ *  - useBabyContext instead of useBaby (no extra Firestore read)
  */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,53 +17,57 @@ import {
   TouchableOpacity,
   Share,
   Dimensions,
-  ScrollView,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
+import { doc, getDoc } from 'firebase/firestore';
 import { useAuth } from '../../src/hooks/useAuth';
-import { useBaby } from '../../src/hooks/useBaby';
-import { getMilestonesForBaby } from '../../src/services/firestore';
+import { useBabyContext } from '../../src/contexts/BabyContext';
+import { getFirebaseFirestore } from '../../src/services/firebase';
 import { Colors, Typography, Spacing } from '../../src/constants/theme';
 import { Button } from '../../src/components/Button';
-import type { Milestone } from '../../src/types';
 import { MILESTONE_TEMPLATES } from '../../src/constants/stickers';
 import { format } from 'date-fns';
+import type { Milestone } from '../../src/types';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
-const CONFETTI = ['✨', '🌸', '⭐', '🌿', '💛', '🎉', '🌸', '✦'];
+// ─── Reusable pulse animation hook ───────────────────────────────────────────
+function usePulse(to: number, duration: number) {
+  const anim = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(anim, { toValue: to, duration, useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 1, duration, useNativeDriver: true }),
+      ])
+    ).start();
+    return () => anim.stopAnimation();
+  }, []);
+  return anim;
+}
 
+// ─── Confetti item ────────────────────────────────────────────────────────────
 function ConfettiItem({ emoji, delay }: { emoji: string; delay: number }) {
   const anim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
         Animated.delay(delay),
-        Animated.timing(anim, { toValue: 1, duration: 2000, useNativeDriver: true }),
-        Animated.timing(anim, { toValue: 0, duration: 2000, useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 1, duration: 2200, useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 0, duration: 2200, useNativeDriver: true }),
       ])
     ).start();
   }, []);
   return (
     <Animated.Text
       style={{
-        fontSize: 20,
-        opacity: 0.6,
+        fontSize: 22,
+        opacity: anim.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0.3, 0.8, 0.3] }),
         transform: [
-          {
-            translateY: anim.interpolate({
-              inputRange: [0, 0.5, 1],
-              outputRange: [0, 12, 0],
-            }),
-          },
-          {
-            rotate: anim.interpolate({
-              inputRange: [0, 1],
-              outputRange: ['0deg', '10deg'],
-            }),
-          },
+          { translateY: anim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, 14, 0] }) },
+          { rotate: anim.interpolate({ inputRange: [0, 0.5, 1], outputRange: ['-8deg', '8deg', '-8deg'] }) },
         ],
       }}
     >
@@ -66,121 +76,107 @@ function ConfettiItem({ emoji, delay }: { emoji: string; delay: number }) {
   );
 }
 
+const CONFETTI = ['✨', '🌸', '⭐', '🌿', '💛', '✦', '🎉'];
+
+// ─── Main screen ──────────────────────────────────────────────────────────────
 export default function MilestoneScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuth();
-  const { activeBaby } = useBaby(user?.uid ?? null);
+  const { activeBaby } = useBabyContext();
   const [milestone, setMilestone] = useState<Milestone | null>(null);
 
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  const orb1Anim = useRef(new Animated.Value(1)).current;
-  const orb2Anim = useRef(new Animated.Value(1)).current;
+  // Consolidated animations via reusable hook
+  const emojiScale = usePulse(1.09, 1000);
+  const orb1Scale = usePulse(1.12, 4000);
+  const orb2Scale = usePulse(1.1, 5200);
 
+  // Direct doc fetch — no need to load the entire milestones collection
   useEffect(() => {
-    // Pulse emoji
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1.08, duration: 1000, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
-      ])
-    ).start();
-
-    // Orb animations
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(orb1Anim, { toValue: 1.1, duration: 4000, useNativeDriver: true }),
-        Animated.timing(orb1Anim, { toValue: 1, duration: 4000, useNativeDriver: true }),
-      ])
-    ).start();
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(orb2Anim, { toValue: 1.1, duration: 5000, useNativeDriver: true }),
-        Animated.timing(orb2Anim, { toValue: 1, duration: 5000, useNativeDriver: true }),
-      ])
-    ).start();
-  }, []);
-
-  useEffect(() => {
-    if (!user?.uid || !activeBaby || !id) return;
-    getMilestonesForBaby(user.uid, activeBaby.id).then((miles) => {
-      const found = miles.find((m) => m.id === id);
-      setMilestone(found ?? null);
+    if (!id) return;
+    const db = getFirebaseFirestore();
+    getDoc(doc(db, 'milestones', id)).then((snap) => {
+      if (!snap.exists()) return;
+      const d = snap.data();
+      setMilestone({
+        id: snap.id,
+        babyId: d.babyId,
+        parentId: d.parentId,
+        type: d.type,
+        emoji: d.emoji,
+        title: d.title,
+        description: d.description,
+        isCaptured: d.isCaptured,
+        capturedAt: d.capturedAt?.toDate?.() ?? new Date(),
+        createdAt: d.createdAt?.toDate?.() ?? new Date(),
+        updatedAt: d.updatedAt?.toDate?.() ?? new Date(),
+      } as Milestone);
     });
-  }, [user?.uid, activeBaby, id]);
+  }, [id]);
 
   const template = MILESTONE_TEMPLATES.find((t) => t.id === milestone?.type);
   const displayEmoji = template?.emoji ?? milestone?.emoji ?? '⭐';
   const displayTitle = template?.title ?? milestone?.title ?? 'A wonderful first';
+  // Use the milestone-specific celebration text; fall back gracefully
+  const celebrationText =
+    template?.celebrationText ??
+    'You caught it. A moment that belongs entirely to you both. Capture it, feel it, keep it.';
 
-  const handleShare = async () => {
+  const handleShare = useCallback(async () => {
     try {
       await Share.share({
         message: `${activeBaby?.name ?? 'Our little one'} just had their ${displayTitle}! Captured with Flourish 🌿`,
       });
     } catch (_) {}
-  };
+  }, [activeBaby?.name, displayTitle]);
 
   return (
-    <ScrollView
-      style={styles.scroll}
-      contentContainerStyle={[
-        styles.content,
-        { paddingTop: insets.top + 52, paddingBottom: insets.bottom + 32 },
-      ]}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* Animated orbs */}
+    <View style={[styles.screen, { paddingTop: insets.top }]}>
+      {/* Glowing orbs */}
       <Animated.View
-        style={[styles.orb1, { transform: [{ scale: orb1Anim }] }]}
+        style={[styles.orb1, { transform: [{ scale: orb1Scale }] }]}
         pointerEvents="none"
       />
       <Animated.View
-        style={[styles.orb2, { transform: [{ scale: orb2Anim }] }]}
+        style={[styles.orb2, { transform: [{ scale: orb2Scale }] }]}
         pointerEvents="none"
       />
 
-      {/* Confetti row */}
-      <View style={styles.confettiRow}>
-        {CONFETTI.slice(0, 5).map((e, i) => (
-          <ConfettiItem key={i} emoji={e} delay={i * 400} />
+      {/* Confetti */}
+      <View style={styles.confettiRow} pointerEvents="none">
+        {CONFETTI.map((e, i) => (
+          <ConfettiItem key={i} emoji={e} delay={i * 350} />
         ))}
       </View>
 
-      {/* Badge */}
-      <View style={styles.badge}>
-        <Text style={styles.badgeText}>FIRST CAPTURED</Text>
+      {/* Content — centred in the remaining space */}
+      <View style={styles.content}>
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>FIRST CAPTURED</Text>
+        </View>
+
+        <Animated.Text style={[styles.bigEmoji, { transform: [{ scale: emojiScale }] }]}>
+          {displayEmoji}
+        </Animated.Text>
+
+        <Text style={styles.title}>
+          {activeBaby?.name ?? 'Your little one'}'s{'\n'}
+          <Text style={styles.titleItalic}>{displayTitle}</Text>
+        </Text>
+
+        <Text style={styles.date}>
+          {milestone?.capturedAt
+            ? format(milestone.capturedAt, "EEEE, d MMMM yyyy · h:mmaaa")
+            : format(new Date(), "EEEE, d MMMM yyyy · h:mmaaa")}
+        </Text>
+
+        {/* Milestone-specific text — not the same for every first */}
+        <Text style={styles.para}>{celebrationText}</Text>
       </View>
 
-      {/* Pulsing emoji */}
-      <Animated.Text
-        style={[styles.bigEmoji, { transform: [{ scale: pulseAnim }] }]}
-      >
-        {displayEmoji}
-      </Animated.Text>
-
-      {/* Title */}
-      <Text style={styles.title}>
-        {activeBaby?.name ?? 'Your little one'}'s{'\n'}
-        <Text style={styles.titleItalic}>{displayTitle}</Text>
-      </Text>
-
-      {/* Date */}
-      <Text style={styles.date}>
-        {milestone?.capturedAt
-          ? format(milestone.capturedAt, "EEEE, d MMMM yyyy · h:mmaaa")
-          : format(new Date(), "EEEE, d MMMM yyyy · h:mmaaa")}
-      </Text>
-
-      {/* Paragraph */}
-      <Text style={styles.para}>
-        You caught it. The one that changes everything. That first real,
-        full-face, eyes-crinkling moment — and it was meant just for you.
-      </Text>
-
-      {/* Actions */}
-      <View style={styles.actions}>
+      {/* Actions anchored to bottom */}
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 24 }]}>
         <Button
           onPress={() => router.push('/(tabs)/capture')}
           title="📸 Add a photo of this moment"
@@ -190,60 +186,62 @@ export default function MilestoneScreen() {
           title="Save to scrapbook →"
           variant="outline"
         />
-      </View>
 
-      {/* Share row */}
-      <View style={styles.shareRow}>
-        <TouchableOpacity style={styles.shareIcon} onPress={handleShare}>
-          <Text style={{ fontSize: 16 }}>👨‍👩‍👧</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.shareIcon} onPress={handleShare}>
-          <Text style={{ fontSize: 16 }}>💌</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.shareIcon} onPress={handleShare}>
-          <Text style={{ fontSize: 16 }}>📤</Text>
+        <View style={styles.shareRow}>
+          {['👨‍👩‍👧', '💌', '📤'].map((icon) => (
+            <TouchableOpacity key={icon} style={styles.shareIcon} onPress={handleShare} activeOpacity={0.7}>
+              <Text style={{ fontSize: 16 }}>{icon}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
+          <Text style={styles.closeBtnText}>Close</Text>
         </TouchableOpacity>
       </View>
-
-      {/* Close */}
-      <TouchableOpacity style={styles.closeBtn} onPress={() => router.back()}>
-        <Text style={styles.closeBtnText}>Close</Text>
-      </TouchableOpacity>
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll: { flex: 1, backgroundColor: Colors.ink },
-  content: {
-    alignItems: 'center',
-    paddingHorizontal: 28,
+  screen: {
+    flex: 1,
+    backgroundColor: Colors.ink,
     overflow: 'hidden',
   },
 
   orb1: {
     position: 'absolute',
-    width: 400,
-    height: 400,
-    borderRadius: 200,
-    backgroundColor: 'rgba(193,123,92,0.25)',
-    top: -80,
+    width: 420,
+    height: 420,
+    borderRadius: 210,
+    backgroundColor: 'rgba(193,123,92,0.28)',
+    top: -100,
     left: -80,
   },
   orb2: {
     position: 'absolute',
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    backgroundColor: 'rgba(181,196,177,0.15)',
-    bottom: 20,
-    right: -40,
+    width: 320,
+    height: 320,
+    borderRadius: 160,
+    backgroundColor: 'rgba(181,196,177,0.18)',
+    bottom: -40,
+    right: -60,
   },
 
   confettiRow: {
     flexDirection: 'row',
-    gap: width / 8,
-    marginBottom: 24,
+    justifyContent: 'space-around',
+    paddingHorizontal: Spacing.xl,
+    paddingTop: 12,
+    zIndex: 1,
+  },
+
+  content: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
     zIndex: 1,
   },
 
@@ -252,7 +250,6 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     paddingHorizontal: 16,
     marginBottom: 24,
-    zIndex: 1,
   },
   badgeText: {
     fontFamily: 'DMSans_500Medium',
@@ -261,16 +258,15 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
 
-  bigEmoji: { fontSize: 72, marginBottom: 20, zIndex: 1 },
+  bigEmoji: { fontSize: 80, marginBottom: 20 },
 
   title: {
     fontFamily: 'CormorantGaramond_300Light',
     fontSize: 42,
     color: Colors.cream,
-    lineHeight: 48,
+    lineHeight: 50,
     textAlign: 'center',
     marginBottom: 12,
-    zIndex: 1,
   },
   titleItalic: {
     fontFamily: 'CormorantGaramond_300Light_Italic',
@@ -281,30 +277,32 @@ const styles = StyleSheet.create({
     fontFamily: 'DMSans_400Regular',
     fontSize: Typography.sizes.xs,
     color: 'rgba(251,247,242,0.4)',
-    letterSpacing: 1,
-    marginBottom: 28,
-    zIndex: 1,
+    letterSpacing: 0.8,
+    marginBottom: 20,
+    textAlign: 'center',
   },
 
   para: {
     fontFamily: 'DMSans_300Light',
     fontSize: 15,
-    color: 'rgba(251,247,242,0.65)',
+    color: 'rgba(251,247,242,0.68)',
     lineHeight: 26,
     textAlign: 'center',
-    marginBottom: 36,
-    zIndex: 1,
     maxWidth: 300,
   },
 
-  actions: { width: '100%', gap: 10, zIndex: 1 },
+  footer: {
+    paddingHorizontal: Spacing['2xl'],
+    paddingTop: Spacing.xl,
+    gap: 10,
+    zIndex: 1,
+  },
 
   shareRow: {
     flexDirection: 'row',
     gap: 12,
     justifyContent: 'center',
-    marginTop: 16,
-    zIndex: 1,
+    marginTop: 6,
   },
   shareIcon: {
     width: 40,
@@ -315,11 +313,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  closeBtn: { marginTop: 24, zIndex: 1 },
+  closeBtn: { alignItems: 'center', paddingTop: 6 },
   closeBtnText: {
     fontFamily: 'DMSans_400Regular',
     fontSize: Typography.sizes.sm,
-    color: 'rgba(251,247,242,0.35)',
+    color: 'rgba(251,247,242,0.3)',
     textDecorationLine: 'underline',
   },
 });

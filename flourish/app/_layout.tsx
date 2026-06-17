@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -21,6 +21,9 @@ import {
 } from '@expo-google-fonts/lora';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { onAuthStateChange } from '../src/services/auth';
+import { BabyProvider } from '../src/contexts/BabyContext';
+import type { User as FirebaseUser } from 'firebase/auth';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -38,6 +41,17 @@ export default function RootLayout() {
     Lora_600SemiBold_Italic,
   });
 
+  // Track auth at root level so BabyProvider gets the uid immediately.
+  // useAuth() in child components still works via the same Firebase listener.
+  const [uid, setUid] = useState<string | null>(null);
+
+  useEffect(() => {
+    const unsub = onAuthStateChange((u: FirebaseUser | null) => {
+      setUid(u?.uid ?? null);
+    });
+    return unsub;
+  }, []);
+
   useEffect(() => {
     if (fontsLoaded || fontError) {
       SplashScreen.hideAsync();
@@ -49,18 +63,20 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <StatusBar style="auto" />
-        <Stack screenOptions={{ headerShown: false, animation: 'fade' }}>
-          <Stack.Screen name="index" />
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen
-            name="milestone/[id]"
-            options={{ animation: 'slide_from_bottom', presentation: 'modal' }}
-          />
-          <Stack.Screen name="journal/index" />
-          <Stack.Screen name="journal/new" />
-        </Stack>
+        <BabyProvider uid={uid}>
+          <StatusBar style="auto" />
+          <Stack screenOptions={{ headerShown: false, animation: 'fade' }}>
+            <Stack.Screen name="index" />
+            <Stack.Screen name="(auth)" />
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen
+              name="milestone/[id]"
+              options={{ animation: 'slide_from_bottom', presentation: 'modal' }}
+            />
+            <Stack.Screen name="journal/index" />
+            <Stack.Screen name="journal/new" />
+          </Stack>
+        </BabyProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

@@ -14,12 +14,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { z } from 'zod';
 import { signUp, getAuthErrorMessage } from '../../src/services/auth';
 import { createBaby } from '../../src/services/firestore';
+import { useBabyContext } from '../../src/contexts/BabyContext';
 import { Button } from '../../src/components/Button';
 import { Input } from '../../src/components/Input';
+import { WarmHero } from '../../src/components/WarmHero';
 import { Colors, Typography, Spacing } from '../../src/constants/theme';
 
 const schema = z.object({
-  displayName: z.string().min(1, 'Name is required').max(50, 'Name too long'),
+  displayName: z.string().min(1, 'Your name is required').max(50, 'Name too long'),
   email: z.string().email('Invalid email address'),
   password: z
     .string()
@@ -31,7 +33,11 @@ const schema = z.object({
 export default function SignUpScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { babyName } = useLocalSearchParams<{ babyName?: string }>();
+  const { babyName, birthDateISO } = useLocalSearchParams<{
+    babyName?: string;
+    birthDateISO?: string;
+  }>();
+  const { addBabyToList } = useBabyContext();
 
   const [form, setForm] = useState({ displayName: '', email: '', password: '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -48,7 +54,7 @@ export default function SignUpScreen() {
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
       result.error.issues.forEach((issue) => {
-        fieldErrors[issue.path[0] as string] = issue.message;
+        fieldErrors[String(issue.path[0])] = issue.message;
       });
       setErrors(fieldErrors);
       return;
@@ -57,18 +63,18 @@ export default function SignUpScreen() {
     setLoading(true);
     try {
       const user = await signUp(form.email, form.password, form.displayName);
+
       if (babyName) {
-        // Create baby profile automatically from onboarding
-        await createBaby(user.uid, {
-          name: babyName,
-          birthDate: new Date(), // User will update this in profile
-        });
+        const birthDate = birthDateISO ? new Date(birthDateISO) : new Date();
+        const baby = await createBaby(user.uid, { name: babyName, birthDate });
+        // Immediately update context so the dashboard has data without re-fetching
+        addBabyToList(baby);
       }
+
       router.replace('/(tabs)/');
     } catch (err: unknown) {
       const code = (err as { code?: string }).code ?? '';
-      const message = getAuthErrorMessage(code) || (err as Error).message;
-      Alert.alert('Sign Up Failed', message);
+      Alert.alert('Sign Up Failed', getAuthErrorMessage(code) || (err as Error).message);
     } finally {
       setLoading(false);
     }
@@ -81,40 +87,30 @@ export default function SignUpScreen() {
     >
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[
-          styles.content,
-          { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 32 },
-        ]}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.back}
-          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-        >
-          <Text style={styles.backText}>‹ Back</Text>
-        </TouchableOpacity>
+        {/* Compact warm hero */}
+        <WarmHero style={[styles.hero, { paddingTop: insets.top + 20 }]}>
+          <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+            <Text style={styles.backText}>‹ Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.heroTitle}>
+            Create your{'\n'}
+            <Text style={styles.heroTitleItalic}>account.</Text>
+          </Text>
+        </WarmHero>
 
-        <View style={styles.eyebrow}>
-          <View style={styles.eyebrowLine} />
-          <Text style={styles.eyebrowText}>CREATE YOUR ACCOUNT</Text>
-        </View>
+        <View style={styles.form}>
+          {babyName ? (
+            <View style={styles.babyBadge}>
+              <Text style={styles.babyBadgeText}>
+                🌿 Creating {babyName}'s story
+              </Text>
+            </View>
+          ) : null}
 
-        <Text style={styles.title}>
-          Start <Text style={styles.titleItalic}>preserving</Text>
-          {'\n'}every moment.
-        </Text>
-
-        {babyName ? (
-          <View style={styles.babyBadge}>
-            <Text style={styles.babyBadgeText}>
-              🌿 Creating {babyName}'s story
-            </Text>
-          </View>
-        ) : null}
-
-        <View style={styles.formSection}>
           <Input
             label="Your name"
             placeholder="e.g. Sarah..."
@@ -146,24 +142,22 @@ export default function SignUpScreen() {
               </TouchableOpacity>
             }
           />
-        </View>
 
-        <View style={styles.terms}>
-          <Text style={styles.termsText}>
-            By creating an account, you agree to our{' '}
+          <Text style={styles.terms}>
+            By creating an account you agree to our{' '}
             <Text style={styles.termsLink}>Privacy Policy</Text> and{' '}
             <Text style={styles.termsLink}>Terms of Service</Text>. Your data
             is encrypted and never sold.
           </Text>
-        </View>
 
-        <Button onPress={handleSignUp} title="Create my account →" loading={loading} />
+          <Button onPress={handleSignUp} title="Create my account →" loading={loading} />
 
-        <View style={styles.signinRow}>
-          <Text style={styles.signinText}>Already have an account? </Text>
-          <TouchableOpacity onPress={() => router.replace('/(auth)/signin')}>
-            <Text style={styles.signinLink}>Sign in</Text>
-          </TouchableOpacity>
+          <View style={styles.signinRow}>
+            <Text style={styles.signinText}>Already have an account? </Text>
+            <TouchableOpacity onPress={() => router.replace('/(auth)/signin')}>
+              <Text style={styles.signinLink}>Sign in</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -172,34 +166,29 @@ export default function SignUpScreen() {
 
 const styles = StyleSheet.create({
   scroll: { flex: 1, backgroundColor: Colors.cream },
-  content: { paddingHorizontal: 28 },
-  back: { marginBottom: Spacing['3xl'] },
+
+  hero: {
+    paddingHorizontal: 28,
+    paddingBottom: 36,
+  },
   backText: {
     fontFamily: 'DMSans_400Regular',
     fontSize: Typography.sizes.lg,
-    color: Colors.sienna,
-  },
-  eyebrow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginBottom: Spacing.md,
-  },
-  eyebrowLine: { width: 16, height: 1, backgroundColor: Colors.sienna },
-  eyebrowText: {
-    fontFamily: 'DMSans_400Regular',
-    fontSize: Typography.sizes.xs,
-    letterSpacing: 1.8,
-    color: Colors.sienna,
-  },
-  title: {
-    fontFamily: 'CormorantGaramond_300Light',
-    fontSize: 36,
-    color: Colors.ink,
-    lineHeight: 42,
+    color: 'rgba(251,247,242,0.7)',
     marginBottom: Spacing['2xl'],
   },
-  titleItalic: { fontFamily: 'CormorantGaramond_300Light_Italic', color: Colors.sienna },
+  heroTitle: {
+    fontFamily: 'CormorantGaramond_300Light',
+    fontSize: 36,
+    color: Colors.cream,
+    lineHeight: 42,
+  },
+  heroTitleItalic: {
+    fontFamily: 'CormorantGaramond_300Light_Italic',
+    color: Colors.rose,
+  },
+
+  form: { padding: Spacing['2xl'] },
   babyBadge: {
     backgroundColor: 'rgba(181,196,177,0.2)',
     paddingVertical: 10,
@@ -213,15 +202,16 @@ const styles = StyleSheet.create({
     fontSize: Typography.sizes.sm,
     color: Colors.sageDark,
   },
-  formSection: { marginBottom: Spacing.xl },
-  terms: { marginBottom: Spacing['2xl'] },
-  termsText: {
+
+  terms: {
     fontFamily: 'DMSans_300Light',
     fontSize: Typography.sizes.xs,
     color: Colors.inkMedium,
     lineHeight: 18,
+    marginBottom: Spacing['2xl'],
   },
   termsLink: { color: Colors.sienna, textDecorationLine: 'underline' },
+
   signinRow: {
     flexDirection: 'row',
     justifyContent: 'center',

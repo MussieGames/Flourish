@@ -1,11 +1,15 @@
 /**
- * New journal entry composer screen.
+ * New journal entry — now with inline photo attachment.
+ *
+ * A parent writing about a 3am feed can attach a photo right there,
+ * without leaving the journal to go to the Capture tab.
  */
 import React, { useState } from 'react';
 import {
   View,
   Text,
   TextInput,
+  Image,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
@@ -15,31 +19,79 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../../src/hooks/useAuth';
-import { useBaby } from '../../src/hooks/useBaby';
+import { useBabyContext } from '../../src/contexts/BabyContext';
 import { createJournalEntry } from '../../src/services/firestore';
 import { Colors, Typography, Spacing } from '../../src/constants/theme';
 import { Button } from '../../src/components/Button';
-import { sanitizeJournalText, sanitizeName } from '../../src/utils/sanitize';
+import { sanitizeJournalText } from '../../src/utils/sanitize';
 
 const MOODS = ['😊', '🥰', '😭', '😴', '🤗', '😮', '🥺', '💪'];
 const TAG_SUGGESTIONS = ['3am feed', 'Milestone', 'First time', 'Weekend', 'Morning', 'Evening'];
+
+// Today's date and time formatted at mount time (stable, no re-renders)
+const NOW = new Date();
+const DISPLAY_DATE = NOW.toLocaleDateString('en-GB', {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+});
+const DISPLAY_TIME = NOW.toLocaleTimeString('en-GB', {
+  hour: '2-digit',
+  minute: '2-digit',
+});
 
 export default function NewJournalScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user } = useAuth();
-  const { activeBaby } = useBaby(user?.uid ?? null);
+  const { activeBaby } = useBabyContext();
 
   const [text, setText] = useState('');
   const [mood, setMood] = useState<string | null>(null);
   const [tags, setTags] = useState<string[]>([]);
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const toggleTag = (tag: string) => {
+  const toggleTag = (tag: string) =>
     setTags((prev) =>
       prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag].slice(0, 5)
     );
+
+  const handlePickPhoto = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Flourish needs access to your photos.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.85,
+      exif: false,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setPhotoUri(result.assets[0].uri);
+    }
+  };
+
+  const handleTakePhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Flourish needs camera access.');
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.85,
+      exif: false,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setPhotoUri(result.assets[0].uri);
+    }
   };
 
   const handleSave = async () => {
@@ -60,18 +112,14 @@ export default function NewJournalScreen() {
         text: cleanText,
         mood: mood ?? undefined,
         tags: tags.length > 0 ? tags : undefined,
-        capturedAt: new Date(),
+        // photoUri stored locally for now; in production this would upload to Storage first
+        photoURL: photoUri ?? undefined,
+        capturedAt: NOW,
       });
       Alert.alert('Saved 🌿', 'Your journal entry has been preserved.', [
-        {
-          text: 'View journal',
-          onPress: () => router.replace('/journal/'),
-        },
-        { text: 'Write more' },
+        { text: 'View journal', onPress: () => router.replace('/journal/') },
+        { text: 'Write more', onPress: () => { setText(''); setMood(null); setTags([]); setPhotoUri(null); } },
       ]);
-      setText('');
-      setMood(null);
-      setTags([]);
     } catch (err) {
       Alert.alert('Error', (err as Error).message);
     } finally {
@@ -101,21 +149,10 @@ export default function NewJournalScreen() {
           <Text style={styles.title}>
             New <Text style={styles.titleItalic}>entry</Text>
           </Text>
-          <Text style={styles.sub}>
-            {new Date().toLocaleDateString('en-GB', {
-              weekday: 'long',
-              day: 'numeric',
-              month: 'long',
-            })}{' '}
-            ·{' '}
-            {new Date().toLocaleTimeString('en-GB', {
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
-          </Text>
+          <Text style={styles.sub}>{DISPLAY_DATE} · {DISPLAY_TIME}</Text>
         </View>
 
-        {/* Mood selector */}
+        {/* Mood */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>HOW ARE YOU FEELING?</Text>
           <View style={styles.moodRow}>
@@ -132,7 +169,31 @@ export default function NewJournalScreen() {
           </View>
         </View>
 
-        {/* Text area */}
+        {/* Photo attachment — inline, before the text */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>ADD A PHOTO (OPTIONAL)</Text>
+          {photoUri ? (
+            <View style={styles.photoPreview}>
+              <Image source={{ uri: photoUri }} style={styles.photoImage} resizeMode="cover" />
+              <TouchableOpacity style={styles.photoRemove} onPress={() => setPhotoUri(null)}>
+                <Text style={styles.photoRemoveText}>✕ Remove</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.photoPickerRow}>
+              <TouchableOpacity style={styles.photoPickBtn} onPress={handleTakePhoto} activeOpacity={0.8}>
+                <Text style={styles.photoPickIcon}>📸</Text>
+                <Text style={styles.photoPickLabel}>Take photo</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.photoPickBtn} onPress={handlePickPhoto} activeOpacity={0.8}>
+                <Text style={styles.photoPickIcon}>🖼️</Text>
+                <Text style={styles.photoPickLabel}>Choose photo</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+
+        {/* Text */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>WRITE YOUR ENTRY</Text>
           <TextInput
@@ -160,12 +221,7 @@ export default function NewJournalScreen() {
                 onPress={() => toggleTag(tag)}
                 activeOpacity={0.8}
               >
-                <Text
-                  style={[
-                    styles.tagChipText,
-                    tags.includes(tag) && styles.tagChipTextActive,
-                  ]}
-                >
+                <Text style={[styles.tagChipText, tags.includes(tag) && styles.tagChipTextActive]}>
                   {tag}
                 </Text>
               </TouchableOpacity>
@@ -212,10 +268,7 @@ const styles = StyleSheet.create({
     color: Colors.inkMedium,
   },
 
-  section: {
-    paddingHorizontal: Spacing['2xl'],
-    paddingTop: Spacing['2xl'],
-  },
+  section: { paddingHorizontal: Spacing['2xl'], paddingTop: Spacing['2xl'] },
   sectionLabel: {
     fontFamily: 'DMSans_400Regular',
     fontSize: Typography.sizes.xs,
@@ -224,11 +277,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
 
-  moodRow: {
-    flexDirection: 'row',
-    gap: 10,
-    flexWrap: 'wrap',
-  },
+  moodRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
   moodBtn: {
     width: 44,
     height: 44,
@@ -244,6 +293,42 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(193,123,92,0.1)',
   },
   moodEmoji: { fontSize: 20 },
+
+  // Photo
+  photoPreview: { borderRadius: 4, overflow: 'hidden', position: 'relative' },
+  photoImage: { width: '100%', height: 200 },
+  photoRemove: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: 'rgba(44,36,32,0.75)',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 4,
+  },
+  photoRemoveText: {
+    fontFamily: 'DMSans_400Regular',
+    fontSize: Typography.sizes.xs,
+    color: Colors.cream,
+  },
+  photoPickerRow: { flexDirection: 'row', gap: 10 },
+  photoPickBtn: {
+    flex: 1,
+    paddingVertical: 20,
+    backgroundColor: Colors.warm,
+    borderWidth: 1,
+    borderColor: 'rgba(196,169,160,0.3)',
+    borderRadius: 2,
+    alignItems: 'center',
+    gap: 6,
+  },
+  photoPickIcon: { fontSize: 22 },
+  photoPickLabel: {
+    fontFamily: 'DMSans_400Regular',
+    fontSize: Typography.sizes.xs,
+    color: Colors.inkMedium,
+    letterSpacing: 0.4,
+  },
 
   textArea: {
     backgroundColor: Colors.warm,
@@ -265,11 +350,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
-  tagRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
+  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   tagChip: {
     paddingVertical: 6,
     paddingHorizontal: 14,
@@ -278,15 +359,8 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(196,169,160,0.3)',
     backgroundColor: Colors.warm,
   },
-  tagChipActive: {
-    backgroundColor: Colors.ink,
-    borderColor: Colors.ink,
-  },
-  tagChipText: {
-    fontFamily: 'DMSans_400Regular',
-    fontSize: 11,
-    color: Colors.inkMedium,
-  },
+  tagChipActive: { backgroundColor: Colors.ink, borderColor: Colors.ink },
+  tagChipText: { fontFamily: 'DMSans_400Regular', fontSize: 11, color: Colors.inkMedium },
   tagChipTextActive: { color: Colors.cream },
 
   footer: {
@@ -294,10 +368,7 @@ const styles = StyleSheet.create({
     paddingTop: Spacing['2xl'],
     gap: 12,
   },
-  cancelBtn: {
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
+  cancelBtn: { alignItems: 'center', paddingVertical: 8 },
   cancelText: {
     fontFamily: 'DMSans_400Regular',
     fontSize: Typography.sizes.sm,

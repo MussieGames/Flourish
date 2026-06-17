@@ -15,7 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { format } from 'date-fns';
 import { useAuth } from '../../src/hooks/useAuth';
-import { useBaby } from '../../src/hooks/useBaby';
+import { useBabyContext } from '../../src/contexts/BabyContext';
 import { getJournalEntriesForBaby } from '../../src/services/firestore';
 import { Colors, Typography, Spacing } from '../../src/constants/theme';
 import type { JournalEntry } from '../../src/types';
@@ -33,7 +33,7 @@ export default function JournalScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user } = useAuth();
-  const { activeBaby } = useBaby(user?.uid ?? null);
+  const { activeBaby } = useBabyContext();
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [loading, setLoading] = useState(false);
 

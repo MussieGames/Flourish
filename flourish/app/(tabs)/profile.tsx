@@ -15,7 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../src/hooks/useAuth';
-import { useBaby } from '../../src/hooks/useBaby';
+import { useBabyContext } from '../../src/contexts/BabyContext';
 import { getSubscription } from '../../src/services/firestore';
 import { Colors, Typography, Spacing } from '../../src/constants/theme';
 import { EyebrowLabel } from '../../src/components/EyebrowLabel';
@@ -57,7 +57,7 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user, logout } = useAuth();
-  const { activeBaby } = useBaby(user?.uid ?? null);
+  const { activeBaby } = useBabyContext();
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
@@ -425,8 +425,8 @@ const styles = StyleSheet.create({
   // Privacy note
   privacyNote: {
     margin: Spacing.xl,
-    padding: 14,
-    paddingLeft: 16,
+    padding: Spacing.mdPlus,
+    paddingLeft: Spacing.mdPlus,
     backgroundColor: 'rgba(181,196,177,0.12)',
     borderLeftWidth: 2,
     borderLeftColor: Colors.sageDark,

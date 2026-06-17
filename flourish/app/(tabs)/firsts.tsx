@@ -8,8 +8,6 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  Dimensions,
-  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -27,6 +25,7 @@ import {
 } from 'date-fns';
 import { useAuth } from '../../src/hooks/useAuth';
 import { useBabyContext } from '../../src/contexts/BabyContext';
+import { useToast } from '../../src/hooks/useToast';
 import {
   getMilestonesForBaby,
   captureMilestone,
@@ -56,6 +55,7 @@ export default function FirstsScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { activeBaby, ageInfo } = useBabyContext();
+  const { showToast, ToastView } = useToast();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [milestones, setMilestones] = useState<Milestone[]>([]);
 
@@ -77,7 +77,7 @@ export default function FirstsScreen() {
     if (!user?.uid || !activeBaby) return;
     const existing = milestones.find((m) => m.type === templateId);
     if (existing?.isCaptured) {
-      Alert.alert('Already captured! 🎉', 'This milestone has already been marked.');
+      showToast('Already captured! 🎉', 'This milestone has already been marked.');
       return;
     }
     try {
@@ -96,7 +96,7 @@ export default function FirstsScreen() {
       const updated = await getMilestonesForBaby(user.uid, activeBaby.id);
       setMilestones(updated);
     } catch (err) {
-      Alert.alert('Error', (err as Error).message);
+      showToast('Something went wrong', (err as Error).message, 'error');
     }
   };
 
@@ -105,6 +105,7 @@ export default function FirstsScreen() {
   ).slice(0, 3);
 
   return (
+  <View style={{ flex: 1 }}>
     <ScrollView
       style={styles.scroll}
       contentContainerStyle={{ paddingBottom: insets.bottom + 90 }}
@@ -276,6 +277,8 @@ export default function FirstsScreen() {
         })}
       </View>
     </ScrollView>
+    {ToastView}
+  </View>
   );
 }
 

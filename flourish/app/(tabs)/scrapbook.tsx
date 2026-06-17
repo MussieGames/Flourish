@@ -1,21 +1,19 @@
 /**
  * Scrapbook / Stickers screen — age-adaptive sticker selection.
  */
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  Animated,
-  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useAuth } from '../../src/hooks/useAuth';
 import { useBabyContext } from '../../src/contexts/BabyContext';
+import { useToast } from '../../src/hooks/useToast';
 import { STICKER_ERAS } from '../../src/constants/stickers';
 import { Colors, Typography, Spacing } from '../../src/constants/theme';
 import { EyebrowLabel } from '../../src/components/EyebrowLabel';
@@ -31,8 +29,8 @@ const ERA_BUTTONS: { id: BabyEra; label: string }[] = [
 export default function ScrapbookScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user } = useAuth();
   const { activeBaby, ageInfo } = useBabyContext();
+  const { showToast, ToastView } = useToast();
 
   const currentEra = (ageInfo?.era ?? 'baby') as BabyEra;
   const [selectedEra, setSelectedEra] = useState<BabyEra>(currentEra);
@@ -42,14 +40,12 @@ export default function ScrapbookScreen() {
   const eraData = STICKER_ERAS[selectedEra];
 
   const handleSave = () => {
-    Alert.alert(
-      'Sticker added! ✨',
-      `${eraData.stickers[selectedSticker ?? 0]?.emoji ?? '⭐'} has been added to your scrapbook page.`,
-      [{ text: 'Great!', style: 'default' }]
-    );
+    const sticker = eraData.stickers[selectedSticker ?? 0];
+    showToast(`${sticker?.emoji ?? '⭐'} added to your page`, 'Tap a memory to view your scrapbook.');
   };
 
   return (
+  <View style={{ flex: 1 }}>
     <ScrollView
       style={styles.scroll}
       contentContainerStyle={{ paddingBottom: insets.bottom + 90 }}
@@ -201,6 +197,8 @@ export default function ScrapbookScreen() {
         </TouchableOpacity>
       </View>
     </ScrollView>
+    {ToastView}
+  </View>
   );
 }
 

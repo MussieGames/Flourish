@@ -1,11 +1,11 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, StyleProp, ViewStyle } from 'react-native';
 import { Colors, Typography, Spacing } from '../constants/theme';
 
 interface Props {
   children: string;
   color?: string;
-  style?: object;
+  style?: StyleProp<ViewStyle>;
 }
 
 export function EyebrowLabel({ children, color = Colors.sienna, style }: Props) {

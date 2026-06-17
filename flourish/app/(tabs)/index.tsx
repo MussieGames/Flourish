@@ -1,14 +1,5 @@
 /**
  * Dashboard — the first screen a parent sees after sign-in.
- *
- * Improvements over v1:
- *  - Uses BabyContext (no separate Firestore fetch)
- *  - Dependency array uses activeBaby?.id, not the whole object
- *  - Parent's first name in the greeting
- *  - Real photo thumbnails via MemoryThumbnail
- *  - Warm, story-led empty state
- *  - Error surface when Firestore is unreachable
- *  - No FlatList import (was never used)
  */
 import React, { useEffect, useState, useCallback } from 'react';
 import {
@@ -26,19 +17,13 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '../../src/hooks/useAuth';
 import { useBabyContext } from '../../src/contexts/BabyContext';
 import { getMemoriesForBaby, getMilestonesForBaby } from '../../src/services/firestore';
+import { getAgeAwareGreeting } from '../../src/utils/greeting';
 import { Colors, Typography, Spacing } from '../../src/constants/theme';
 import { EyebrowLabel } from '../../src/components/EyebrowLabel';
 import { MemoryThumbnail } from '../../src/components/MemoryThumbnail';
 import type { Memory, Milestone } from '../../src/types';
 import { MILESTONE_TEMPLATES } from '../../src/constants/stickers';
 
-function getGreeting(firstName: string): string {
-  const h = new Date().getHours();
-  const time = h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
-  return firstName ? `${time}, ${firstName}` : time;
-}
-
-// Empty state shown to a brand-new parent who hasn't captured anything yet
 function EmptyMemoriesState({ onCapture }: { onCapture: () => void }) {
   return (
     <TouchableOpacity style={styles.emptyState} onPress={onCapture} activeOpacity={0.85}>
@@ -55,8 +40,7 @@ function EmptyMemoriesState({ onCapture }: { onCapture: () => void }) {
   );
 }
 
-// Error state when Firestore is unreachable
-function ErrorBanner({ message, onRetry }: { message: string; onRetry: () => void }) {
+function ErrorBanner({ onRetry }: { onRetry: () => void }) {
   return (
     <View style={styles.errorBanner}>
       <Text style={styles.errorText}>
@@ -81,8 +65,6 @@ export default function DashboardScreen() {
   const [dataError, setDataError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Use activeBaby.id — not the whole object — so this only re-fires when
-  // the baby actually changes, not on every render.
   const fetchData = useCallback(async () => {
     if (!user?.uid || !activeBaby?.id) return;
     setLoadingData(true);
@@ -101,9 +83,7 @@ export default function DashboardScreen() {
     }
   }, [user?.uid, activeBaby?.id]);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -112,6 +92,8 @@ export default function DashboardScreen() {
   };
 
   const firstName = user?.displayName?.split(' ')[0] ?? '';
+  const { timeGreeting, warmth } = getAgeAwareGreeting(firstName, ageInfo?.ageInWeeks ?? null);
+
   const upcomingMilestone = MILESTONE_TEMPLATES.find(
     (t) => !milestones.find((m) => m.type === t.id && m.isCaptured)
   );
@@ -134,14 +116,10 @@ export default function DashboardScreen() {
       contentContainerStyle={{ paddingBottom: insets.bottom + 90 }}
       showsVerticalScrollIndicator={false}
       refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={handleRefresh}
-          tintColor={Colors.sienna}
-        />
+        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.sienna} />
       }
     >
-      {/* Dark header */}
+      {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <LinearGradient
           colors={['rgba(193,123,92,0.2)', 'transparent']}
@@ -149,24 +127,20 @@ export default function DashboardScreen() {
           start={{ x: 1, y: 1 }}
           end={{ x: 0, y: 0 }}
         />
-        <Text style={styles.greeting}>{getGreeting(firstName)}</Text>
+        <Text style={styles.greeting}>{timeGreeting}</Text>
         <Text style={styles.name}>
-          {activeBaby?.name ?? 'Your'}'s{' '}
-          <Text style={styles.nameItalic}>World</Text>
+          {activeBaby?.name ?? 'Your'}'s <Text style={styles.nameItalic}>World</Text>
         </Text>
         <Text style={styles.age}>
-          {ageInfo?.displayAge ?? 'Set up your baby\'s profile to begin'}{' '}
+          {ageInfo?.displayAge ?? "Set up your baby's profile to begin"}
           {activeBaby
-            ? `· Born ${activeBaby.birthDate.toLocaleDateString('en-GB', {
-                day: 'numeric',
-                month: 'short',
-                year: 'numeric',
-              })}`
+            ? ` · Born ${activeBaby.birthDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
             : ''}
         </Text>
+        {/* Age-aware warmth line — only shown when relevant */}
+        {warmth && <Text style={styles.warmth}>{warmth}</Text>}
       </View>
 
-      {/* Milestone alert */}
       {upcomingMilestone && (
         <TouchableOpacity
           style={styles.milestoneAlert}
@@ -184,15 +158,10 @@ export default function DashboardScreen() {
         </TouchableOpacity>
       )}
 
-      {/* Error surface */}
       {(babyError || dataError) && (
-        <ErrorBanner
-          message={babyError ?? dataError ?? ''}
-          onRetry={handleRefresh}
-        />
+        <ErrorBanner onRetry={handleRefresh} />
       )}
 
-      {/* Quick capture */}
       <View style={styles.section}>
         <EyebrowLabel>Capture a moment</EyebrowLabel>
         <View style={styles.captureRow}>
@@ -214,7 +183,6 @@ export default function DashboardScreen() {
         </View>
       </View>
 
-      {/* Recent memories */}
       <View style={styles.section}>
         <EyebrowLabel>Recent memories</EyebrowLabel>
         {loadingData ? (
@@ -235,14 +203,9 @@ export default function DashboardScreen() {
                   </View>
                 )}
                 <View style={styles.memMeta}>
-                  <Text style={styles.memTitle} numberOfLines={1}>
-                    {mem.title}
-                  </Text>
+                  <Text style={styles.memTitle} numberOfLines={1}>{mem.title}</Text>
                   <Text style={styles.memDate}>
-                    {mem.capturedAt.toLocaleDateString('en-GB', {
-                      day: 'numeric',
-                      month: 'short',
-                    })}
+                    {mem.capturedAt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -253,7 +216,6 @@ export default function DashboardScreen() {
         )}
       </View>
 
-      {/* Firsts strip */}
       <View style={styles.section}>
         <EyebrowLabel>Firsts tracker</EyebrowLabel>
         <ScrollView
@@ -284,229 +246,95 @@ export default function DashboardScreen() {
 
 const styles = StyleSheet.create({
   scroll: { flex: 1, backgroundColor: Colors.cream },
-  loadingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.cream,
-  },
+  loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.cream },
 
   header: {
-    backgroundColor: Colors.ink,
-    paddingHorizontal: Spacing['2xl'],
-    paddingBottom: Spacing['2xl'],
-    overflow: 'hidden',
+    backgroundColor: Colors.ink, paddingHorizontal: Spacing['2xl'],
+    paddingBottom: Spacing['2xl'], overflow: 'hidden',
   },
   greeting: {
-    fontFamily: 'DMSans_400Regular',
-    fontSize: Typography.sizes.sm,
-    letterSpacing: 0.5,
-    color: 'rgba(251,247,242,0.4)',
-    marginBottom: 6,
+    fontFamily: 'DMSans_400Regular', fontSize: Typography.sizes.sm,
+    letterSpacing: 0.5, color: 'rgba(251,247,242,0.4)', marginBottom: 6,
   },
   name: {
-    fontFamily: 'CormorantGaramond_300Light',
-    fontSize: 32,
-    color: Colors.cream,
-    lineHeight: 38,
-    marginBottom: 4,
+    fontFamily: 'CormorantGaramond_300Light', fontSize: 32,
+    color: Colors.cream, lineHeight: 38, marginBottom: 4,
   },
-  nameItalic: {
-    fontFamily: 'CormorantGaramond_300Light_Italic',
-    color: Colors.rose,
-  },
-  age: {
-    fontFamily: 'DMSans_400Regular',
-    fontSize: Typography.sizes.sm,
-    color: 'rgba(251,247,242,0.45)',
+  nameItalic: { fontFamily: 'CormorantGaramond_300Light_Italic', color: Colors.rose },
+  age: { fontFamily: 'DMSans_400Regular', fontSize: Typography.sizes.sm, color: 'rgba(251,247,242,0.45)' },
+  warmth: {
+    fontFamily: 'CormorantGaramond_300Light_Italic', fontSize: 16,
+    color: 'rgba(193,123,92,0.85)', marginTop: 8,
   },
 
   milestoneAlert: {
-    backgroundColor: Colors.sienna,
-    marginHorizontal: Spacing.xl,
-    marginTop: -1,
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    zIndex: 2,
+    backgroundColor: Colors.sienna, marginHorizontal: Spacing.xl, marginTop: -1,
+    paddingVertical: 14, paddingHorizontal: 18,
+    flexDirection: 'row', alignItems: 'center', gap: 12, zIndex: 2,
   },
   alertIcon: { fontSize: 20 },
   alertText: { flex: 1 },
-  alertTitle: {
-    fontFamily: 'DMSans_500Medium',
-    fontSize: Typography.sizes.sm,
-    color: '#fff',
-  },
-  alertSub: {
-    fontFamily: 'DMSans_400Regular',
-    fontSize: Typography.sizes.xs,
-    color: 'rgba(255,255,255,0.7)',
-    marginTop: 2,
-  },
+  alertTitle: { fontFamily: 'DMSans_500Medium', fontSize: Typography.sizes.sm, color: '#fff' },
+  alertSub: { fontFamily: 'DMSans_400Regular', fontSize: Typography.sizes.xs, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
   alertArrow: { fontSize: 18, color: 'rgba(255,255,255,0.6)' },
 
   errorBanner: {
-    margin: Spacing.xl,
-    padding: Spacing.md,
-    backgroundColor: 'rgba(229,115,115,0.1)',
-    borderLeftWidth: 2,
-    borderLeftColor: '#e57373',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
+    margin: Spacing.xl, padding: Spacing.md,
+    backgroundColor: 'rgba(229,115,115,0.1)', borderLeftWidth: 2, borderLeftColor: '#e57373',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12,
   },
-  errorText: {
-    flex: 1,
-    fontFamily: 'DMSans_400Regular',
-    fontSize: Typography.sizes.xs,
-    color: '#c62828',
-    lineHeight: 18,
-  },
-  errorRetry: {
-    fontFamily: 'DMSans_500Medium',
-    fontSize: Typography.sizes.xs,
-    color: Colors.sienna,
-    textDecorationLine: 'underline',
-  },
+  errorText: { flex: 1, fontFamily: 'DMSans_400Regular', fontSize: Typography.sizes.xs, color: '#c62828', lineHeight: 18 },
+  errorRetry: { fontFamily: 'DMSans_500Medium', fontSize: Typography.sizes.xs, color: Colors.sienna, textDecorationLine: 'underline' },
 
   section: { paddingHorizontal: Spacing.xl, paddingTop: Spacing['2xl'] },
 
   captureRow: { flexDirection: 'row', gap: 10, marginBottom: Spacing['2xl'] },
   captureBtn: {
-    flex: 1,
-    paddingVertical: 18,
-    paddingHorizontal: 12,
-    backgroundColor: Colors.warm,
-    borderWidth: 1.5,
-    borderColor: 'rgba(196,169,160,0.25)',
-    alignItems: 'center',
-    gap: 6,
-    borderRadius: 2,
+    flex: 1, paddingVertical: 18, paddingHorizontal: 12,
+    backgroundColor: Colors.warm, borderWidth: 1.5, borderColor: 'rgba(196,169,160,0.25)',
+    alignItems: 'center', gap: 6, borderRadius: 2,
   },
   captureIcon: { fontSize: 22 },
   captureLabel: {
-    fontFamily: 'DMSans_400Regular',
-    fontSize: Typography.sizes.xs - 1,
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-    color: Colors.inkLight,
+    fontFamily: 'DMSans_400Regular', fontSize: Typography.sizes.xs - 1,
+    letterSpacing: 0.6, textTransform: 'uppercase', color: Colors.inkLight,
   },
 
-  memoryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: Spacing['2xl'],
-  },
+  memoryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: Spacing['2xl'] },
   memCard: {
-    width: '47.5%',
-    backgroundColor: Colors.warm,
-    borderRadius: 4,
-    overflow: 'hidden',
-    shadowColor: '#2C2420',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 2,
-    position: 'relative',
+    width: '47.5%', backgroundColor: Colors.warm, borderRadius: 4, overflow: 'hidden',
+    shadowColor: '#2C2420', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06, shadowRadius: 12, elevation: 2, position: 'relative',
   },
   newBadge: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-    backgroundColor: Colors.sienna,
-    paddingVertical: 2,
-    paddingHorizontal: 6,
-    borderRadius: 10,
-    zIndex: 1,
+    position: 'absolute', top: 6, right: 6,
+    backgroundColor: Colors.sienna, paddingVertical: 2, paddingHorizontal: 6,
+    borderRadius: 10, zIndex: 1,
   },
-  newBadgeText: {
-    fontFamily: 'DMSans_400Regular',
-    fontSize: 7,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-    color: '#fff',
-  },
+  newBadgeText: { fontFamily: 'DMSans_400Regular', fontSize: 7, letterSpacing: 0.5, textTransform: 'uppercase', color: '#fff' },
   memMeta: { padding: 10 },
-  memTitle: {
-    fontFamily: 'DMSans_500Medium',
-    fontSize: 12,
-    color: Colors.ink,
-  },
-  memDate: {
-    fontFamily: 'DMSans_400Regular',
-    fontSize: 10,
-    color: Colors.inkMedium,
-    marginTop: 2,
-  },
+  memTitle: { fontFamily: 'DMSans_500Medium', fontSize: 12, color: Colors.ink },
+  memDate: { fontFamily: 'DMSans_400Regular', fontSize: 10, color: Colors.inkMedium, marginTop: 2 },
 
-  // Warm empty state
   emptyState: {
-    backgroundColor: Colors.warm,
-    borderWidth: 1,
-    borderColor: 'rgba(196,169,160,0.2)',
-    padding: Spacing['3xl'],
-    marginBottom: Spacing['2xl'],
-    alignItems: 'center',
-    gap: 10,
+    backgroundColor: Colors.warm, borderWidth: 1, borderColor: 'rgba(196,169,160,0.2)',
+    padding: Spacing['3xl'], marginBottom: Spacing['2xl'], alignItems: 'center', gap: 10,
   },
   emptyStateEmoji: { fontSize: 36, marginBottom: 4 },
-  emptyStateTitle: {
-    fontFamily: 'CormorantGaramond_300Light_Italic',
-    fontSize: 22,
-    color: Colors.ink,
-    textAlign: 'center',
-  },
-  emptyStateSub: {
-    fontFamily: 'DMSans_400Regular',
-    fontSize: Typography.sizes.sm,
-    color: Colors.inkMedium,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  emptyStateCta: {
-    marginTop: 8,
-    paddingVertical: 10,
-    paddingHorizontal: Spacing.xl,
-    backgroundColor: Colors.sienna,
-    borderRadius: 2,
-  },
-  emptyStateCtaText: {
-    fontFamily: 'DMSans_400Regular',
-    fontSize: Typography.sizes.xs,
-    letterSpacing: 1.2,
-    color: '#fff',
-  },
+  emptyStateTitle: { fontFamily: 'CormorantGaramond_300Light_Italic', fontSize: 22, color: Colors.ink, textAlign: 'center' },
+  emptyStateSub: { fontFamily: 'DMSans_400Regular', fontSize: Typography.sizes.sm, color: Colors.inkMedium, textAlign: 'center', lineHeight: 20 },
+  emptyStateCta: { marginTop: 8, paddingVertical: 10, paddingHorizontal: Spacing.xl, backgroundColor: Colors.sienna, borderRadius: 2 },
+  emptyStateCtaText: { fontFamily: 'DMSans_400Regular', fontSize: Typography.sizes.xs, letterSpacing: 1.2, color: '#fff' },
 
   firstsStrip: { gap: 10, paddingBottom: 8, paddingRight: Spacing.xl },
   firstChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: Colors.warm,
-    borderWidth: 1,
-    borderColor: 'rgba(196,169,160,0.25)',
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: 40,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: Colors.warm, borderWidth: 1, borderColor: 'rgba(196,169,160,0.25)',
+    paddingVertical: 12, paddingHorizontal: 14, borderRadius: 40,
   },
-  firstChipDone: {
-    backgroundColor: 'rgba(122,158,126,0.1)',
-    borderColor: 'rgba(122,158,126,0.3)',
-  },
+  firstChipDone: { backgroundColor: 'rgba(122,158,126,0.1)', borderColor: 'rgba(122,158,126,0.3)' },
   firstEmoji: { fontSize: 18 },
-  firstName: {
-    fontFamily: 'DMSans_500Medium',
-    fontSize: 11,
-    color: Colors.ink,
-  },
-  firstAge: {
-    fontFamily: 'DMSans_400Regular',
-    fontSize: 9,
-    color: Colors.inkMedium,
-  },
+  firstName: { fontFamily: 'DMSans_500Medium', fontSize: 11, color: Colors.ink },
+  firstAge: { fontFamily: 'DMSans_400Regular', fontSize: 9, color: Colors.inkMedium },
   firstTick: { fontSize: 14, color: Colors.sageDark, marginLeft: 4 },
 });

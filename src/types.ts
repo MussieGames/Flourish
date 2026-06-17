@@ -5,7 +5,8 @@ export type AppScreen =
   | "calendar"
   | "plan"
   | "milestone"
-  | "journal";
+  | "journal"
+  | "legal";
 
 export type StickerEra = "baby" | "little" | "growing" | "teen";
 
@@ -16,6 +17,8 @@ export type UserProfile = {
   createdAt?: unknown;
   updatedAt?: unknown;
   acceptedPrivacyVersion: string;
+  acceptedTermsVersion: string;
+  acceptedLegalAt?: unknown;
 };
 
 export type ChildProfile = {

@@ -75,6 +75,7 @@ module.exports = {
     extra: {
       firebase: firebaseExtra,
       privacyUrl: "https://www.goflourish.com.au/privacy",
+      termsUrl: "https://www.goflourish.com.au/terms",
       supportEmail: "hello@goflourish.com.au",
     },
   },

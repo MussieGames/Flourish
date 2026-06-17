@@ -51,12 +51,16 @@ service cloud.firestore {
         && request.resource.data.email is string
         && request.resource.data.email.size() <= 254
         && request.resource.data.acceptedPrivacyVersion is string
+        && request.resource.data.acceptedTermsVersion is string
+        && request.resource.data.acceptedLegalAt == request.time
         && request.resource.data.marketingOptIn is bool
         && request.resource.data.keys().hasOnly([
           "uid",
           "email",
           "displayName",
           "acceptedPrivacyVersion",
+          "acceptedTermsVersion",
+          "acceptedLegalAt",
           "marketingOptIn",
           "createdAt",
           "updatedAt"
@@ -69,11 +73,23 @@ service cloud.firestore {
         && request.resource.data.uid == resource.data.uid
         && request.resource.data.email == resource.data.email
         && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.acceptedPrivacyVersion is string
+        && request.resource.data.acceptedTermsVersion is string
+        && (
+          (
+            request.resource.data.acceptedPrivacyVersion == resource.data.acceptedPrivacyVersion
+            && request.resource.data.acceptedTermsVersion == resource.data.acceptedTermsVersion
+            && request.resource.data.acceptedLegalAt == resource.data.acceptedLegalAt
+          )
+          || request.resource.data.acceptedLegalAt == request.time
+        )
         && request.resource.data.keys().hasOnly([
           "uid",
           "email",
           "displayName",
           "acceptedPrivacyVersion",
+          "acceptedTermsVersion",
+          "acceptedLegalAt",
           "marketingOptIn",
           "createdAt",
           "updatedAt"

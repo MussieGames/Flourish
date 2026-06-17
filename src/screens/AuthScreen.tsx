@@ -12,6 +12,7 @@ export function AuthScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [acceptedLegal, setAcceptedLegal] = useState(false);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -25,6 +26,14 @@ export function AuthScreen() {
   async function submit() {
     setBusy(true);
     try {
+      if (mode === "register" && !acceptedLegal) {
+        Alert.alert(
+          "Confirmation required",
+          "Please confirm you are an adult parent or legal guardian and accept the Terms and Privacy Policy.",
+        );
+        return;
+      }
+
       if (mode === "register") {
         await registerWithEmail({ email, password, displayName });
       } else {
@@ -92,8 +101,24 @@ export function AuthScreen() {
           textContentType={mode === "register" ? "newPassword" : "password"}
           value={password}
         />
+        {mode === "register" ? (
+          <Pressable
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: acceptedLegal }}
+            onPress={() => setAcceptedLegal((value) => !value)}
+            style={styles.legalConsent}
+          >
+            <View style={[styles.checkbox, acceptedLegal && styles.checkboxChecked]}>
+              {acceptedLegal ? <Text style={styles.checkboxTick}>✓</Text> : null}
+            </View>
+            <Text style={styles.legalConsentText}>
+              I am an adult parent or legal guardian and I accept the Terms and Conditions and Privacy Policy for
+              managing child memories.
+            </Text>
+          </Pressable>
+        ) : null}
         <FlourishButton
-          disabled={busy}
+          disabled={busy || (mode === "register" && !acceptedLegal)}
           onPress={submit}
           title={mode === "register" ? "Create secure account" : "Sign in"}
         />
@@ -174,5 +199,37 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     marginTop: spacing.lg,
     padding: spacing.lg,
+  },
+  legalConsent: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    gap: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  checkbox: {
+    alignItems: "center",
+    borderColor: "rgba(196,169,160,0.55)",
+    borderRadius: 6,
+    borderWidth: 1.5,
+    height: 24,
+    justifyContent: "center",
+    marginTop: 2,
+    width: 24,
+  },
+  checkboxChecked: {
+    backgroundColor: colors.sienna,
+    borderColor: colors.sienna,
+  },
+  checkboxTick: {
+    color: colors.white,
+    fontFamily: fontFamily.sansMedium,
+    fontSize: 15,
+  },
+  legalConsentText: {
+    color: colors.inkLight,
+    flex: 1,
+    fontFamily: fontFamily.sans,
+    fontSize: 12,
+    lineHeight: 18,
   },
 });

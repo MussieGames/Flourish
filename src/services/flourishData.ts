@@ -22,7 +22,7 @@ import { z } from "zod";
 import { requireFirebaseClient } from "@/config/firebase";
 import { ChildProfile, MemoryInput } from "@/types";
 
-const privacyVersion = "2026-06-14";
+const legalPolicyVersion = "2026-06-17";
 
 const emailSchema = z.string().trim().toLowerCase().email().max(254);
 const passwordSchema = z
@@ -69,7 +69,9 @@ export async function registerWithEmail(params: {
     uid: credential.user.uid,
     email,
     displayName: params.displayName?.trim().slice(0, 80) ?? null,
-    acceptedPrivacyVersion: privacyVersion,
+    acceptedPrivacyVersion: legalPolicyVersion,
+    acceptedTermsVersion: legalPolicyVersion,
+    acceptedLegalAt: serverTimestamp(),
     marketingOptIn: false,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),

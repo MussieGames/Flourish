@@ -77,3 +77,18 @@ RECAPTCHA_SITE_KEY=your-recaptcha-enterprise-site-key
 ```
 
 Never commit `.env`, Firebase service-account JSON, reCAPTCHA secrets, or production signing credentials.
+
+## Legal and privacy drafts
+
+The repo includes Australia-origin policy drafts and a feature compliance review:
+
+- `legal/terms-and-conditions.md`
+- `legal/privacy-policy.md`
+- `legal/feature-compliance-review.md`
+
+These cover the current app features, parent/guardian-only use, child data protections, Australian Privacy Act/APPs,
+Notifiable Data Breaches, Australian Consumer Law, COPPA, GDPR/UK GDPR, CCPA/CPRA, PIPEDA, New Zealand Privacy Act,
+Singapore PDPA-style obligations, app-store data disclosures, and production security recommendations.
+
+Before launch, replace all legal placeholders with the final Australian legal entity details and obtain qualified legal
+review in Australia and any target markets.

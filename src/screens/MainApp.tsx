@@ -15,6 +15,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { BodyText, Card, Eyebrow, Field, FlourishButton, GradientCard, SerifTitle } from "@/components/ui";
 import { useAuth } from "@/auth/AuthProvider";
 import { calendarEvents, demoChild, eraData, firsts, recentMemories } from "@/data/demo";
+import {
+  featurePrivacyReview,
+  jurisdictionCoverage,
+  privacyHighlights,
+  termsHighlights,
+} from "@/legal/policyContent";
 import { createChildProfile, logout, saveMemory, uploadMemoryAsset } from "@/services/flourishData";
 import { setAppLockEnabled } from "@/services/secureDevice";
 import { colors, fontFamily, shadow, spacing } from "@/theme";
@@ -28,6 +34,7 @@ const screens: Array<{ id: AppScreen; label: string; icon: string }> = [
   { id: "plan", label: "Plan", icon: "🪴" },
   { id: "milestone", label: "Moment", icon: "🎉" },
   { id: "journal", label: "Journal", icon: "📖" },
+  { id: "legal", label: "Legal", icon: "⚖️" },
 ];
 
 export function MainApp({ previewMode = false }: { previewMode?: boolean }) {
@@ -150,6 +157,7 @@ export function MainApp({ previewMode = false }: { previewMode?: boolean }) {
       ) : null}
       {activeScreen === "milestone" ? <MilestoneScreen childName={child.name} /> : null}
       {activeScreen === "journal" ? <JournalScreen childName={child.name} /> : null}
+      {activeScreen === "legal" ? <LegalScreen /> : null}
     </SafeAreaView>
   );
 }
@@ -620,6 +628,65 @@ function JournalEntry({
         ))}
       </View>
     </Card>
+  );
+}
+
+function LegalScreen() {
+  return (
+    <ScrollView style={styles.screen} contentContainerStyle={styles.screenContent}>
+      <LinearGradient colors={[colors.ink, "#3D2820"]} style={styles.darkHeroCompact}>
+        <Text style={styles.planLabel}>Australia-first compliance</Text>
+        <SerifTitle light size={34}>Terms, privacy, and child safety.</SerifTitle>
+        <BodyText light>
+          Flourish is designed as a parent-controlled scrapbook. These summaries align with the repo legal drafts and
+          should be reviewed by Australian counsel before launch.
+        </BodyText>
+      </LinearGradient>
+
+      <View style={styles.padded}>
+        <Eyebrow>Feature privacy review</Eyebrow>
+        {featurePrivacyReview.map((item) => (
+          <Card key={item.feature} style={styles.legalCard}>
+            <Text style={styles.legalTitle}>{item.feature}</Text>
+            <Text style={styles.legalLabel}>Data involved</Text>
+            <Text style={styles.legalBody}>{item.data}</Text>
+            <Text style={styles.legalLabel}>Security and policy controls</Text>
+            <Text style={styles.legalBody}>{item.safeguards}</Text>
+          </Card>
+        ))}
+
+        <Eyebrow>Terms highlights</Eyebrow>
+        <Card style={styles.legalCard}>
+          {termsHighlights.map((term) => (
+            <Text key={term} style={styles.legalBullet}>
+              • {term}
+            </Text>
+          ))}
+        </Card>
+
+        <Eyebrow>Privacy highlights</Eyebrow>
+        <Card style={styles.legalCard}>
+          {privacyHighlights.map((privacy) => (
+            <Text key={privacy} style={styles.legalBullet}>
+              • {privacy}
+            </Text>
+          ))}
+        </Card>
+
+        <Eyebrow>International coverage</Eyebrow>
+        {jurisdictionCoverage.map((item) => (
+          <Card key={item.region} style={styles.legalCard}>
+            <Text style={styles.legalTitle}>{item.region}</Text>
+            <Text style={styles.legalBody}>{item.policy}</Text>
+          </Card>
+        ))}
+
+        <Text style={styles.legalDisclaimer}>
+          This is product implementation guidance and policy drafting, not legal advice. Replace placeholder company
+          details and obtain jurisdiction-specific legal review before publishing.
+        </Text>
+      </View>
+    </ScrollView>
   );
 }
 
@@ -1360,5 +1427,43 @@ const styles = StyleSheet.create({
     color: colors.inkMuted,
     fontFamily: fontFamily.serifItalic,
     fontSize: 18,
+  },
+  legalCard: {
+    marginBottom: spacing.lg,
+  },
+  legalTitle: {
+    color: colors.ink,
+    fontFamily: fontFamily.sansMedium,
+    fontSize: 15,
+    marginBottom: spacing.sm,
+  },
+  legalLabel: {
+    color: colors.sienna,
+    fontFamily: fontFamily.sansMedium,
+    fontSize: 9,
+    letterSpacing: 1,
+    marginTop: spacing.sm,
+    textTransform: "uppercase",
+  },
+  legalBody: {
+    color: colors.inkLight,
+    fontFamily: fontFamily.sans,
+    fontSize: 12,
+    lineHeight: 19,
+    marginTop: spacing.xs,
+  },
+  legalBullet: {
+    color: colors.inkLight,
+    fontFamily: fontFamily.sans,
+    fontSize: 12,
+    lineHeight: 20,
+    marginBottom: spacing.sm,
+  },
+  legalDisclaimer: {
+    color: colors.inkMuted,
+    fontFamily: fontFamily.sans,
+    fontSize: 11,
+    lineHeight: 18,
+    marginTop: spacing.sm,
   },
 });

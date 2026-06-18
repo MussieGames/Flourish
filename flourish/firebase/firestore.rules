@@ -122,9 +122,17 @@ service cloud.firestore {
     }
 
     // ── Subscriptions — read-only for users; managed by Cloud Functions ──
+    //
+    // Writes are intentionally blocked for clients. All subscription changes
+    // (Bloom monthly, Bloom annual, Heirloom) are applied by Cloud Functions
+    // after payment confirmation via webhook (Stripe / App Store / Play Store).
+    // This prevents clients from self-promoting their plan without payment.
+    //
+    // The applyHeirloomPurchase / applyAnnualBloomPurchase functions in
+    // firestore.ts exist for testing only; in production they are Cloud Functions.
     match /subscriptions/{userId} {
       allow read: if isOwner(userId);
-      allow write: if false; // only writable by Cloud Functions with admin SDK
+      allow write: if false;
     }
 
     // ── Catch-all: deny everything else ───────────────────────────

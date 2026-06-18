@@ -337,10 +337,72 @@ export async function getSubscription(uid: string): Promise<Subscription | null>
   const d = snap.data();
   return {
     userId: uid,
-    planId: d.planId,
-    status: d.status,
+    planId: d.planId ?? 'seedling',
+    bloomBillingType: d.bloomBillingType ?? null,
+    status: d.status ?? 'active',
     startedAt: toDate(d.startedAt),
-    expiresAt: d.expiresAt ? toDate(d.expiresAt) : undefined,
-    isLifetime: d.isLifetime ?? false,
+    bloomActiveUntil: d.bloomActiveUntil ? toDate(d.bloomActiveUntil) : null,
+    heirloomPurchasedAt: d.heirloomPurchasedAt ? toDate(d.heirloomPurchasedAt) : undefined,
+    heirloomBookStatus: d.heirloomBookStatus ?? undefined,
   };
+}
+
+/**
+ * Apply a Heirloom purchase to the user's subscription — implements the
+ * stacking rule from subscriptionUtils. Called by the purchase flow
+ * (Cloud Function or client, depending on payment provider integration).
+ *
+ * This function is intentionally separate from the payment trigger so it
+ * can be tested independently. In production, a Cloud Function would call
+ * this after confirming payment via webhook.
+ */
+export async function applyHeirloomPurchase(uid: string): Promise<void> {
+  const { calculateHeirloomBloomExpiry } = await import('../utils/subscription');
+  const db = getFirebaseFirestore();
+  const ref = doc(db, COLLECTIONS.subscriptions, uid);
+
+  const existing = await getSubscription(uid);
+  const newBloomActiveUntil = calculateHeirloomBloomExpiry(existing);
+
+  await setDoc(
+    ref,
+    {
+      userId: uid,
+      planId: 'heirloom',
+      bloomBillingType: 'heirloom',
+      status: 'active',
+      startedAt: existing?.startedAt ?? serverTimestamp(),
+      bloomActiveUntil: Timestamp.fromDate(newBloomActiveUntil),
+      heirloomPurchasedAt: serverTimestamp(),
+      heirloomBookStatus: 'pending',
+    },
+    { merge: true }
+  );
+}
+
+/**
+ * Apply an annual Bloom purchase — implements the stacking rule.
+ * Previous Bloom time is never lost; new 365 days are added from the
+ * later of today or the existing expiry.
+ */
+export async function applyAnnualBloomPurchase(uid: string): Promise<void> {
+  const { calculateAnnualBloomExpiry } = await import('../utils/subscription');
+  const db = getFirebaseFirestore();
+  const ref = doc(db, COLLECTIONS.subscriptions, uid);
+
+  const existing = await getSubscription(uid);
+  const newBloomActiveUntil = calculateAnnualBloomExpiry(existing);
+
+  await setDoc(
+    ref,
+    {
+      userId: uid,
+      planId: 'bloom',
+      bloomBillingType: 'annual',
+      status: 'active',
+      startedAt: existing?.startedAt ?? serverTimestamp(),
+      bloomActiveUntil: Timestamp.fromDate(newBloomActiveUntil),
+    },
+    { merge: true }
+  );
 }

@@ -104,6 +104,7 @@ export interface CalendarEvent {
 
 // ─── Plans ──────────────────────────────────────────────────────────────────
 export type PlanId = 'seedling' | 'bloom' | 'heirloom';
+export type BillingCycle = 'monthly' | 'annual';
 
 export interface Plan {
   id: PlanId;
@@ -115,13 +116,37 @@ export interface Plan {
   isCurrent?: boolean;
 }
 
+/**
+ * Subscription — tracks Bloom access from all possible sources.
+ *
+ * Bloom access can come from three sources, and they stack:
+ *   1. Active monthly billing (no fixed end date — runs while paying)
+ *   2. Annual billing (fixed end date = startedAt + 365 days)
+ *   3. Heirloom purchase (fixed 12-month Bloom entitlement)
+ *
+ * Stacking rule: bloomActiveUntil always moves FORWARD, never back.
+ *   new bloomActiveUntil = max(now, current bloomActiveUntil) + newPeriodDays
+ *
+ * bloomBillingType tracks the CURRENT ACTIVE billing relationship:
+ *   - 'monthly'  → user is on a recurring monthly charge, no fixed end date
+ *   - 'annual'   → user pre-paid for a year; bloomActiveUntil is set
+ *   - 'heirloom' → Bloom came from an Heirloom purchase, no ongoing billing
+ *   - null       → user is on Seedling, no Bloom
+ *
+ * When bloomBillingType is 'monthly', bloomActiveUntil is null (no expiry
+ * date — Bloom continues while billing is active).
+ */
 export interface Subscription {
   userId: string;
   planId: PlanId;
+  bloomBillingType: BillingCycle | 'heirloom' | null;
   status: 'active' | 'cancelled' | 'expired';
   startedAt: Date;
-  expiresAt?: Date;
-  isLifetime: boolean;
+  // null = monthly (runs indefinitely while billing is active)
+  bloomActiveUntil: Date | null;
+  // Heirloom-specific fields
+  heirloomPurchasedAt?: Date;
+  heirloomBookStatus?: 'pending' | 'printing' | 'shipped' | 'delivered';
 }
 
 // ─── Stickers ───────────────────────────────────────────────────────────────

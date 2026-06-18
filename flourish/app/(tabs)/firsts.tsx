@@ -62,7 +62,7 @@ export default function FirstsScreen() {
   useEffect(() => {
     if (!user?.uid || !activeBaby) return;
     getMilestonesForBaby(user.uid, activeBaby.id).then(setMilestones);
-  }, [user?.uid, activeBaby]);
+  }, [user?.uid, activeBaby?.id]);
 
   const calDays = buildCalendarDays(currentMonth);
 

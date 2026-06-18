@@ -1,11 +1,12 @@
 /**
  * Memory Journal — entries styled like a physical scrapbook.
- * Header now shows entry count + weeks of story — turns a list into a keepsake.
+ * Shows real photo from entry.photoURL when it exists; warm gradient fallback otherwise.
  */
 import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
+  Image,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
@@ -29,6 +30,35 @@ const PHOTO_GRADIENTS: [string, string][] = [
 ];
 const PHOTO_EMOJIS = ['🌙', '☀️', '🌿', '💛', '⭐', '🍼'];
 
+// Photo area — real photo if URL exists, gradient fallback otherwise
+function EntryPhoto({ photoURL, index }: { photoURL?: string; index: number }) {
+  if (photoURL) {
+    return (
+      <Image
+        source={{ uri: photoURL }}
+        style={entryPhotoStyles.image}
+        resizeMode="cover"
+        accessibilityLabel="Journal photo"
+      />
+    );
+  }
+  return (
+    <LinearGradient
+      colors={PHOTO_GRADIENTS[index % PHOTO_GRADIENTS.length]}
+      style={entryPhotoStyles.gradient}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+    >
+      <Text style={{ fontSize: 36 }}>{PHOTO_EMOJIS[index % PHOTO_EMOJIS.length]}</Text>
+    </LinearGradient>
+  );
+}
+
+const entryPhotoStyles = StyleSheet.create({
+  image: { width: '100%', height: 160, borderRadius: 2, marginBottom: 10 },
+  gradient: { width: '100%', height: 120, borderRadius: 2, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
+});
+
 export default function JournalScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -38,14 +68,13 @@ export default function JournalScreen() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!user?.uid || !activeBaby) return;
+    if (!user?.uid || !activeBaby?.id) return;
     setLoading(true);
     getJournalEntriesForBaby(user.uid, activeBaby.id)
       .then(setEntries)
       .finally(() => setLoading(false));
   }, [user?.uid, activeBaby?.id]);
 
-  // Contextual subtitle — turns a count into a story
   const statsLine = (() => {
     if (entries.length === 0) return null;
     const count = `${entries.length} ${entries.length === 1 ? 'entry' : 'entries'}`;
@@ -58,9 +87,10 @@ export default function JournalScreen() {
   return (
     <ScrollView
       style={styles.scroll}
-      contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
+      contentContainerStyle={{ paddingBottom: insets.bottom + 90 }}
       showsVerticalScrollIndicator={false}
     >
+      {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <Text style={styles.title}>
           {activeBaby?.name ?? 'Your little one'}'s{' '}
@@ -76,21 +106,18 @@ export default function JournalScreen() {
         <View style={styles.entries}>
           {entries.map((entry, i) => (
             <View key={entry.id} style={styles.entry}>
+              {/* Washi tape */}
               <View style={styles.tape} />
+
+              {/* Mood */}
               {entry.mood && <Text style={styles.mood}>{entry.mood}</Text>}
 
               <Text style={styles.entryDate}>
                 {format(entry.capturedAt, "EEEE, d MMMM · h:mmaaa")}
               </Text>
 
-              <LinearGradient
-                colors={PHOTO_GRADIENTS[i % PHOTO_GRADIENTS.length]}
-                style={styles.entryPhoto}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                <Text style={{ fontSize: 36 }}>{PHOTO_EMOJIS[i % PHOTO_EMOJIS.length]}</Text>
-              </LinearGradient>
+              {/* Photo — real or gradient */}
+              <EntryPhoto photoURL={entry.photoURL} index={i} />
 
               <Text style={styles.entryText}>"{entry.text}"</Text>
 
@@ -116,6 +143,7 @@ export default function JournalScreen() {
         </View>
       )}
 
+      {/* Add entry CTA */}
       <TouchableOpacity
         style={styles.addCard}
         onPress={() => router.push('/journal/new')}
@@ -157,10 +185,6 @@ const styles = StyleSheet.create({
   entryDate: {
     fontFamily: 'DMSans_400Regular', fontSize: 9, letterSpacing: 1.2,
     textTransform: 'uppercase', color: Colors.sienna, marginBottom: 10,
-  },
-  entryPhoto: {
-    width: '100%', height: 120, borderRadius: 2,
-    alignItems: 'center', justifyContent: 'center', marginBottom: 10,
   },
   entryText: {
     fontFamily: 'Lora_400Regular_Italic', fontSize: Typography.sizes.md,

@@ -191,6 +191,20 @@ export async function resetPassword(email: string): Promise<void> {
   await sendPasswordResetEmail(auth, validatedEmail);
 }
 
+/**
+ * Delete account — cascades to ALL user data before removing the auth record.
+ *
+ * Data deleted (client-side cascade):
+ *   babies, memories, milestones, journal_entries, calendar_events, subscriptions
+ *
+ * Data deleted separately (must be handled by a Cloud Function triggered
+ * on auth.user.delete in production — this client cascade handles the
+ * Firestore documents; Firebase Storage files require admin SDK):
+ *   Storage: users/{uid}/...  (all uploaded photos and videos)
+ *
+ * GDPR compliance: after this function completes, no personal data remains
+ * in Firestore. Storage cleanup is async via Cloud Function.
+ */
 export async function deleteAccount(password: string): Promise<void> {
   const auth = getFirebaseAuth();
   const user = auth.currentUser;
@@ -198,6 +212,11 @@ export async function deleteAccount(password: string): Promise<void> {
 
   const credential = EmailAuthProvider.credential(user.email, password);
   await reauthenticateWithCredential(user, credential);
+
+  // Cascade delete all user data before removing auth record
+  const { deleteAllUserData } = await import('./firestore');
+  await deleteAllUserData(user.uid);
+
   await deleteUser(user);
   await clearStoredSession();
 }

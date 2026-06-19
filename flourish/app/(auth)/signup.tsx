@@ -15,6 +15,8 @@ import { z } from 'zod';
 import { signUp, getAuthErrorMessage } from '../../src/services/auth';
 import { createBaby } from '../../src/services/firestore';
 import { useBabyContext } from '../../src/contexts/BabyContext';
+import { scheduleMilestoneReminders, scheduleHeirloomBirthdayPrompt } from '../../src/services/notifications';
+import { trackSignedUp, trackBabyAdded } from '../../src/services/analytics';
 import { Button } from '../../src/components/Button';
 import { Input } from '../../src/components/Input';
 import { WarmHero } from '../../src/components/WarmHero';
@@ -63,12 +65,16 @@ export default function SignUpScreen() {
     setLoading(true);
     try {
       const user = await signUp(form.email, form.password, form.displayName);
+      trackSignedUp();
 
       if (babyName) {
         const birthDate = birthDateISO ? new Date(birthDateISO) : new Date();
         const baby = await createBaby(user.uid, { name: babyName, birthDate });
-        // Immediately update context so the dashboard has data without re-fetching
         addBabyToList(baby);
+        trackBabyAdded();
+        // Schedule milestone window reminders and 1-year Heirloom prompt
+        scheduleMilestoneReminders(baby).catch(() => {});
+        scheduleHeirloomBirthdayPrompt(baby).catch(() => {});
       }
 
       router.replace('/(tabs)/');
@@ -145,9 +151,10 @@ export default function SignUpScreen() {
 
           <Text style={styles.terms}>
             By creating an account you agree to our{' '}
-            <Text style={styles.termsLink}>Privacy Policy</Text> and{' '}
-            <Text style={styles.termsLink}>Terms of Service</Text>. Your data
-            is encrypted and never sold.
+            <Text style={styles.termsLink} onPress={() => router.push('/legal/privacy')}>Privacy Policy</Text>
+            {' '}and{' '}
+            <Text style={styles.termsLink} onPress={() => router.push('/legal/terms')}>Terms of Service</Text>.
+            {' '}Your data is encrypted and never sold.
           </Text>
 
           <Button onPress={handleSignUp} title="Create my account →" loading={loading} />

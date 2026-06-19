@@ -21,7 +21,9 @@ interface BabyContextValue {
   ageInfo: BabyAgeInfo | null;
   loading: boolean;
   error: string | null;
+  /** Switch which child is currently shown across all screens */
   setActiveBaby: (baby: Baby) => void;
+  /** Add a newly created baby to the list without re-fetching */
   addBabyToList: (baby: Baby) => void;
   refresh: () => Promise<void>;
 }

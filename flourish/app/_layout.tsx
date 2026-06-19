@@ -23,6 +23,11 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { onAuthStateChange } from '../src/services/auth';
 import { BabyProvider } from '../src/contexts/BabyContext';
+import {
+  requestNotificationPermission,
+  setupAndroidChannel,
+} from '../src/services/notifications';
+import { identifyUser as analyticsIdentify } from '../src/services/analytics';
 import type { User as FirebaseUser } from 'firebase/auth';
 
 SplashScreen.preventAutoHideAsync();
@@ -46,8 +51,17 @@ export default function RootLayout() {
   const [uid, setUid] = useState<string | null>(null);
 
   useEffect(() => {
+    // Set up Android notification channel once at startup
+    setupAndroidChannel();
+
     const unsub = onAuthStateChange((u: FirebaseUser | null) => {
       setUid(u?.uid ?? null);
+      if (u?.uid) {
+        // Identify user in analytics (uid only — no PII)
+        analyticsIdentify(u.uid);
+        // Request notification permission after login (not at cold start)
+        requestNotificationPermission();
+      }
     });
     return unsub;
   }, []);
@@ -75,6 +89,8 @@ export default function RootLayout() {
             />
             <Stack.Screen name="journal/index" />
             <Stack.Screen name="journal/new" />
+            <Stack.Screen name="legal/privacy" />
+            <Stack.Screen name="legal/terms" />
           </Stack>
         </BabyProvider>
       </SafeAreaProvider>

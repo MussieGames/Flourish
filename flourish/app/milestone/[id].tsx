@@ -18,7 +18,9 @@ import { useBabyContext } from '../../src/contexts/BabyContext';
 import { getFirebaseFirestore } from '../../src/services/firebase';
 import { Colors, Typography, Spacing } from '../../src/constants/theme';
 import { Button } from '../../src/components/Button';
+import { useReviewPrompt } from '../../src/components/ReviewPrompt';
 import { MILESTONE_TEMPLATES } from '../../src/constants/stickers';
+import { trackMilestoneCelebrationViewed } from '../../src/services/analytics';
 import { format } from 'date-fns';
 import type { Milestone } from '../../src/types';
 
@@ -71,6 +73,17 @@ export default function MilestoneScreen() {
   const emojiScale = usePulse(1.09, 1000);
   const orb1Scale = usePulse(1.12, 4000);
   const orb2Scale = usePulse(1.1, 5200);
+  const { show: showReviewPrompt, checkShouldShow, ReviewPromptModal } = useReviewPrompt();
+
+  useEffect(() => {
+    if (!id) return;
+    trackMilestoneCelebrationViewed(id);
+    // Show review pre-prompt after the emotional peak of a milestone capture
+    // 4-second delay so the celebration screen has time to breathe first
+    checkShouldShow().then((should) => {
+      if (should) setTimeout(() => showReviewPrompt(), 4000);
+    });
+  }, [id]);
 
   useEffect(() => {
     if (!id) return;
@@ -110,6 +123,7 @@ export default function MilestoneScreen() {
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
+      {ReviewPromptModal}
       <Animated.View style={[styles.orb1, { transform: [{ scale: orb1Scale }] }]} pointerEvents="none" />
       <Animated.View style={[styles.orb2, { transform: [{ scale: orb2Scale }] }]} pointerEvents="none" />
 

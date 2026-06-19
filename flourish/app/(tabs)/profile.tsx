@@ -15,7 +15,9 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import { useAuth } from '../../src/hooks/useAuth';
+import { trackUpgradeScreenViewed, trackUpgradeTapped, trackSignedOut } from '../../src/services/analytics';
 import { useBabyContext } from '../../src/contexts/BabyContext';
 import { getSubscription } from '../../src/services/firestore';
 import { useToast } from '../../src/hooks/useToast';
@@ -145,6 +147,7 @@ function getPlanHeaderCopy(
 // ─── Screen ───────────────────────────────────────────────────────────────────
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { user, logout } = useAuth();
   const { activeBaby } = useBabyContext();
   const { showToast, ToastView } = useToast();
@@ -170,15 +173,23 @@ export default function ProfileScreen() {
   const bloomPeriod = billingCycle === 'monthly' ? 'per month · cancel anytime' : 'per year · $5.75/month';
 
   const handleSelectBloom = () => {
-    const period = billingCycle === 'monthly' ? 'monthly' : 'annual';
-    showToast('Coming soon', `Bloom ${period} billing will be live shortly.`);
+    trackUpgradeTapped('bloom', billingCycle);
+    showToast('Coming soon', `Bloom ${billingCycle} billing will be live shortly.`);
   };
 
   const handleSelectHeirloom = () => {
+    trackUpgradeTapped('heirloom', 'one_time');
     showToast('Coming soon', 'Heirloom ordering will be available soon.');
   };
 
-  const handleLogout = () => { logout(); };
+  useEffect(() => {
+    trackUpgradeScreenViewed(currentPlanId);
+  }, [currentPlanId]);
+
+  const handleLogout = () => {
+    trackSignedOut();
+    logout();
+  };
 
   return (
     <View style={{ flex: 1 }}>
@@ -378,6 +389,25 @@ export default function ProfileScreen() {
             </View>
           </View>
 
+          {/* Restore purchases — required by App Store guidelines */}
+          <TouchableOpacity
+            style={[styles.signOutBtn, { marginBottom: Spacing.sm }]}
+            onPress={() => showToast('Checking purchases…', 'Restoring your previous subscription.')}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.signOutText, { color: Colors.inkMedium }]}>Restore purchases</Text>
+          </TouchableOpacity>
+
+          <View style={styles.legalRow}>
+            <TouchableOpacity onPress={() => router.push('/legal/privacy')}>
+              <Text style={styles.legalLink}>Privacy Policy</Text>
+            </TouchableOpacity>
+            <Text style={styles.legalSep}>·</Text>
+            <TouchableOpacity onPress={() => router.push('/legal/terms')}>
+              <Text style={styles.legalLink}>Terms of Service</Text>
+            </TouchableOpacity>
+          </View>
+
           <TouchableOpacity style={styles.signOutBtn} onPress={handleLogout} activeOpacity={0.8}>
             <Text style={styles.signOutText}>Sign out</Text>
           </TouchableOpacity>
@@ -505,5 +535,16 @@ const styles = StyleSheet.create({
   signOutText: {
     fontFamily: 'DMSans_400Regular', fontSize: Typography.sizes.sm,
     letterSpacing: 0.8, textTransform: 'uppercase', color: Colors.sienna,
+  },
+  legalRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: Spacing.sm, marginBottom: Spacing.md,
+  },
+  legalLink: {
+    fontFamily: 'DMSans_400Regular', fontSize: Typography.sizes.xs,
+    color: Colors.inkMedium, textDecorationLine: 'underline',
+  },
+  legalSep: {
+    fontFamily: 'DMSans_400Regular', fontSize: Typography.sizes.xs, color: Colors.inkMedium,
   },
 });

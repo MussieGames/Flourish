@@ -18,12 +18,90 @@ import { useAuth } from '../../src/hooks/useAuth';
 import { useBabyContext } from '../../src/contexts/BabyContext';
 import { getMemoriesForBaby, getMilestonesForBaby } from '../../src/services/firestore';
 import { getAgeAwareGreeting } from '../../src/utils/greeting';
+import { trackChildSwitched, trackMemoryViewed } from '../../src/services/analytics';
 import { Colors, Typography, Spacing } from '../../src/constants/theme';
 import { EyebrowLabel } from '../../src/components/EyebrowLabel';
 import { MemoryThumbnail } from '../../src/components/MemoryThumbnail';
 import type { Memory, Milestone } from '../../src/types';
 import { MILESTONE_TEMPLATES } from '../../src/constants/stickers';
 
+// ─── Profile setup nudge — shown when no baby profile exists ─────────────────
+function ProfileSetupCard({ onSetup }: { onSetup: () => void }) {
+  return (
+    <TouchableOpacity style={profileCard.container} onPress={onSetup} activeOpacity={0.85}>
+      <View style={profileCard.icon}><Text style={{ fontSize: 28 }}>🌿</Text></View>
+      <View style={profileCard.text}>
+        <Text style={profileCard.title}>Set up your baby's profile</Text>
+        <Text style={profileCard.sub}>Add their name and birthday to start tracking milestones and capturing memories.</Text>
+      </View>
+      <Text style={profileCard.arrow}>›</Text>
+    </TouchableOpacity>
+  );
+}
+
+const profileCard = StyleSheet.create({
+  container: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    margin: Spacing.xl, padding: Spacing.xl,
+    backgroundColor: Colors.warm, borderWidth: 1.5,
+    borderColor: Colors.sienna, borderRadius: 4,
+  },
+  icon: {
+    width: 48, height: 48, borderRadius: 24,
+    backgroundColor: 'rgba(193,123,92,0.1)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  text: { flex: 1 },
+  title: { fontFamily: 'DMSans_500Medium', fontSize: Typography.sizes.md, color: Colors.ink, marginBottom: 3 },
+  sub: { fontFamily: 'DMSans_400Regular', fontSize: Typography.sizes.xs, color: Colors.inkMedium, lineHeight: 17 },
+  arrow: { fontSize: 20, color: Colors.sienna },
+});
+
+// ─── Child switcher — shown when user has more than one baby ─────────────────
+function ChildSwitcher({
+  babies,
+  activeBaby,
+  onSwitch,
+}: {
+  babies: import('../../src/types').Baby[];
+  activeBaby: import('../../src/types').Baby | null;
+  onSwitch: (baby: import('../../src/types').Baby) => void;
+}) {
+  if (babies.length <= 1) return null;
+  return (
+    <View style={switcher.strip}>
+      {babies.map((baby) => (
+        <TouchableOpacity
+          key={baby.id}
+          style={[switcher.chip, activeBaby?.id === baby.id && switcher.chipActive]}
+          onPress={() => onSwitch(baby)}
+          activeOpacity={0.8}
+        >
+          <Text style={[switcher.name, activeBaby?.id === baby.id && switcher.nameActive]}>
+            {baby.name}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+}
+
+const switcher = StyleSheet.create({
+  strip: {
+    flexDirection: 'row', gap: 8, paddingHorizontal: Spacing.xl,
+    paddingVertical: 12, backgroundColor: Colors.warm,
+    borderBottomWidth: 1, borderBottomColor: 'rgba(196,169,160,0.2)',
+  },
+  chip: {
+    paddingVertical: 6, paddingHorizontal: 14, borderRadius: 20,
+    borderWidth: 1, borderColor: 'rgba(196,169,160,0.3)',
+  },
+  chipActive: { backgroundColor: Colors.ink, borderColor: Colors.ink },
+  name: { fontFamily: 'DMSans_400Regular', fontSize: 11, color: Colors.inkMedium },
+  nameActive: { color: Colors.cream, fontFamily: 'DMSans_500Medium' },
+});
+
+// ─── Empty memories state ─────────────────────────────────────────────────────
 function EmptyMemoriesState({ onCapture }: { onCapture: () => void }) {
   return (
     <TouchableOpacity style={styles.emptyState} onPress={onCapture} activeOpacity={0.85}>
@@ -57,7 +135,7 @@ export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user } = useAuth();
-  const { activeBaby, ageInfo, loading: babyLoading, error: babyError, refresh } = useBabyContext();
+  const { babies, activeBaby, ageInfo, loading: babyLoading, error: babyError, refresh, setActiveBaby } = useBabyContext();
 
   const [memories, setMemories] = useState<Memory[]>([]);
   const [milestones, setMilestones] = useState<Milestone[]>([]);
@@ -140,6 +218,21 @@ export default function DashboardScreen() {
         {/* Age-aware warmth line — only shown when relevant */}
         {warmth && <Text style={styles.warmth}>{warmth}</Text>}
       </View>
+
+      {/* Profile setup nudge — only when no baby yet */}
+      {!activeBaby && !babyLoading && (
+        <ProfileSetupCard onSetup={() => router.push('/(auth)/welcome')} />
+      )}
+
+      {/* Child switcher — only when 2+ children */}
+      <ChildSwitcher
+        babies={babies}
+        activeBaby={activeBaby}
+        onSwitch={(baby) => {
+          setActiveBaby(baby);
+          trackChildSwitched();
+        }}
+      />
 
       {upcomingMilestone && (
         <TouchableOpacity

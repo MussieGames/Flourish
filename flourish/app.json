@@ -46,6 +46,14 @@
       "expo-router",
       "expo-font",
       [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#C17B5C",
+          "sounds": []
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",

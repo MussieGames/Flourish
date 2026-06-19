@@ -406,3 +406,44 @@ export async function applyAnnualBloomPurchase(uid: string): Promise<void> {
     { merge: true }
   );
 }
+
+// ─── Complete data deletion (GDPR) ────────────────────────────────────────────
+/**
+ * Delete ALL Firestore data for a user. Called before deleteUser() in auth.ts.
+ *
+ * Deletes documents from:
+ *   babies, memories, milestones, journal_entries, calendar_events, subscriptions
+ *
+ * Firebase Storage files (photos/videos) are deleted by a Cloud Function
+ * triggered on the auth.user.delete event in production. This function
+ * handles the Firestore layer — it runs client-side so it can be done
+ * synchronously before the auth account is removed.
+ */
+export async function deleteAllUserData(uid: string): Promise<void> {
+  const db = getFirebaseFirestore();
+
+  const userCollections = [
+    COLLECTIONS.babies,
+    COLLECTIONS.memories,
+    COLLECTIONS.milestones,
+    COLLECTIONS.journalEntries,
+    COLLECTIONS.calendarEvents,
+  ];
+
+  // Delete all documents the user owns across every collection
+  await Promise.all(
+    userCollections.map(async (collName) => {
+      const q = query(
+        collection(db, collName),
+        where('parentId', '==', uid)
+      );
+      const snap = await getDocs(q);
+      await Promise.all(snap.docs.map((d) => deleteDoc(d.ref)));
+    })
+  );
+
+  // Delete subscription document (keyed by uid, not parentId)
+  const subRef = doc(db, COLLECTIONS.subscriptions, uid);
+  const subSnap = await getDoc(subRef);
+  if (subSnap.exists()) await deleteDoc(subRef);
+}

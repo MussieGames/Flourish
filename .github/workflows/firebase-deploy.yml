@@ -34,5 +34,13 @@ jobs:
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
 
+      - name: Remove stale Cloud Functions
+        run: |
+          firebase functions:delete handleNewWaitlist \
+            --region australia-southeast1 \
+            --project flourish-7b8c8 \
+            --force \
+            --non-interactive || true
+
       - name: Deploy functions and Firestore rules
-        run: firebase deploy --only functions,firestore:rules --project flourish-7b8c8 --non-interactive
+        run: firebase deploy --only functions,firestore:rules --project flourish-7b8c8 --non-interactive --force

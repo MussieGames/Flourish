@@ -1,15 +1,17 @@
 const { onRequest } = require("firebase-functions/v2/https");
-const { GoogleAuth } = require("google-auth-library");
+const { RecaptchaEnterpriseServiceClient } = require("@google-cloud/recaptcha-enterprise");
 const admin = require("firebase-admin");
 
 admin.initializeApp();
 const db = admin.firestore();
 
+const recaptchaClient = new RecaptchaEnterpriseServiceClient();
+
 const RECAPTCHA_SITE_KEY = "6Lfef0UtAAAAAIJMlp0Ls7nGKcZfninytqC9gDBC";
 const PROJECT_ID = "flourish-7b8c8";
 const SERVICE_ACCOUNT = "firebase-adminsdk-fbsvc@flourish-7b8c8.iam.gserviceaccount.com";
 const SENDGRID_TEMPLATE_ID = "d-d05b9e636230405b9b39b4362dc44174";
-const MIN_RECAPTCHA_SCORE = 0.3;
+const MIN_RECAPTCHA_SCORE = 0.1;
 const ALLOWED_ORIGINS = [
   "https://www.goflourish.com.au",
   "https://goflourish.com.au",
@@ -19,51 +21,33 @@ function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-async function getAccessToken() {
-  const auth = new GoogleAuth({
-    scopes: ["https://www.googleapis.com/auth/cloud-platform"],
-  });
-  const client = await auth.getClient();
-  const tokenResponse = await client.getAccessToken();
-  return tokenResponse.token;
-}
+async function verifyRecaptcha(recaptchaToken, userAgent, userIpAddress) {
+  const projectPath = recaptchaClient.projectPath(PROJECT_ID);
 
-async function verifyRecaptcha(recaptchaToken, userAgent) {
-  const accessToken = await getAccessToken();
-  const verifyUrl = `https://recaptchaenterprise.googleapis.com/v1/projects/${PROJECT_ID}/assessments`;
-
-  const verificationResponse = await fetch(verifyUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${accessToken}`,
-    },
-    body: JSON.stringify({
+  const [assessment] = await recaptchaClient.createAssessment({
+    parent: projectPath,
+    assessment: {
       event: {
         token: recaptchaToken,
         siteKey: RECAPTCHA_SITE_KEY,
         userAgent: userAgent || undefined,
+        userIpAddress: userIpAddress || undefined,
       },
-    }),
+    },
   });
-
-  const assessment = await verificationResponse.json();
-
-  if (!verificationResponse.ok) {
-    console.error("reCAPTCHA API error:", JSON.stringify(assessment));
-    return { valid: false, score: 0, reason: "api_error" };
-  }
 
   const score = assessment.riskAnalysis?.score ?? 0;
   const tokenValid = assessment.tokenProperties?.valid === true;
   const action = assessment.tokenProperties?.action;
+  const invalidReason = assessment.tokenProperties?.invalidReason || null;
   const actionMatch = !action || action === "SUBMIT";
 
   console.log("reCAPTCHA assessment:", {
     valid: tokenValid,
     action,
     score,
-    invalidReason: assessment.tokenProperties?.invalidReason,
+    invalidReason,
+    hostname: assessment.tokenProperties?.hostname,
   });
 
   const valid = tokenValid && actionMatch && score >= MIN_RECAPTCHA_SCORE;
@@ -71,8 +55,9 @@ async function verifyRecaptcha(recaptchaToken, userAgent) {
   return {
     valid,
     score,
+    hostname: assessment.tokenProperties?.hostname || null,
     reason: !tokenValid
-      ? assessment.tokenProperties?.invalidReason || "invalid_token"
+      ? invalidReason || "invalid_token"
       : !actionMatch
         ? "action_mismatch"
         : score < MIN_RECAPTCHA_SCORE
@@ -104,10 +89,30 @@ exports.addWaitlistEmail = onRequest(
         return res.status(400).json({ error: "Invalid email address." });
       }
 
-      const recaptcha = await verifyRecaptcha(recaptchaToken, userAgent);
+      const userIpAddress =
+        req.headers["x-forwarded-for"]?.toString().split(",")[0]?.trim() ||
+        req.ip ||
+        undefined;
+
+      let recaptcha;
+      try {
+        recaptcha = await verifyRecaptcha(recaptchaToken, userAgent, userIpAddress);
+      } catch (verifyError) {
+        console.error("reCAPTCHA verify exception:", verifyError);
+        return res.status(403).json({
+          error: "Security validation failed. Bot detected.",
+          reason: "api_error",
+        });
+      }
+
       if (!recaptcha.valid) {
         console.warn("reCAPTCHA rejected:", recaptcha.reason, "score:", recaptcha.score);
-        return res.status(403).json({ error: "Security validation failed. Bot detected." });
+        return res.status(403).json({
+          error: "Security validation failed. Bot detected.",
+          reason: recaptcha.reason,
+          score: recaptcha.score,
+          hostname: recaptcha.hostname,
+        });
       }
 
       const existing = await db

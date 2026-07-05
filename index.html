@@ -972,6 +972,7 @@
       const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
+        console.error('Waitlist API response:', data);
         throw new Error(data.error || 'Request failed');
       }
 

@@ -7,6 +7,7 @@ const db = admin.firestore();
 
 const RECAPTCHA_SITE_KEY = "6LcCFvgsAAAAAP705VabKOxOQO-jzNv1HUpte9c9";
 const PROJECT_ID = "flourish-7b8c8";
+const SERVICE_ACCOUNT = "firebase-adminsdk-fbsvc@flourish-7b8c8.iam.gserviceaccount.com";
 const SENDGRID_TEMPLATE_ID = "d-d05b9e636230405b9b39b4362dc44174";
 const MIN_RECAPTCHA_SCORE = 0.3;
 const ALLOWED_ORIGINS = [
@@ -27,7 +28,7 @@ async function getAccessToken() {
   return tokenResponse.token;
 }
 
-async function verifyRecaptcha(recaptchaToken) {
+async function verifyRecaptcha(recaptchaToken, userAgent) {
   const accessToken = await getAccessToken();
   const verifyUrl = `https://recaptchaenterprise.googleapis.com/v1/projects/${PROJECT_ID}/assessments`;
 
@@ -41,7 +42,7 @@ async function verifyRecaptcha(recaptchaToken) {
       event: {
         token: recaptchaToken,
         siteKey: RECAPTCHA_SITE_KEY,
-        expectedAction: "SUBMIT",
+        userAgent: userAgent || undefined,
       },
     }),
   });
@@ -55,11 +56,12 @@ async function verifyRecaptcha(recaptchaToken) {
 
   const score = assessment.riskAnalysis?.score ?? 0;
   const tokenValid = assessment.tokenProperties?.valid === true;
-  const actionMatch = assessment.tokenProperties?.action === "SUBMIT";
+  const action = assessment.tokenProperties?.action;
+  const actionMatch = !action || action === "SUBMIT";
 
   console.log("reCAPTCHA assessment:", {
     valid: tokenValid,
-    action: assessment.tokenProperties?.action,
+    action,
     score,
     invalidReason: assessment.tokenProperties?.invalidReason,
   });
@@ -83,6 +85,7 @@ exports.addWaitlistEmail = onRequest(
   {
     cors: ALLOWED_ORIGINS,
     region: "australia-southeast1",
+    serviceAccount: SERVICE_ACCOUNT,
   },
   async (req, res) => {
     if (req.method !== "POST") {
@@ -101,7 +104,7 @@ exports.addWaitlistEmail = onRequest(
         return res.status(400).json({ error: "Invalid email address." });
       }
 
-      const recaptcha = await verifyRecaptcha(recaptchaToken);
+      const recaptcha = await verifyRecaptcha(recaptchaToken, userAgent);
       if (!recaptcha.valid) {
         console.warn("reCAPTCHA rejected:", recaptcha.reason, "score:", recaptcha.score);
         return res.status(403).json({ error: "Security validation failed. Bot detected." });

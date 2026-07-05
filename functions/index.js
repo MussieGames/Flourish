@@ -5,7 +5,7 @@ const admin = require("firebase-admin");
 admin.initializeApp();
 const db = admin.firestore();
 
-const RECAPTCHA_SITE_KEY = "6LcCFvgsAAAAAP705VabKOxOQO-jzNv1HUpte9c9";
+const RECAPTCHA_SITE_KEY = "6Lfef0UtAAAAAIJMlp0Ls7nGKcZfninytqC9gDBC";
 const PROJECT_ID = "flourish-7b8c8";
 const SERVICE_ACCOUNT = "firebase-adminsdk-fbsvc@flourish-7b8c8.iam.gserviceaccount.com";
 const SENDGRID_TEMPLATE_ID = "d-d05b9e636230405b9b39b4362dc44174";

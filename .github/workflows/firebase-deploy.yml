@@ -38,6 +38,14 @@ jobs:
         continue-on-error: true
         run: gcloud services enable recaptchaenterprise.googleapis.com --project=flourish-7b8c8
 
+      - name: Grant reCAPTCHA Enterprise Agent role
+        continue-on-error: true
+        run: |
+          gcloud projects add-iam-policy-binding flourish-7b8c8 \
+            --member="serviceAccount:firebase-adminsdk-fbsvc@flourish-7b8c8.iam.gserviceaccount.com" \
+            --role="roles/recaptchaenterprise.agent" \
+            --condition=None
+
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
 

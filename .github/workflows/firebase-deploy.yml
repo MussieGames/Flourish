@@ -31,6 +31,12 @@ jobs:
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
 
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Enable reCAPTCHA Enterprise API
+        run: gcloud services enable recaptchaenterprise.googleapis.com --project=flourish-7b8c8
+
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
 

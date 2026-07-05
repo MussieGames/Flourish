@@ -640,7 +640,7 @@
     <div class="form-wrap">
       <div class="form-row">
         <input type="email" class="email-in" id="heroEmail" placeholder="your@email.com" aria-label="Email address">
-        <button class="form-btn" id="heroBtn" onclick="submitEmail('heroEmail','heroBtn','heroSuccess')">Get Early Access</button>
+        <button class="form-btn" id="heroBtn" type="button">Get Early Access</button>
       </div>
       <p class="form-note">🔒 No spam. Just a gentle note when we launch.</p>
       <div class="success-msg" id="heroSuccess">
@@ -823,7 +823,7 @@
 
   <div class="cta-form">
     <input type="email" class="email-in" id="ctaEmail" placeholder="your@email.com" aria-label="Email address">
-    <button class="form-btn" id="ctaBtn" onclick="submitEmail('ctaEmail','ctaBtn','ctaSuccess')">Reserve My Spot</button>
+    <button class="form-btn" id="ctaBtn" type="button">Reserve My Spot</button>
   </div>
   <p class="form-note" style="justify-content:center;margin-top:14px">🔒 No spam, ever. Just a gentle note when we launch.</p>
   <div class="success-msg" id="ctaSuccess" style="max-width:460px;margin:20px auto 0">
@@ -866,10 +866,6 @@
   // Import the functions you need from the SDKs you need
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
   import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-analytics.js";
-  import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
-
   // Your web app's Firebase configuration
   // For Firebase JS SDK v7.20.0 and later, measurementId is optional
   const firebaseConfig = {
@@ -884,11 +880,7 @@
 
   // Initialize Firebase
   const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app); 
-  const db = getFirestore(app);
-    window.db = db;
-    window.addDoc = addDoc;
-    window.collection = collection;
+  getAnalytics(app);
 
 </script>  
 
@@ -915,22 +907,34 @@
   }, { threshold: 0.12 });
   revealEls.forEach(el => revealObs.observe(el));
 
-  // Email form handling
+  const WAITLIST_API_URL = 'https://australia-southeast1-flourish-7b8c8.cloudfunctions.net/addWaitlistEmail';
+  const RECAPTCHA_SITE_KEY = '6LcCFvgsAAAAAP705VabKOxOQO-jzNv1HUpte9c9';
+
   document.getElementById('heroBtn').addEventListener('click', handleFormSubmit);
   document.getElementById('ctaBtn').addEventListener('click', handleFormSubmit);
-  
+
   function handleFormSubmit(e) {
     e.preventDefault();
     const isHero = e.target.id === 'heroBtn';
     const inputId = isHero ? 'heroEmail' : 'ctaEmail';
     const successId = isHero ? 'heroSuccess' : 'ctaSuccess';
-    
+
     grecaptcha.enterprise.ready(async () => {
-      const token = await grecaptcha.enterprise.execute('6LcCFvgsAAAAAP705VabKOxOQO-jzNv1HUpte9c9', {action: 'SUBMIT'});
-      submitEmail(inputId, e.target.id, successId, token);
+      try {
+        const token = await grecaptcha.enterprise.execute(RECAPTCHA_SITE_KEY, { action: 'SUBMIT' });
+        await submitEmail(inputId, e.target.id, successId, token);
+      } catch (err) {
+        console.error('reCAPTCHA error:', err);
+        const btn = document.getElementById(e.target.id);
+        btn.textContent = 'Oops! Can you please try again?';
+        btn.classList.remove('loading');
+        setTimeout(() => {
+          btn.textContent = isHero ? 'Get Early Access' : 'Reserve My Spot';
+        }, 3000);
+      }
     });
   }
-  
+
   async function submitEmail(inputId, btnId, successId, recaptchaToken) {
     const input = document.getElementById(inputId);
     const btn = document.getElementById(btnId);
@@ -950,30 +954,40 @@
 
     btn.textContent = 'Saving...';
     btn.classList.add('loading');
+    btn.disabled = true;
 
     try {
-      // 1. Simply add the user data to the 'waitlist' collection.
-      // Your Australia-based Cloud Function will notice this and instantly handle the rest!
-      await window.addDoc(window.collection(window.db, "waitlist"), {
-        email: email, 
-        timestamp: new Date().toISOString(),
-        page: inputId === 'heroEmail' ? 'hero section' : 'cta section',                 
-        source: window.location.href,
-        userAgent: navigator.userAgent
+      const response = await fetch(WAITLIST_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          recaptchaToken,
+          page: inputId === 'heroEmail' ? 'hero section' : 'cta section',
+          source: window.location.href,
+          userAgent: navigator.userAgent,
+        }),
       });
 
-      // UI Updates on Success
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Request failed');
+      }
+
       btn.textContent = "✓ You're in!";
       btn.classList.remove('loading');
       btn.classList.add('success');
       input.value = '';
       input.placeholder = 'your@email.com';
       success.style.display = 'block';
-
     } catch (err) {
-      console.error("Waitlist submit error:", err);
-      btn.textContent = 'Oops! Can you please try again?';
+      console.error('Waitlist submit error:', err);
+      btn.textContent = err.message?.includes('Bot detected')
+        ? 'Verification failed — please try again'
+        : 'Oops! Can you please try again?';
       btn.classList.remove('loading');
+      btn.disabled = false;
       setTimeout(() => {
         btn.textContent = btnId === 'heroBtn' ? 'Get Early Access' : 'Reserve My Spot';
       }, 3000);

@@ -1,0 +1,19 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Waitlist signups are server-only (Cloud Function with reCAPTCHA).
+    match /waitlist/{document=**} {
+      allow read, write: if false;
+    }
+
+    // Confirmation emails are triggered server-side via the Trigger Email extension.
+    match /auto_reply/{document=**} {
+      allow read, write: if false;
+    }
+
+    match /mail/{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

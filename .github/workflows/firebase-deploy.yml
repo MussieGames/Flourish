@@ -35,6 +35,7 @@ jobs:
         uses: google-github-actions/setup-gcloud@v2
 
       - name: Enable reCAPTCHA Enterprise API
+        continue-on-error: true
         run: gcloud services enable recaptchaenterprise.googleapis.com --project=flourish-7b8c8
 
       - name: Install Firebase CLI

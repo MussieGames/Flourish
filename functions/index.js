@@ -1,6 +1,7 @@
 const { onRequest } = require("firebase-functions/v2/https");
 const { RecaptchaEnterpriseServiceClient } = require("@google-cloud/recaptcha-enterprise");
 const admin = require("firebase-admin");
+const { buildConfirmationEmail } = require("./waitlistEmail");
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -134,15 +135,9 @@ exports.addWaitlistEmail = onRequest(
         recaptchaScore: recaptcha.score,
       });
 
-      await db.collection("auto_reply").add({
-        to: normalizedEmail,
-        template: {
-          templateId: SENDGRID_TEMPLATE_ID,
-          data: {
-            email: normalizedEmail,
-          },
-        },
-      });
+      await db.collection("auto_reply").add(
+        buildConfirmationEmail(normalizedEmail, SENDGRID_TEMPLATE_ID)
+      );
 
       return res.status(200).json({ message: "Successfully added to waitlist!" });
     } catch (error) {

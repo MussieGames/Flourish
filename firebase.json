@@ -5,7 +5,7 @@
   "functions": [
     {
       "source": "functions",
-      "codebase": "default",
+      "codebase": "marketing",
       "ignore": [
         "node_modules",
         ".git",

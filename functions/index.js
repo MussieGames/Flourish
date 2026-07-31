@@ -1,6 +1,10 @@
 const { onRequest } = require("firebase-functions/v2/https");
 const { RecaptchaEnterpriseServiceClient } = require("@google-cloud/recaptcha-enterprise");
 const admin = require("firebase-admin");
+const {
+  EXPECTED_RECAPTCHA_ACTION,
+  evaluateRecaptchaAssessment,
+} = require("./recaptcha");
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -11,7 +15,6 @@ const RECAPTCHA_SITE_KEY = "6Lfef0UtAAAAAIJMlp0Ls7nGKcZfninytqC9gDBC";
 const PROJECT_ID = "flourish-7b8c8";
 const SERVICE_ACCOUNT = "firebase-adminsdk-fbsvc@flourish-7b8c8.iam.gserviceaccount.com";
 const SENDGRID_TEMPLATE_ID = "d-d05b9e636230405b9b39b4362dc44174";
-const MIN_RECAPTCHA_SCORE = 0.1;
 const ALLOWED_ORIGINS = [
   "https://www.goflourish.com.au",
   "https://goflourish.com.au",
@@ -30,40 +33,25 @@ async function verifyRecaptcha(recaptchaToken, userAgent, userIpAddress) {
       event: {
         token: recaptchaToken,
         siteKey: RECAPTCHA_SITE_KEY,
+        expectedAction: EXPECTED_RECAPTCHA_ACTION,
         userAgent: userAgent || undefined,
         userIpAddress: userIpAddress || undefined,
       },
     },
   });
 
-  const score = assessment.riskAnalysis?.score ?? 0;
-  const tokenValid = assessment.tokenProperties?.valid === true;
-  const action = assessment.tokenProperties?.action;
-  const invalidReason = assessment.tokenProperties?.invalidReason || null;
-  const actionMatch = !action || action === "SUBMIT";
+  const result = evaluateRecaptchaAssessment(assessment);
 
   console.log("reCAPTCHA assessment:", {
-    valid: tokenValid,
-    action,
-    score,
-    invalidReason,
-    hostname: assessment.tokenProperties?.hostname,
+    valid: assessment.tokenProperties?.valid === true,
+    action: result.action,
+    score: result.score,
+    invalidReason: assessment.tokenProperties?.invalidReason || null,
+    hostname: result.hostname,
+    reason: result.reason,
   });
 
-  const valid = tokenValid && actionMatch && score >= MIN_RECAPTCHA_SCORE;
-
-  return {
-    valid,
-    score,
-    hostname: assessment.tokenProperties?.hostname || null,
-    reason: !tokenValid
-      ? invalidReason || "invalid_token"
-      : !actionMatch
-        ? "action_mismatch"
-        : score < MIN_RECAPTCHA_SCORE
-          ? "low_score"
-          : "ok",
-  };
+  return result;
 }
 
 exports.addWaitlistEmail = onRequest(

@@ -1,6 +1,7 @@
 const { onRequest } = require("firebase-functions/v2/https");
 const { RecaptchaEnterpriseServiceClient } = require("@google-cloud/recaptcha-enterprise");
 const admin = require("firebase-admin");
+const { persistWaitlistSignup } = require("./waitlistPersistence");
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -115,33 +116,15 @@ exports.addWaitlistEmail = onRequest(
         });
       }
 
-      const existing = await db
-        .collection("waitlist")
-        .where("email", "==", normalizedEmail)
-        .limit(1)
-        .get();
-
-      if (!existing.empty) {
-        return res.status(200).json({ message: "Successfully added to waitlist!" });
-      }
-
-      await db.collection("waitlist").add({
-        email: normalizedEmail,
-        timestamp: admin.firestore.FieldValue.serverTimestamp(),
-        page: page || "unknown",
-        source: source || null,
-        userAgent: userAgent || null,
+      await persistWaitlistSignup({
+        db,
+        admin,
+        normalizedEmail,
+        page,
+        source,
+        userAgent,
         recaptchaScore: recaptcha.score,
-      });
-
-      await db.collection("auto_reply").add({
-        to: normalizedEmail,
-        template: {
-          templateId: SENDGRID_TEMPLATE_ID,
-          data: {
-            email: normalizedEmail,
-          },
-        },
+        sendgridTemplateId: SENDGRID_TEMPLATE_ID,
       });
 
       return res.status(200).json({ message: "Successfully added to waitlist!" });

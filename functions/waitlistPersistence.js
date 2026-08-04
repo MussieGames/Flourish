@@ -75,14 +75,16 @@ async function persistWaitlistSignup({
         source,
         userAgent,
         recaptchaScore,
-      })
+      }),
+      { merge: true }
     );
   }
 
   if (needsConfirmation) {
     batch.set(
       autoReplyCollection.doc(docId),
-      buildConfirmationEmailRecord(normalizedEmail, sendgridTemplateId)
+      buildConfirmationEmailRecord(normalizedEmail, sendgridTemplateId),
+      { merge: true }
     );
   }
 

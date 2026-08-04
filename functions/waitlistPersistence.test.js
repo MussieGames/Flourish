@@ -44,8 +44,8 @@ function createFakeDb({ waitlistExists = false, confirmationExists = false } = {
     },
     batch() {
       return {
-        set(ref, data) {
-          writes.push({ ref, data });
+        set(ref, data, options) {
+          writes.push({ ref, data, options });
         },
         async commit() {
           commits += 1;
@@ -91,10 +91,10 @@ test("persists a new signup and confirmation email in one batch", async () => {
   assert.equal(fakeDb.commits, 1);
   assert.equal(fakeDb.writes.length, 2);
   assert.deepEqual(
-    fakeDb.writes.map((write) => write.ref),
+    fakeDb.writes.map((write) => ({ ref: write.ref, options: write.options })),
     [
-      { name: "waitlist", id: expectedDocId },
-      { name: "auto_reply", id: expectedDocId },
+      { ref: { name: "waitlist", id: expectedDocId }, options: { merge: true } },
+      { ref: { name: "auto_reply", id: expectedDocId }, options: { merge: true } },
     ]
   );
   assert.equal(fakeDb.writes[0].data.email, "parent@example.com");

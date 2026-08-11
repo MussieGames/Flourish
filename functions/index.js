@@ -12,6 +12,7 @@ const PROJECT_ID = "flourish-7b8c8";
 const SERVICE_ACCOUNT = "firebase-adminsdk-fbsvc@flourish-7b8c8.iam.gserviceaccount.com";
 const SENDGRID_TEMPLATE_ID = "d-d05b9e636230405b9b39b4362dc44174";
 const MIN_RECAPTCHA_SCORE = 0.1;
+const MAX_WAITLIST_FUNCTION_INSTANCES = 10;
 const ALLOWED_ORIGINS = [
   "https://www.goflourish.com.au",
   "https://goflourish.com.au",
@@ -71,6 +72,7 @@ exports.addWaitlistEmail = onRequest(
     cors: ALLOWED_ORIGINS,
     region: "australia-southeast1",
     serviceAccount: SERVICE_ACCOUNT,
+    maxInstances: MAX_WAITLIST_FUNCTION_INSTANCES,
   },
   async (req, res) => {
     if (req.method !== "POST") {
@@ -108,10 +110,7 @@ exports.addWaitlistEmail = onRequest(
       if (!recaptcha.valid) {
         console.warn("reCAPTCHA rejected:", recaptcha.reason, "score:", recaptcha.score);
         return res.status(403).json({
-          error: "Security validation failed. Bot detected.",
-          reason: recaptcha.reason,
-          score: recaptcha.score,
-          hostname: recaptcha.hostname,
+          error: "Security validation failed.",
         });
       }
 

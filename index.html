@@ -913,24 +913,36 @@
   document.getElementById('heroBtn').addEventListener('click', handleFormSubmit);
   document.getElementById('ctaBtn').addEventListener('click', handleFormSubmit);
 
+  function showRetryMessage(btn, defaultText, message) {
+    btn.textContent = message;
+    btn.classList.remove('loading');
+    btn.disabled = false;
+    setTimeout(() => {
+      btn.textContent = defaultText;
+    }, 3000);
+  }
+
   function handleFormSubmit(e) {
     e.preventDefault();
     const isHero = e.target.id === 'heroBtn';
     const inputId = isHero ? 'heroEmail' : 'ctaEmail';
     const successId = isHero ? 'heroSuccess' : 'ctaSuccess';
+    const defaultText = isHero ? 'Get Early Access' : 'Reserve My Spot';
+    const btn = e.target;
 
-    grecaptcha.enterprise.ready(async () => {
+    if (!window.grecaptcha?.enterprise?.ready || !window.grecaptcha?.enterprise?.execute) {
+      console.error('reCAPTCHA Enterprise script is unavailable.');
+      showRetryMessage(btn, defaultText, 'Verification unavailable — please refresh');
+      return;
+    }
+
+    window.grecaptcha.enterprise.ready(async () => {
       try {
-        const token = await grecaptcha.enterprise.execute(RECAPTCHA_SITE_KEY, { action: 'SUBMIT' });
+        const token = await window.grecaptcha.enterprise.execute(RECAPTCHA_SITE_KEY, { action: 'SUBMIT' });
         await submitEmail(inputId, e.target.id, successId, token);
       } catch (err) {
         console.error('reCAPTCHA error:', err);
-        const btn = document.getElementById(e.target.id);
-        btn.textContent = 'Oops! Can you please try again?';
-        btn.classList.remove('loading');
-        setTimeout(() => {
-          btn.textContent = isHero ? 'Get Early Access' : 'Reserve My Spot';
-        }, 3000);
+        showRetryMessage(btn, defaultText, 'Oops! Can you please try again?');
       }
     });
   }

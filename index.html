@@ -16,7 +16,6 @@
 <title>Flourish — Every First, Forever</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-<script src="https://www.google.com/recaptcha/enterprise.js?render=6Lfef0UtAAAAAIJMlp0Ls7nGKcZfninytqC9gDBC"></script>
   <style>
   :root {
     --cream: #FBF7F2;
@@ -863,11 +862,15 @@
 </footer>
 
 <script type="module">
-  // Import the functions you need from the SDKs you need
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
   import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-analytics.js";
-  // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  import {
+    addDoc,
+    collection,
+    getFirestore,
+    serverTimestamp,
+  } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+
   const firebaseConfig = {
     apiKey: "AIzaSyBN-XRhWhKbZ0Adh5q6Xq6PBL9ggpYztag",
     authDomain: "flourish-7b8c8.firebaseapp.com",
@@ -878,13 +881,10 @@
     measurementId: "G-QK2JWFP317"
   };
 
-  // Initialize Firebase
   const app = initializeApp(firebaseConfig);
   getAnalytics(app);
+  const db = getFirestore(app);
 
-</script>  
-
-<script>
   // Nav scroll effect
   const nav = document.getElementById('mainNav');
   window.addEventListener('scroll', () => {
@@ -892,8 +892,12 @@
   });
 
   // Mobile nav
-  function openMobileNav() { document.getElementById('mobileNav').classList.add('open'); }
-  function closeMobileNav() { document.getElementById('mobileNav').classList.remove('open'); }
+  window.openMobileNav = function openMobileNav() {
+    document.getElementById('mobileNav').classList.add('open');
+  };
+  window.closeMobileNav = function closeMobileNav() {
+    document.getElementById('mobileNav').classList.remove('open');
+  };
 
   // Scroll reveal
   const revealEls = document.querySelectorAll('.reveal');
@@ -907,9 +911,6 @@
   }, { threshold: 0.12 });
   revealEls.forEach(el => revealObs.observe(el));
 
-  const WAITLIST_API_URL = 'https://australia-southeast1-flourish-7b8c8.cloudfunctions.net/addWaitlistEmail';
-  const RECAPTCHA_SITE_KEY = '6Lfef0UtAAAAAIJMlp0Ls7nGKcZfninytqC9gDBC';
-
   document.getElementById('heroBtn').addEventListener('click', handleFormSubmit);
   document.getElementById('ctaBtn').addEventListener('click', handleFormSubmit);
 
@@ -918,28 +919,14 @@
     const isHero = e.target.id === 'heroBtn';
     const inputId = isHero ? 'heroEmail' : 'ctaEmail';
     const successId = isHero ? 'heroSuccess' : 'ctaSuccess';
-
-    grecaptcha.enterprise.ready(async () => {
-      try {
-        const token = await grecaptcha.enterprise.execute(RECAPTCHA_SITE_KEY, { action: 'SUBMIT' });
-        await submitEmail(inputId, e.target.id, successId, token);
-      } catch (err) {
-        console.error('reCAPTCHA error:', err);
-        const btn = document.getElementById(e.target.id);
-        btn.textContent = 'Oops! Can you please try again?';
-        btn.classList.remove('loading');
-        setTimeout(() => {
-          btn.textContent = isHero ? 'Get Early Access' : 'Reserve My Spot';
-        }, 3000);
-      }
-    });
+    submitEmail(inputId, e.target.id, successId);
   }
 
-  async function submitEmail(inputId, btnId, successId, recaptchaToken) {
+  async function submitEmail(inputId, btnId, successId) {
     const input = document.getElementById(inputId);
     const btn = document.getElementById(btnId);
     const success = document.getElementById(successId);
-    const email = input.value.trim();
+    const email = input.value.trim().toLowerCase();
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       input.style.borderColor = '#C17B5C';
@@ -957,24 +944,14 @@
     btn.disabled = true;
 
     try {
-      const response = await fetch(WAITLIST_API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email,
-          recaptchaToken,
-          page: inputId === 'heroEmail' ? 'hero section' : 'cta section',
-          source: window.location.href,
-          userAgent: navigator.userAgent,
-        }),
+      // Writes to Firestore waitlist → sendWaitlistConfirmation emails via Resend
+      await addDoc(collection(db, 'waitlist'), {
+        email,
+        source: inputId === 'heroEmail' ? 'cta-hero' : 'cta-footer',
+        page: inputId === 'heroEmail' ? 'hero section' : 'cta section',
+        createdAt: serverTimestamp(),
+        userAgent: navigator.userAgent.slice(0, 500),
       });
-
-      const data = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        console.error('Waitlist API response:', data);
-        throw new Error(data.error || 'Request failed');
-      }
 
       btn.textContent = "✓ You're in!";
       btn.classList.remove('loading');
@@ -984,9 +961,7 @@
       success.style.display = 'block';
     } catch (err) {
       console.error('Waitlist submit error:', err);
-      btn.textContent = err.message?.includes('Bot detected')
-        ? 'Verification failed — please try again'
-        : 'Oops! Can you please try again?';
+      btn.textContent = 'Oops! Can you please try again?';
       btn.classList.remove('loading');
       btn.disabled = false;
       setTimeout(() => {

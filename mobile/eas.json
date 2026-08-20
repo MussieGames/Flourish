@@ -10,9 +10,9 @@
       "channel": "development",
       "env": {
         "EXPO_PUBLIC_FIREBASE_API_KEY": "REPLACE_WITH_flourish-app-dev_API_KEY",
-        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "REPLACE_WITH_flourish-app-dev.firebaseapp.com",
-        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "REPLACE_WITH_flourish-app-dev_PROJECT_ID",
-        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "REPLACE_WITH_flourish-app-dev.appspot.com",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "flourish-app-dev.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "flourish-app-dev",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "flourish-app-dev.firebasestorage.app",
         "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "REPLACE_WITH_flourish-app-dev_SENDER_ID",
         "EXPO_PUBLIC_FIREBASE_APP_ID": "REPLACE_WITH_flourish-app-dev_APP_ID"
       }
@@ -22,9 +22,9 @@
       "channel": "preview",
       "env": {
         "EXPO_PUBLIC_FIREBASE_API_KEY": "REPLACE_WITH_flourish-app-dev_API_KEY",
-        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "REPLACE_WITH_flourish-app-dev.firebaseapp.com",
-        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "REPLACE_WITH_flourish-app-dev_PROJECT_ID",
-        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "REPLACE_WITH_flourish-app-dev.appspot.com",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "flourish-app-dev.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "flourish-app-dev",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "flourish-app-dev.firebasestorage.app",
         "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "REPLACE_WITH_flourish-app-dev_SENDER_ID",
         "EXPO_PUBLIC_FIREBASE_APP_ID": "REPLACE_WITH_flourish-app-dev_APP_ID"
       }
@@ -34,9 +34,9 @@
       "channel": "production",
       "env": {
         "EXPO_PUBLIC_FIREBASE_API_KEY": "REPLACE_WITH_flourish-app_API_KEY",
-        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "REPLACE_WITH_flourish-app.firebaseapp.com",
-        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "REPLACE_WITH_flourish-app_PROJECT_ID",
-        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "REPLACE_WITH_flourish-app.appspot.com",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "flourish-app-fdf9c.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "flourish-app-fdf9c",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "flourish-app-fdf9c.firebasestorage.app",
         "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "REPLACE_WITH_flourish-app_SENDER_ID",
         "EXPO_PUBLIC_FIREBASE_APP_ID": "REPLACE_WITH_flourish-app_APP_ID"
       }

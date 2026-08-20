@@ -69,8 +69,8 @@ export default function RemindersOptIn() {
         <Point icon="notifications-outline" title="Once, in the morning">
           Delivered at 10am. Never in the small hours. Never a checklist alarm.
         </Point>
-        <Point icon="time-outline" title="Windows, not deadlines">
-          Ages from WHO and national child-health guidance — when many children do something, not when yours must.
+        <Point icon="time-outline" title="There’s still time">
+          If they haven’t done it yet, that doesn’t mean they won’t. Every child has their own timing — a later first is still a first.
         </Point>
         <Point icon="close-circle-outline" title="Off whenever you like">
           One toggle in Profile. Capturing a first cancels its reminder.

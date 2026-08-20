@@ -1,20 +1,69 @@
 rules_version = '2';
 
-// ─────────────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
 // Flourish — Firestore Security Rules
 //
-// Security model: a baby's data is *private by default*. Every document is
-// owned by exactly one parent (`ownerId`) and visible only to an explicit
-// allow-list of family members (`memberIds`). There are NO public reads and
-// NO cross-account access. All access requires an authenticated user, and
-// every write is shape-validated so a tampered client cannot inject
-// unexpected fields or oversized payloads.
-// ─────────────────────────────────────────────────────────────────────────
+// This project hosts TWO separate products that share one Firebase project:
+//
+//   1. MARKETING / CTA  → the public website's waitlist signup + email flow.
+//   2. MOBILE APP        → the private iOS/Android memory-keeping app.
+//
+// The two are kept in clearly separated sections below. Default-deny applies to
+// everything not explicitly matched.
+// ═══════════════════════════════════════════════════════════════════════════
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ── Helpers ──────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────
+    // SECTION 1 — MARKETING / CTA (public website)
+    // ─────────────────────────────────────────────────────────────────────
+
+    // Public CTA may create waitlist signups only.
+    // Clients cannot read the list or change confirmation fields.
+    // sendWaitlistConfirmation (Admin SDK) still updates docs after create.
+    match /waitlist/{signupId} {
+      allow create: if request.resource.data.keys().hasOnly([
+          'email', 'name', 'source', 'page', 'createdAt', 'userAgent'
+        ])
+        && request.resource.data.email is string
+        && request.resource.data.email.size() > 3
+        && request.resource.data.email.size() < 320
+        && request.resource.data.email.matches('.*@.*\\..*')
+        && (!('name' in request.resource.data)
+            || (request.resource.data.name is string
+                && request.resource.data.name.size() < 120))
+        && (!('source' in request.resource.data)
+            || (request.resource.data.source is string
+                && request.resource.data.source.size() < 80))
+        && (!('page' in request.resource.data)
+            || (request.resource.data.page is string
+                && request.resource.data.page.size() < 80))
+        && (!('userAgent' in request.resource.data)
+            || (request.resource.data.userAgent is string
+                && request.resource.data.userAgent.size() < 512));
+
+      allow read, update, delete: if false;
+    }
+
+    // Legacy SendGrid / Trigger Email collections — server only.
+    match /auto_reply/{document=**} {
+      allow read, write: if false;
+    }
+
+    match /mail/{document=**} {
+      allow read, write: if false;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // SECTION 2 — MOBILE APP (private, authenticated)
+    //
+    // Security model: a baby's data is private by default. Every document is
+    // owned by exactly one parent (`ownerId`) and visible only to an explicit
+    // allow-list of family members (`memberIds`). No public reads, no
+    // cross-account access. Every write is shape-validated.
+    // ─────────────────────────────────────────────────────────────────────
+
     function isSignedIn() {
       return request.auth != null;
     }
@@ -43,7 +92,7 @@ service cloud.firestore {
       return value is string && value.size() <= max;
     }
 
-    // ── Users ────────────────────────────────────────────────────────────
+    // ── Users ──────────────────────────────────────────────────────────
     match /users/{uid} {
       allow read: if isUser(uid);
 
@@ -51,7 +100,6 @@ service cloud.firestore {
         && request.resource.data.uid == uid
         && request.resource.data.plan in ['seedling', 'bloom', 'heirloom'];
 
-      // A user may update their own profile but never spoof their uid.
       allow update: if isUser(uid)
         && request.resource.data.uid == resource.data.uid
         && request.resource.data.plan in ['seedling', 'bloom', 'heirloom'];
@@ -59,19 +107,16 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // ── Babies ───────────────────────────────────────────────────────────
+    // ── Babies ─────────────────────────────────────────────────────────
     match /babies/{babyId} {
       allow read: if isSignedIn() && request.auth.uid in resource.data.memberIds;
 
-      // On creation the creator must be the owner and the only member.
       allow create: if isSignedIn()
         && request.resource.data.ownerId == request.auth.uid
         && request.resource.data.memberIds is list
         && request.resource.data.memberIds.hasOnly([request.auth.uid])
         && isNonEmptyString(request.resource.data.name, 40);
 
-      // Only the owner can update, and the owner can never be reassigned.
-      // The owner must always remain a member.
       allow update: if isOwner(babyId)
         && request.resource.data.ownerId == resource.data.ownerId
         && request.resource.data.ownerId in request.resource.data.memberIds
@@ -87,7 +132,6 @@ service cloud.firestore {
           && request.resource.data.kind in ['photo', 'video', 'note']
           && isNonEmptyString(request.resource.data.title, 80)
           && isBoundedString(request.resource.data.caption, 500);
-        // The original author or the baby's owner may edit/remove a memory.
         allow update, delete: if isMember(babyId)
           && (resource.data.authorId == request.auth.uid || isOwner(babyId));
       }
@@ -126,14 +170,9 @@ service cloud.firestore {
       }
     }
 
-    // ── Waitlist (write-only from the verified Cloud Function) ───────────
-    // The marketing site collects emails via a reCAPTCHA-gated Cloud Function
-    // running with admin privileges. Clients must never read or write here.
-    match /waitlist/{doc} {
-      allow read, write: if false;
-    }
-
+    // ─────────────────────────────────────────────────────────────────────
     // Default deny — anything not explicitly matched above is forbidden.
+    // ─────────────────────────────────────────────────────────────────────
     match /{document=**} {
       allow read, write: if false;
     }

@@ -1,24 +1,7 @@
 rules_version = '2';
 
-// ═══════════════════════════════════════════════════════════════════════════
-// Flourish — Firestore Security Rules
-//
-// This project hosts TWO separate products that share one Firebase project:
-//
-//   1. MARKETING / CTA  → the public website's waitlist signup + email flow.
-//   2. MOBILE APP        → the private iOS/Android memory-keeping app.
-//
-// The two are kept in clearly separated sections below. Default-deny applies to
-// everything not explicitly matched.
-// ═══════════════════════════════════════════════════════════════════════════
-
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // ─────────────────────────────────────────────────────────────────────
-    // SECTION 1 — MARKETING / CTA (public website)
-    // ─────────────────────────────────────────────────────────────────────
-
     // Public CTA may create waitlist signups only.
     // Clients cannot read the list or change confirmation fields.
     // sendWaitlistConfirmation (Admin SDK) still updates docs after create.
@@ -55,124 +38,6 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // ─────────────────────────────────────────────────────────────────────
-    // SECTION 2 — MOBILE APP (private, authenticated)
-    //
-    // Security model: a baby's data is private by default. Every document is
-    // owned by exactly one parent (`ownerId`) and visible only to an explicit
-    // allow-list of family members (`memberIds`). No public reads, no
-    // cross-account access. Every write is shape-validated.
-    // ─────────────────────────────────────────────────────────────────────
-
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isUser(uid) {
-      return isSignedIn() && request.auth.uid == uid;
-    }
-
-    function babyData(babyId) {
-      return get(/databases/$(database)/documents/babies/$(babyId)).data;
-    }
-
-    function isMember(babyId) {
-      return isSignedIn() && request.auth.uid in babyData(babyId).memberIds;
-    }
-
-    function isOwner(babyId) {
-      return isSignedIn() && request.auth.uid == babyData(babyId).ownerId;
-    }
-
-    function isNonEmptyString(value, max) {
-      return value is string && value.size() > 0 && value.size() <= max;
-    }
-
-    function isBoundedString(value, max) {
-      return value is string && value.size() <= max;
-    }
-
-    // ── Users ──────────────────────────────────────────────────────────
-    match /users/{uid} {
-      allow read: if isUser(uid);
-
-      allow create: if isUser(uid)
-        && request.resource.data.uid == uid
-        && request.resource.data.plan in ['seedling', 'bloom', 'heirloom'];
-
-      allow update: if isUser(uid)
-        && request.resource.data.uid == resource.data.uid
-        && request.resource.data.plan in ['seedling', 'bloom', 'heirloom'];
-
-      allow delete: if false;
-    }
-
-    // ── Babies ─────────────────────────────────────────────────────────
-    match /babies/{babyId} {
-      allow read: if isSignedIn() && request.auth.uid in resource.data.memberIds;
-
-      allow create: if isSignedIn()
-        && request.resource.data.ownerId == request.auth.uid
-        && request.resource.data.memberIds is list
-        && request.resource.data.memberIds.hasOnly([request.auth.uid])
-        && isNonEmptyString(request.resource.data.name, 40);
-
-      allow update: if isOwner(babyId)
-        && request.resource.data.ownerId == resource.data.ownerId
-        && request.resource.data.ownerId in request.resource.data.memberIds
-        && isNonEmptyString(request.resource.data.name, 40);
-
-      allow delete: if isOwner(babyId);
-
-      // ── Memories ─────────────────────────────────────────────────────
-      match /memories/{memoryId} {
-        allow read: if isMember(babyId);
-        allow create: if isMember(babyId)
-          && request.resource.data.authorId == request.auth.uid
-          && request.resource.data.kind in ['photo', 'video', 'note']
-          && isNonEmptyString(request.resource.data.title, 80)
-          && isBoundedString(request.resource.data.caption, 500);
-        allow update, delete: if isMember(babyId)
-          && (resource.data.authorId == request.auth.uid || isOwner(babyId));
-      }
-
-      // ── Milestones ───────────────────────────────────────────────────
-      match /milestones/{milestoneId} {
-        allow read: if isMember(babyId);
-        allow create: if isMember(babyId)
-          && isNonEmptyString(request.resource.data.label, 80)
-          && request.resource.data.status in ['upcoming', 'captured'];
-        allow update: if isMember(babyId)
-          && request.resource.data.status in ['upcoming', 'captured'];
-        allow delete: if isOwner(babyId);
-      }
-
-      // ── Journal ──────────────────────────────────────────────────────
-      match /journal/{entryId} {
-        allow read: if isMember(babyId);
-        allow create: if isMember(babyId)
-          && request.resource.data.authorId == request.auth.uid
-          && isBoundedString(request.resource.data.body, 4000)
-          && request.resource.data.tags is list
-          && request.resource.data.tags.size() <= 8;
-        allow update, delete: if isMember(babyId)
-          && (resource.data.authorId == request.auth.uid || isOwner(babyId));
-      }
-
-      // ── Calendar events ──────────────────────────────────────────────
-      match /events/{eventId} {
-        allow read: if isMember(babyId);
-        allow create: if isMember(babyId)
-          && request.resource.data.type in ['milestone', 'memory', 'appointment']
-          && isNonEmptyString(request.resource.data.title, 80)
-          && isNonEmptyString(request.resource.data.date, 10);
-        allow update, delete: if isMember(babyId);
-      }
-    }
-
-    // ─────────────────────────────────────────────────────────────────────
-    // Default deny — anything not explicitly matched above is forbidden.
-    // ─────────────────────────────────────────────────────────────────────
     match /{document=**} {
       allow read, write: if false;
     }

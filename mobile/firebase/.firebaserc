@@ -1,0 +1,7 @@
+{
+  "projects": {
+    "default": "REPLACE_WITH_flourish-app-dev_PROJECT_ID",
+    "development": "REPLACE_WITH_flourish-app-dev_PROJECT_ID",
+    "production": "REPLACE_WITH_flourish-app_PROJECT_ID"
+  }
+}

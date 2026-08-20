@@ -35,14 +35,20 @@ biometric **App Lock**.
 cd mobile
 npm install
 
-# 1. Configure Firebase
+# 1. Configure Firebase (uses the app's DEV project: flourish-app-dev)
 cp .env.example .env
-# → fill in the EXPO_PUBLIC_FIREBASE_* values from the Firebase console
-#   (Project settings → General → Your apps → Web app → SDK setup)
+# → fill in the EXPO_PUBLIC_FIREBASE_* values from the flourish-app-dev
+#   Web app config (Firebase console → Project settings → General → SDK setup)
 
 # 2. Run it
 npm run start        # then press i (iOS), a (Android), or scan the QR in Expo Go
 ```
+
+> **Firebase projects:** the app uses its own projects — `flourish-app-dev`
+> (development) and `flourish-app` (production) — separate from the marketing
+> site. See the repo root `README.md` → "Creating the app Firebase projects",
+> the security rules in [`firebase/`](firebase/), and build profiles in
+> [`eas.json`](eas.json) (dev config → `.env`, prod config → `eas.json`).
 
 > Native modules (`expo-secure-store`, `expo-local-authentication`,
 > `expo-image-picker`) require a **development build** or a production build for

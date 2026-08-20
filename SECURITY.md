@@ -23,7 +23,10 @@ rules, and Cloud Functions.
 
 ## 2. Authorization — Firestore Security Rules
 
-See [`firestore.rules`](./firestore.rules).
+The app runs in its **own Firebase project(s)** (`flourish-app` /
+`flourish-app-dev`), separate from the marketing/CTA project. App rules live in
+[`mobile/firebase/firestore.rules`](./mobile/firebase/firestore.rules); the CTA
+project's waitlist rules live separately in [`firestore.rules`](./firestore.rules).
 
 - **Default deny.** Anything not explicitly allowed is rejected.
 - **Private by default.** A baby document carries an `ownerId` and an explicit
@@ -36,12 +39,14 @@ See [`firestore.rules`](./firestore.rules).
   tampered client cannot inject unexpected or oversized fields.
 - **Authorship.** Memories/journal entries record the `authorId`; only the
   author or the baby's owner may edit or delete them.
-- **Waitlist** collection is fully locked to clients — only the privileged
-  Cloud Function may write to it.
+- **Project isolation.** Because the app has its own Firebase project, a
+  misconfiguration or abuse on the public marketing/CTA project can never reach
+  family data, and vice-versa. (The CTA **waitlist** collection is locked to
+  clients — only the privileged Cloud Function may write to it.)
 
 ## 3. Authorization — Cloud Storage Rules
 
-See [`storage.rules`](./storage.rules).
+See [`mobile/firebase/storage.rules`](./mobile/firebase/storage.rules).
 
 - Media lives at an owner-scoped, unguessable path
   `babies/{babyId}/memories/{uid}/{file}`.

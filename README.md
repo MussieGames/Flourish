@@ -3,23 +3,30 @@
 A private, beautiful memory-keeping app for new parents — *built for 3am,
 beautiful at any hour.*
 
-This repository holds **two separate products** that happen to share one
-Firebase project (`flourish-7b8c8`). They are intentionally kept apart so each
-can be worked on and deployed independently.
+This repository holds **two separate products**, each with its **own Firebase
+project(s)** so they can be developed, deployed, and secured independently.
 
 ```
 Flourish/
 ├─ index.html, assets/, CNAME        ← 1) MARKETING SITE (the CTA / waitlist)
 ├─ functions/                        ← 1) CTA backend (waitlist signup + email)
 ├─ .github/workflows/                ←    CTA auto-deploy (GitHub Actions)
+├─ firebase.json, firestore.rules    ←    CTA Firebase config  → project flourish-7b8c8
+├─ .firebaserc                       ←    (CTA project alias)
 │
 ├─ mobile/                           ← 2) MOBILE APP (iOS & Android, Expo)
+│  ├─ app/, src/, eas.json …            app client code + build profiles
+│  └─ firebase/                      ←    APP Firebase config → projects flourish-app(-dev)
+│     ├─ firestore.rules, storage.rules
+│     └─ firebase.json, .firebaserc
 │
-├─ firestore.rules, storage.rules    ← shared Firebase rules (clearly sectioned:
-├─ firestore.indexes.json               "MARKETING / CTA" vs "MOBILE APP")
-├─ firebase.json, .firebaserc        ← shared Firebase project config
 └─ SECURITY.md                       ← full security & privacy model
 ```
+
+| Product | Firebase project(s) | Rules live in |
+|---------|--------------------|----------------|
+| Marketing site / CTA | `flourish-7b8c8` | repo root (`/firestore.rules`) |
+| Mobile app | `flourish-app` (prod), `flourish-app-dev` (dev) | [`mobile/firebase/`](mobile/firebase/) |
 
 ---
 
@@ -55,23 +62,41 @@ See [`mobile/README.md`](mobile/README.md) for the full guide.
 
 ---
 
-## Shared Firebase backend
+## Creating the app Firebase projects
 
-Because both products live in the same Firebase project, the security rules are
-single files with **clearly labelled sections** so the two never get confused:
+The mobile app uses its **own** Firebase projects (isolated from the CTA site).
+Create them once:
 
-- [`firestore.rules`](firestore.rules) → *Section 1: Marketing/CTA* (waitlist,
-  email) and *Section 2: Mobile app* (users, babies, memories, …).
-- [`storage.rules`](storage.rules) → mobile app media only.
+1. Go to the [Firebase console](https://console.firebase.google.com/) →
+   **Add project**.
+2. Create **`flourish-app-dev`** (for development/testing).
+   - Give it a name; you can skip/disable Google Analytics for dev.
+3. Create **`flourish-app`** (for production) the same way.
+4. In **each** project, enable the services the app uses:
+   - **Build → Authentication → Get started → Email/Password → Enable.**
+   - **Build → Firestore Database → Create database** (start in *production
+     mode*; the app's rules will be deployed over the top).
+   - **Build → Storage → Get started.**
+5. In **each** project, register a **Web app**
+   (Project settings → General → *Your apps* → **Web** `</>`), then copy the
+   config values (`apiKey`, `appId`, `messagingSenderId`, `projectId`, …).
+6. Note each project's **Project ID** — it may have a random suffix
+   (e.g. `flourish-app-dev-1a2b3`).
 
-Deploy the shared rules from the repo root:
+Then wire it up:
+- Put the **dev** web config into `mobile/.env` (from `mobile/.env.example`).
+- Put the **prod** web config into `mobile/eas.json` (production profile).
+- Put both **Project IDs** into `mobile/firebase/.firebaserc`.
+
+## Deploying the app's security rules
 
 ```bash
-firebase deploy --only firestore:rules,storage:rules
+cd mobile/firebase
+firebase deploy --only firestore:rules,storage:rules              # → dev (default)
+firebase deploy -P production --only firestore:rules,storage:rules # → production
 ```
 
-> Prefer separate Firebase projects for the two products? You can point a
-> `staging`/`app` project alias in [`.firebaserc`](.firebaserc) and split the
-> rules later — the code is already namespaced to make that painless.
+The CTA rules deploy separately (root `firebase.json`, via GitHub Actions).
 
-See [`SECURITY.md`](SECURITY.md) for the complete security model.
+See [`mobile/firebase/README.md`](mobile/firebase/README.md) for details, and
+[`SECURITY.md`](SECURITY.md) for the complete security model.

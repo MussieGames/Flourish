@@ -58,8 +58,11 @@ npm run start        # then press i (iOS), a (Android), or scan the QR in Expo G
 > development build. Create one with `npx expo run:ios` / `npx expo run:android`
 > or EAS Build.
 
-Reviewable HTML mockups for the milestone-reminder flow live in
-[`mockups/milestone-notifications.html`](mockups/milestone-notifications.html).
+Reviewable HTML mockups live in [`mockups/`](mockups/):
+
+- [`mockups/all-screens.html`](mockups/all-screens.html) — every screen, welcome through plans
+- [`mockups/milestone-notifications.html`](mockups/milestone-notifications.html) — reminder flow in detail
+- [`mockups/screens/`](mockups/screens/) — PNG captures of each phone
 
 ### Scripts
 

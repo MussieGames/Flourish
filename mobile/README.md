@@ -26,6 +26,7 @@ biometric **App Lock**.
 - **Expo SDK 56** / React Native 0.85 / React 19
 - **Expo Router** (file-based, typed routes)
 - **Firebase JS SDK 12** — Auth, Firestore, Storage, App Check
+- **expo-notifications** — local milestone reminders (device-scheduled; no server push in v1)
 - **expo-secure-store** + **expo-local-authentication** for the privacy lock
 - **@expo-google-fonts** — Cormorant Garamond, DM Sans, Lora
 
@@ -51,9 +52,14 @@ npm run start        # then press i (iOS), a (Android), or scan the QR in Expo G
 > [`eas.json`](eas.json) (dev config → `.env`, prod config → `eas.json`).
 
 > Native modules (`expo-secure-store`, `expo-local-authentication`,
-> `expo-image-picker`) require a **development build** or a production build for
-> full functionality — they are not all available in the generic Expo Go app.
-> Create one with `npx expo run:ios` / `npx expo run:android` or EAS Build.
+> `expo-image-picker`, `expo-notifications`) require a **development build**
+> or a production build for full functionality — they are not all available in
+> the generic Expo Go app. Local milestone reminders in particular need a
+> development build. Create one with `npx expo run:ios` / `npx expo run:android`
+> or EAS Build.
+
+Reviewable HTML mockups for the milestone-reminder flow live in
+[`mockups/milestone-notifications.html`](mockups/milestone-notifications.html).
 
 ### Scripts
 

@@ -1,13 +1,14 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef } from 'react';
-import { Animated, Easing, Pressable, StyleSheet, View } from 'react-native';
+import { Animated, Easing, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText, Button, Icon } from '@/components';
 import type { IconName } from '@/components';
 import { useAuth } from '@/context/AuthContext';
 import { captureMilestone } from '@/firebase/firestore';
-import { DEFAULT_FIRSTS, iconForFirst } from '@/data/firsts';
+import { defForKey, iconForFirst } from '@/data/firsts';
+import { GROWTH_DISCLAIMER, SOURCE_LABELS } from '@/data/growth';
 import { preciseAge, weekdayName } from '@/lib/age';
 import { formatTime } from '@/lib/format';
 import { colors, radius } from '@/theme';
@@ -18,7 +19,7 @@ export default function MilestoneMoment() {
   const { activeBaby } = useAuth();
   const params = useLocalSearchParams<{ id?: string; key?: string; label?: string; preview?: string }>();
 
-  const def = useMemo(() => DEFAULT_FIRSTS.find((f) => f.key === params.key), [params.key]);
+  const def = useMemo(() => defForKey(params.key), [params.key]);
   const label = params.label ?? def?.label ?? 'A new first';
   const icon: IconName = (def?.icon as IconName) ?? iconForFirst(params.key);
   const description = def?.description;
@@ -65,7 +66,10 @@ export default function MilestoneMoment() {
         <Icon name="close" size={26} color={colors.onDark60} />
       </Pressable>
 
-      <View style={styles.center}>
+      <ScrollView
+        contentContainerStyle={[styles.center, { paddingTop: insets.top + 56, paddingBottom: insets.bottom + 24 }]}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={[styles.iconRing, { borderColor: isPreview ? 'rgba(193,123,92,0.4)' : 'rgba(122,158,126,0.4)' }]}>
           <Icon name={icon} size={40} color={isPreview ? colors.sienna : colors.sageDark} />
         </View>
@@ -88,10 +92,20 @@ export default function MilestoneMoment() {
             {description ? (
               <AppText variant="serifItalic" color={colors.onDark60} center style={styles.desc}>“{description}”</AppText>
             ) : null}
+            {def?.sourceNote ? (
+              <AppText variant="caption" color={colors.onDark40} center style={styles.source}>
+                {SOURCE_LABELS[def.source]}. {def.sourceNote}
+              </AppText>
+            ) : null}
             <View style={styles.readyRow}>
               <Icon name="notifications-outline" size={14} color={colors.sageDark} />
-              <AppText variant="caption" color={colors.sageDark}>Flourish will remind you before it happens</AppText>
+              <AppText variant="caption" color={colors.sageDark}>
+                A quiet reminder, if you’ve switched them on — never a deadline.
+              </AppText>
             </View>
+            <AppText variant="caption" color={colors.onDark25} center style={styles.disclaimer}>
+              {GROWTH_DISCLAIMER}
+            </AppText>
             <View style={styles.actions}>
               <Button label="I caught it" onPress={markCaught} />
               <Button label="Close" variant="ghost" onPress={() => router.back()} />
@@ -111,7 +125,7 @@ export default function MilestoneMoment() {
             </View>
           </>
         )}
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -119,7 +133,7 @@ export default function MilestoneMoment() {
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.ink },
   close: { position: 'absolute', right: 20, zIndex: 10 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 30 },
+  center: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 30 },
   iconRing: {
     width: 96,
     height: 96,
@@ -133,7 +147,9 @@ const styles = StyleSheet.create({
   title: { fontSize: 36, lineHeight: 40 },
   age: { marginTop: 12, letterSpacing: 0.6 },
   desc: { marginTop: 18, fontSize: 15, lineHeight: 24, maxWidth: 300 },
-  readyRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 20 },
+  source: { marginTop: 14, lineHeight: 18, maxWidth: 320 },
+  readyRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6, marginTop: 20, maxWidth: 300 },
+  disclaimer: { marginTop: 16, lineHeight: 16, maxWidth: 320 },
   promptBox: {
     backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 1,

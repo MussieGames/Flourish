@@ -11,7 +11,8 @@ import { useAuth } from '@/context/AuthContext';
 import { useMilestones } from '@/hooks/useBabyData';
 import { addMemory, captureMilestone } from '@/firebase/firestore';
 import { uploadMemoryAsset } from '@/firebase/storage';
-import { preciseAge, weekdayName } from '@/lib/age';
+import { featuredUpcoming } from '@/data/firsts';
+import { computeAge, preciseAge, weekdayName } from '@/lib/age';
 import { formatTime } from '@/lib/format';
 import { friendlyError } from '@/lib/errors';
 import { sanitizeText } from '@/lib/validation';
@@ -29,7 +30,11 @@ export default function Capture() {
   const router = useRouter();
   const { activeBaby, user } = useAuth();
   const { items: milestones } = useMilestones(activeBaby?.id);
-  const nextMilestone = useMemo(() => milestones.find((m) => m.status === 'upcoming'), [milestones]);
+  const ageWeeks = computeAge(activeBaby?.birthDate)?.weeks ?? 0;
+  const nextMilestone = useMemo(
+    () => featuredUpcoming(milestones, ageWeeks),
+    [milestones, ageWeeks],
+  );
 
   const [picked, setPicked] = useState<Picked | null>(null);
   const [caption, setCaption] = useState('');

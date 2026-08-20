@@ -105,8 +105,9 @@ export default function Onboarding() {
 
           <InfoBox accent={colors.sageDark} style={styles.reassure}>
             <AppText variant="caption" color={colors.inkLight} style={styles.reassureText}>
-              We use the birth date to surface the right milestones and the age-adaptive scrapbook
-              — nothing else. It stays private to you.
+              We use the birth date to time gentle milestone reminders and the age-adaptive
+              scrapbook — nothing else. It stays private to you. Reminders are optional, and
+              ages are never a test.
             </AppText>
           </InfoBox>
         </View>

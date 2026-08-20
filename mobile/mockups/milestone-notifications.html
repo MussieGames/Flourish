@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flourish — Milestone reminders (review mockups)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&family=Lora:ital@1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #FBF7F2;
+    --warm: #FEFCF9;
+    --blush: #F2D9CB;
+    --rose: #D4A9A0;
+    --sage: #B5C4B1;
+    --sage-d: #7A9E7E;
+    --sienna: #C17B5C;
+    --ink: #2C2420;
+    --ink-l: #5C4A42;
+    --ink-m: #8C7870;
+    --gold: #C9A96E;
+    --night: #1A1410;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--sienna); }
+
+  .page { max-width: 1120px; margin: 0 auto; padding: 48px 24px 96px; }
+  .kicker {
+    font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--sienna); font-weight: 500; margin-bottom: 14px;
+  }
+  h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300; font-size: 48px; line-height: 1.05; margin-bottom: 16px;
+  }
+  h1 em { font-style: italic; color: var(--sienna); }
+  .lede { font-weight: 300; font-size: 17px; line-height: 1.6; color: var(--ink-l); max-width: 640px; }
+
+  nav.toc {
+    display: flex; flex-wrap: wrap; gap: 10px 18px;
+    margin: 32px 0 48px; padding-top: 24px;
+    border-top: 1px solid rgba(196,169,160,0.28);
+  }
+  nav.toc a {
+    font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase;
+    text-decoration: none; color: var(--ink-l);
+  }
+  nav.toc a:hover { color: var(--sienna); }
+
+  section { margin: 72px 0; }
+  h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300; font-size: 32px; margin-bottom: 10px;
+  }
+  h3 { font-size: 14px; font-weight: 500; margin: 22px 0 8px; color: var(--ink); }
+  p, li { font-size: 14px; line-height: 1.65; color: var(--ink-l); }
+  ul { padding-left: 18px; }
+  .note {
+    background: rgba(181,196,177,0.16);
+    border-left: 2px solid var(--sage-d);
+    padding: 14px 16px; margin: 18px 0; border-radius: 2px;
+    font-size: 13px; line-height: 1.6; color: var(--ink-l);
+  }
+  .warn {
+    background: rgba(193,123,92,0.1);
+    border-left: 2px solid var(--sienna);
+    padding: 14px 16px; margin: 18px 0; border-radius: 2px;
+    font-size: 13px; line-height: 1.6; color: var(--ink-l);
+  }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0 8px; font-size: 13px; }
+  th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid rgba(196,169,160,0.25); vertical-align: top; }
+  th { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sienna); font-weight: 500; }
+  .src { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--sage-d); font-weight: 500; }
+
+  .phones { display: flex; flex-wrap: wrap; gap: 36px; justify-content: center; margin-top: 28px; }
+  .phone-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .cap {
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--ink-m); text-align: center;
+  }
+  .phone {
+    width: 320px; height: 660px;
+    background: var(--ink);
+    border-radius: 36px;
+    padding: 10px;
+    box-shadow: 0 30px 60px rgba(44,36,32,0.18);
+  }
+  .screen {
+    width: 100%; height: 100%;
+    background: var(--cream);
+    border-radius: 28px;
+    overflow: hidden;
+    position: relative;
+    display: flex; flex-direction: column;
+  }
+  .status {
+    display: flex; justify-content: space-between; padding: 10px 18px 6px;
+    font-size: 11px; font-weight: 500; color: var(--cream); letter-spacing: 0.04em;
+  }
+  .status.light { color: var(--ink); }
+  .hero {
+    background: var(--ink); color: var(--cream);
+    padding: 6px 20px 20px; position: relative;
+  }
+  .hero::after {
+    content: ''; position: absolute; inset: auto 0 0 auto;
+    width: 180px; height: 120px;
+    background: radial-gradient(circle at 70% 80%, rgba(193,123,92,0.28), transparent 70%);
+    pointer-events: none;
+  }
+  .eyebrow { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold); font-weight: 500; margin-bottom: 8px; }
+  .display {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300; font-size: 28px; line-height: 1.05; color: var(--cream);
+  }
+  .display em { font-style: italic; color: var(--rose); }
+  .body-copy { font-size: 12px; line-height: 1.5; color: rgba(251,247,242,0.6); margin-top: 8px; font-weight: 300; }
+  .pad { padding: 16px 18px 20px; flex: 1; overflow: hidden; }
+  .point { display: flex; gap: 10px; margin-bottom: 12px; align-items: flex-start; }
+  .ico {
+    width: 26px; height: 26px; border-radius: 13px; flex-shrink: 0;
+    background: rgba(193,123,92,0.14); display: grid; place-items: center;
+    color: var(--sienna);
+  }
+  .pt { font-size: 12px; font-weight: 500; color: var(--cream); }
+  .pd { font-size: 11px; line-height: 1.45; color: rgba(251,247,242,0.45); margin-top: 2px; }
+  .btn {
+    background: var(--sienna); color: white; text-align: center;
+    padding: 12px; border-radius: 2px; font-size: 12px; font-weight: 500;
+    letter-spacing: 0.04em;
+  }
+  .ghost { text-align: center; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(251,247,242,0.45); padding: 12px; }
+  .disclaimer {
+    font-size: 10px; line-height: 1.45; color: rgba(251,247,242,0.4);
+    border-left: 2px solid var(--sage-d); padding: 8px 10px;
+    background: rgba(181,196,177,0.1); margin: 8px 0 14px;
+  }
+
+  .lock {
+    background: linear-gradient(#1c1815, #2c2420);
+    flex: 1; padding: 18px 16px 20px;
+    display: flex; flex-direction: column; justify-content: flex-end; gap: 10px;
+  }
+  .time { font-family: 'Cormorant Garamond', serif; font-size: 64px; font-weight: 300; color: var(--cream); text-align: center; line-height: 1; }
+  .date { text-align: center; color: rgba(251,247,242,0.45); font-size: 12px; margin-bottom: 18px; }
+  .ncard {
+    background: rgba(254,252,249,0.92); backdrop-filter: blur(12px);
+    border-radius: 16px; padding: 10px 12px; display: flex; gap: 10px; align-items: flex-start;
+  }
+  .napp { width: 28px; height: 28px; border-radius: 8px; background: var(--ink); color: var(--sage); display: grid; place-items: center; flex-shrink: 0; font-size: 11px; }
+  .napp svg { width: 14px; height: 14px; }
+  .ntitle { font-size: 12px; font-weight: 500; color: var(--ink); }
+  .nbody { font-size: 11px; line-height: 1.4; color: var(--ink-l); margin-top: 2px; }
+  .ntime { font-size: 10px; color: var(--ink-m); margin-left: auto; }
+
+  .row {
+    display: flex; gap: 10px; align-items: center;
+    background: var(--warm); border: 1px solid rgba(196,169,160,0.25);
+    border-radius: 4px; padding: 10px; margin-bottom: 8px;
+  }
+  .row.done { background: rgba(122,158,126,0.08); border-color: rgba(122,158,126,0.25); }
+  .ri {
+    width: 32px; height: 32px; border-radius: 16px; flex-shrink: 0;
+    background: rgba(140,120,112,0.08); display: grid; place-items: center; color: var(--ink-m);
+  }
+  .rl { font-size: 12px; font-weight: 500; color: var(--ink); }
+  .rs { font-size: 10px; color: var(--ink-m); }
+  .caught {
+    background: var(--sienna); color: white; font-size: 9px; letter-spacing: 0.12em;
+    text-transform: uppercase; padding: 6px 10px; border-radius: 2px; font-weight: 500;
+  }
+  .write {
+    border: 1px solid rgba(193,123,92,0.4); color: var(--sienna);
+    font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase;
+    padding: 6px 10px; border-radius: 2px; font-weight: 500;
+  }
+  .section-label {
+    font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--ink-m); margin: 12px 0 8px; font-weight: 500;
+  }
+  .feature {
+    background: var(--ink); margin: -8px 14px 0; padding: 14px;
+    border-radius: 4px; border: 1px solid rgba(193,123,92,0.2); color: var(--cream);
+  }
+  .feat-eye { font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--sienna); font-weight: 500; }
+  .feat-title { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 300; margin: 4px 0; }
+  .feat-q { font-family: 'Lora', serif; font-style: italic; font-size: 11px; color: rgba(251,247,242,0.45); line-height: 1.45; }
+  .feat-n { display: flex; gap: 6px; align-items: center; margin-top: 8px; font-size: 10px; color: var(--sage-d); }
+  .chip { display: inline-flex; gap: 4px; align-items: center; background: rgba(255,255,255,0.06); padding: 3px 8px; border-radius: 10px; font-size: 10px; color: rgba(251,247,242,0.45); margin-top: 8px; }
+  .alert {
+    background: rgba(193,123,92,0.14); border: 1px solid rgba(193,123,92,0.28);
+    border-radius: 2px; padding: 10px; margin-top: 12px;
+  }
+  .toggle {
+    width: 36px; height: 22px; background: var(--sienna); border-radius: 11px; position: relative; flex-shrink: 0;
+  }
+  .toggle::after {
+    content: ''; position: absolute; width: 16px; height: 16px; background: var(--warm);
+    border-radius: 8px; top: 3px; right: 3px;
+  }
+  .toggle.off { background: rgba(196,169,160,0.4); }
+  .toggle.off::after { right: auto; left: 3px; }
+  .settings-row {
+    display: flex; gap: 10px; align-items: center;
+    background: var(--warm); border: 1px solid rgba(196,169,160,0.25);
+    border-radius: 4px; padding: 12px; margin-bottom: 8px;
+  }
+  .learn {
+    background: var(--ink); color: var(--cream); flex: 1;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 24px 22px; text-align: center;
+  }
+  .ring {
+    width: 72px; height: 72px; border-radius: 36px; border: 1px solid rgba(193,123,92,0.4);
+    display: grid; place-items: center; margin-bottom: 16px; color: var(--sienna);
+  }
+  .q { font-family: 'Lora', serif; font-style: italic; font-size: 13px; line-height: 1.5; color: rgba(251,247,242,0.6); margin-top: 12px; max-width: 240px; }
+  svg.line { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+</style>
+</head>
+<body>
+<div class="page">
+  <p class="kicker">Review before we lock the look</p>
+  <h1>Milestone reminders,<br><em>quietly.</em></h1>
+  <p class="lede">
+    Open this file in a browser. Each phone is a proposed screen — not a screenshot of the live app.
+    Ages below are the ones coded into the catalogue. If a window or a sentence feels wrong, say so before we treat this as final.
+  </p>
+
+  <nav class="toc">
+    <a href="#decisions">Decisions</a>
+    <a href="#permission">Permission</a>
+    <a href="#push">Lock-screen copy</a>
+    <a href="#dashboard">Dashboard</a>
+    <a href="#firsts">Firsts list</a>
+    <a href="#learn">Coming soon</a>
+    <a href="#missed">Passed, not lost</a>
+    <a href="#settings">Settings</a>
+  </nav>
+
+  <section id="decisions">
+    <h2>What we decided</h2>
+    <p>Flourish is a memory app. It is not CDC’s Milestone Tracker, and it is not a screening tool.</p>
+
+    <h3>Sources</h3>
+    <ul>
+      <li><strong>CDC Learn the Signs. Act Early.</strong> (Feb 2022 revision, with AAP). Ages when <em>≥75% of children</em> can do the item. Surveillance, not screening. CDC is explicit that checklists are not a substitute for AAP-recommended screening at 9, 18 and 30 months (and autism screening at 18/24).</li>
+      <li><strong>WHO Motor Development Study</strong> (MGRS, 2006). 1st–99th percentile windows for six gross-motor milestones among healthy children in Ghana, India, Norway, Oman and the USA. About 4% never crawl on hands and knees.</li>
+      <li><strong>AAP</strong> for teething (often 6–10 months, wide range) and starting solids (around 6 months, not before 4).</li>
+      <li><strong>Flourish</strong> for family memories that are not developmental (first day home, first bath, first birthday).</li>
+    </ul>
+
+    <h3>How reminders are timed</h3>
+    <div class="note">
+      CDC’s “by 2 months” means most children <em>already can</em> by then — so the first smile often happens earlier. We send a <strong>camera-ready</strong> ping near the start of the typical window (about 6 weeks for a social smile), and a quieter <strong>most babies by now</strong> ping at the CDC age when those two dates are at least three weeks apart. Both go out at <strong>10am local</strong>, never at 3am. Missing a window is never treated as delay.
+    </div>
+
+    <h3>What we left out on purpose</h3>
+    <p>We did not dump the full CDC checklist into Firsts. “Closes lips to show she doesn’t want more food” is useful at a well visit; it is not a scrapbook moment. The catalogue is the photographable firsts, with honest windows attached.</p>
+
+    <table>
+      <thead>
+        <tr><th>First</th><th>Window we show</th><th>Source</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>First real smile</td><td>Most by 2 months · remind ~6 weeks</td><td><span class="src">CDC</span></td></tr>
+        <tr><td>First laugh</td><td>Most by 6 months</td><td><span class="src">CDC</span></td></tr>
+        <tr><td>First roll (tummy to back)</td><td>Most by 6 months</td><td><span class="src">CDC</span></td></tr>
+        <tr><td>Sat without support</td><td>Usually 4–9 months (avg ~6)</td><td><span class="src">WHO + CDC</span></td></tr>
+        <tr><td>First crawl</td><td>Usually 5–13 months · ~4% never crawl</td><td><span class="src">WHO</span></td></tr>
+        <tr><td>First steps</td><td>Usually 8–18 months (avg ~12)</td><td><span class="src">WHO + CDC</span></td></tr>
+        <tr><td>Mama / dada for you</td><td>Most by 12 months</td><td><span class="src">CDC</span></td></tr>
+        <tr><td>A word besides mama/dada</td><td>Most by 15 months</td><td><span class="src">CDC</span></td></tr>
+        <tr><td>First tooth</td><td>Usually 6–10 months · up to ~15</td><td><span class="src">AAP</span></td></tr>
+        <tr><td>First taste of food</td><td>Around 6 months, not before 4</td><td><span class="src">AAP</span></td></tr>
+      </tbody>
+    </table>
+    <div class="warn">
+      Copy we will not use: “your baby should,” “overdue,” “late,” “act now,” or anything that sounds like a diagnosis. If a window has passed, the line is “write what you remember.”
+    </div>
+  </section>
+
+  <section id="permission">
+    <h2>1. Gentle reminders</h2>
+    <p>Shown once after baby setup. Skippable. Same screen is reachable later from Profile.</p>
+    <div class="phones">
+      <div class="phone-wrap">
+        <div class="phone"><div class="screen" style="background:var(--ink)">
+          <div class="status"><span>9:41</span><span>●●●</span></div>
+          <div class="hero" style="padding-top:18px">
+            <p class="eyebrow">Gentle reminders</p>
+            <p class="display">We’ll keep the<br><em>camera ready.</em></p>
+            <p class="body-copy">A quiet heads-up a couple of weeks before Oliver’s next first is likely — so you can catch it, not chase it.</p>
+          </div>
+          <div class="pad">
+            <div class="point">
+              <div class="ico"><svg class="line" viewBox="0 0 24 24"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10 20a2 2 0 0 0 4 0"/></svg></div>
+              <div><div class="pt">Once, in the morning</div><div class="pd">Delivered at 10am. Never in the small hours. Never a checklist alarm.</div></div>
+            </div>
+            <div class="point">
+              <div class="ico"><svg class="line" viewBox="0 0 24 24"><path d="M5 19c4-6 6-9 7-15 1 6 3 9 7 15"/><path d="M8 19h8"/></svg></div>
+              <div><div class="pt">Windows, not deadlines</div><div class="pd">Ages from CDC, WHO and AAP — when many children do something, not when yours must.</div></div>
+            </div>
+            <div class="point">
+              <div class="ico"><svg class="line" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg></div>
+              <div><div class="pt">Off whenever you like</div><div class="pd">One toggle in Profile. Capturing a first cancels its reminder.</div></div>
+            </div>
+            <div class="disclaimer">Flourish is for keeping memories, not for checking development. If anything worries you, talk to their doctor.</div>
+            <div class="btn">Yes — remind me</div>
+            <div class="ghost">Not now</div>
+          </div>
+        </div></div>
+        <p class="cap">Opt-in · after onboarding</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="push">
+    <h2>2. What the notification says</h2>
+    <p>Two voices. Camera-ready is intimate. “Most babies by now” is factual and unhurried. No badges, no sound required, no “don’t miss this.”</p>
+    <div class="phones">
+      <div class="phone-wrap">
+        <div class="phone"><div class="screen">
+          <div class="lock">
+            <div class="time">10:00</div>
+            <div class="date">Tuesday 14 June</div>
+            <div class="ncard">
+              <div class="napp"><svg class="line" viewBox="0 0 24 24"><path d="M5 19c4-6 6-9 7-15 1 6 3 9 7 15"/><path d="M8 19h8"/></svg></div>
+              <div>
+                <div style="display:flex;align-items:baseline;gap:8px"><span class="ntitle">Flourish</span><span class="ntime">now</span></div>
+                <div class="ntitle" style="margin-top:2px">Camera ready · first real smile</div>
+                <div class="nbody">Oliver is around 6 weeks — when real smiles often appear. Not a reflex. Have the camera up.</div>
+              </div>
+            </div>
+          </div>
+        </div></div>
+        <p class="cap">Camera ready · social smile</p>
+      </div>
+      <div class="phone-wrap">
+        <div class="phone"><div class="screen">
+          <div class="lock">
+            <div class="time">10:00</div>
+            <div class="date">Thursday 12 January</div>
+            <div class="ncard">
+              <div class="napp"><svg class="line" viewBox="0 0 24 24"><path d="M5 19c4-6 6-9 7-15 1 6 3 9 7 15"/><path d="M8 19h8"/></svg></div>
+              <div>
+                <div style="display:flex;align-items:baseline;gap:8px"><span class="ntitle">Flourish</span><span class="ntime">now</span></div>
+                <div class="ntitle" style="margin-top:2px">Camera ready · first steps</div>
+                <div class="nbody">Oliver is entering the typical window for first steps (WHO: about 8–18 months). Wobbling counts.</div>
+              </div>
+            </div>
+          </div>
+        </div></div>
+        <p class="cap">Camera ready · walking window</p>
+      </div>
+      <div class="phone-wrap">
+        <div class="phone"><div class="screen">
+          <div class="lock">
+            <div class="time">10:00</div>
+            <div class="date">Monday 3 March</div>
+            <div class="ncard">
+              <div class="napp"><svg class="line" viewBox="0 0 24 24"><path d="M5 19c4-6 6-9 7-15 1 6 3 9 7 15"/><path d="M8 19h8"/></svg></div>
+              <div>
+                <div style="display:flex;align-items:baseline;gap:8px"><span class="ntitle">Flourish</span><span class="ntime">now</span></div>
+                <div class="ntitle" style="margin-top:2px">Most babies can smile at you by now</div>
+                <div class="nbody">By around 2 months, most babies smile when you talk or smile at them (CDC). If you’ve already caught it, mark it.</div>
+              </div>
+            </div>
+          </div>
+        </div></div>
+        <p class="cap">Window ping · never “overdue”</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="dashboard">
+    <h2>3. Dashboard alert</h2>
+    <p>Only appears when a first is actually near — not “first steps is coming” at two weeks old. Tapping opens the learn-more screen.</p>
+    <div class="phones">
+      <div class="phone-wrap">
+        <div class="phone"><div class="screen">
+          <div class="hero">
+            <div class="status"><span>9:41</span><span>●●●</span></div>
+            <p style="font-size:11px;color:rgba(251,247,242,0.45);margin-bottom:6px">Good morning — still dark out.</p>
+            <p class="display">Oliver’s <em>story</em></p>
+            <div class="chip">8 weeks old</div>
+            <div class="alert">
+              <div class="feat-eye">Milestone coming</div>
+              <div style="font-size:13px;font-weight:500;margin-top:2px">First real smile is near</div>
+              <div style="font-size:11px;color:rgba(251,247,242,0.4);margin-top:2px">Most by 2 months · keep your camera ready</div>
+              <div style="font-size:11px;color:var(--sienna);margin-top:8px">Tap to learn more →</div>
+            </div>
+          </div>
+          <div class="pad" style="background:var(--cream)">
+            <p style="font-family:'Lora',serif;font-style:italic;font-size:13px;line-height:1.5;color:var(--ink-l)">“What did his hand feel like this morning?”</p>
+            <p class="section-label" style="color:var(--sienna);margin-top:10px">Write in journal →</p>
+          </div>
+        </div></div>
+        <p class="cap">Home · time-aware + near first</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="firsts">
+    <h2>4. Firsts, grouped by age</h2>
+    <p>CDC visit ages as section headers. Source chip only when it isn’t a family first. Progress is memories caught, not a score.</p>
+    <div class="phones">
+      <div class="phone-wrap">
+        <div class="phone"><div class="screen">
+          <div class="hero">
+            <div class="status"><span>9:41</span><span>●●●</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:flex-end">
+              <p class="display">Every <em>little</em> first</p>
+              <span style="font-size:11px;color:rgba(251,247,242,0.4)">3 of 25</span>
+            </div>
+            <div style="height:5px;background:rgba(251,247,242,0.12);border-radius:3px;margin-top:10px;overflow:hidden">
+              <div style="width:12%;height:100%;background:var(--sienna)"></div>
+            </div>
+          </div>
+          <div class="feature">
+            <div class="feat-eye">Coming soon · Most by 2 months</div>
+            <div class="feat-title">First real smile</div>
+            <div class="feat-q">“Not a reflex. Full face. Eyes crinkling. This one will stop your heart.”</div>
+            <div class="feat-n">Camera ready — Flourish will remind you</div>
+          </div>
+          <div class="pad">
+            <div class="section-label">Around 2 months</div>
+            <div class="row">
+              <div class="ri"><svg class="line" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></div>
+              <div style="flex:1"><div class="rl">First eye contact</div><div class="rs">Most by 2 months · CDC</div></div>
+              <span class="caught">Caught</span>
+            </div>
+            <div class="row">
+              <div class="ri"><svg class="line" viewBox="0 0 24 24"><path d="M12 5v4M8 9h8"/><path d="M5 19c4-6 6-9 7-15"/></svg></div>
+              <div style="flex:1"><div class="rl">Head up on tummy</div><div class="rs">Most by 2 months · CDC</div></div>
+              <span class="caught">Caught</span>
+            </div>
+            <div class="section-label">Around 4 months</div>
+            <div class="row">
+              <div class="ri"><svg class="line" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
+              <div style="flex:1"><div class="rl">First chuckle</div><div class="rs">Most by 4 months · CDC</div></div>
+              <span class="caught">Caught</span>
+            </div>
+          </div>
+        </div></div>
+        <p class="cap">Firsts tab · grouped</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="learn">
+    <h2>5. Coming soon / learn more</h2>
+    <p>Quiet sage is for celebration. This screen stays sienna — not a party, a briefing. Source line is visible. Disclaimer is visible. No confetti.</p>
+    <div class="phones">
+      <div class="phone-wrap">
+        <div class="phone"><div class="screen">
+          <div class="learn">
+            <div class="ring"><svg class="line" viewBox="0 0 24 24" style="width:28px;height:28px"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></div>
+            <p class="eyebrow" style="color:var(--sienna)">Coming soon · Most by 2 months</p>
+            <p class="display" style="font-size:32px;margin:8px 0 0"><em>First real smile</em></p>
+            <p class="q">“Not a reflex. Full face. Eyes crinkling. This one will stop your heart.”</p>
+            <p style="font-size:11px;line-height:1.5;color:rgba(251,247,242,0.4);margin-top:14px;max-width:250px">
+              CDC · most children by this age. Most babies smile when you talk to or smile at them by 2 months. A social smile to get your attention is listed by 4 months.
+            </p>
+            <p class="feat-n" style="justify-content:center;margin-top:14px">A quiet reminder, if you’ve switched them on — never a deadline.</p>
+            <p style="font-size:10px;line-height:1.45;color:rgba(251,247,242,0.28);margin:14px 0 18px;max-width:250px">
+              Flourish is for keeping memories, not for checking development. If anything worries you, talk to their doctor.
+            </p>
+            <div class="btn" style="width:100%">I caught it</div>
+            <div class="ghost">Close</div>
+          </div>
+        </div></div>
+        <p class="cap">Learn more · sourced</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="missed">
+    <h2>6. Passed — but not lost</h2>
+    <p>Crawling is the important one: WHO notes about 1 in 25 children never crawl on hands and knees. That is a known variation, not a missed first.</p>
+    <div class="phones">
+      <div class="phone-wrap">
+        <div class="phone"><div class="screen">
+          <div class="hero">
+            <div class="status"><span>9:41</span><span>●●●</span></div>
+            <p class="display">Every <em>little</em> first</p>
+          </div>
+          <div class="pad">
+            <div class="section-label">Passed — but not lost</div>
+            <div class="row">
+              <div class="ri"><svg class="line" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg></div>
+              <div style="flex:1">
+                <div class="rl">First crawl</div>
+                <div class="rs">Some babies skip crawling altogether — that’s a known variation, not a missed first. Bottom-shuffling and rolling count.</div>
+              </div>
+              <span class="write">Write it</span>
+            </div>
+            <div class="row">
+              <div class="ri"><svg class="line" viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg></div>
+              <div style="flex:1">
+                <div class="rl">First bath</div>
+                <div class="rs">Sponge baths count. Write the face they pulled.</div>
+              </div>
+              <span class="write">Write it</span>
+            </div>
+            <div class="disclaimer" style="color:var(--ink-l);background:rgba(181,196,177,0.15);margin-top:16px">
+              Flourish is for keeping memories, not for checking development. Ages describe when many children do something — not when yours must. If anything worries you, talk to their doctor.
+            </div>
+          </div>
+        </div></div>
+        <p class="cap">Grace state · crawl variation</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="settings">
+    <h2>7. Profile toggle</h2>
+    <p>One switch. Morning-only delivery is baked in (10am), not a second control. If system permission is denied, the caption says so instead of failing silently.</p>
+    <div class="phones">
+      <div class="phone-wrap">
+        <div class="phone"><div class="screen">
+          <div class="hero">
+            <div class="status"><span>9:41</span><span>●●●</span></div>
+            <p class="eyebrow">Your account</p>
+            <p class="display">Oliver</p>
+            <p class="body-copy">8 weeks old · you@email.com</p>
+          </div>
+          <div class="pad">
+            <div class="section-label">Privacy &amp; security</div>
+            <div class="settings-row">
+              <div class="ri" style="background:rgba(193,123,92,0.1);color:var(--sienna)"><svg class="line" viewBox="0 0 24 24"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10 20a2 2 0 0 0 4 0"/></svg></div>
+              <div style="flex:1">
+                <div class="rl">Milestone reminders</div>
+                <div class="rs">A quiet 10am heads-up when a first is likely near</div>
+              </div>
+              <div class="toggle"></div>
+            </div>
+            <div class="settings-row">
+              <div class="ri" style="background:rgba(193,123,92,0.1);color:var(--sienna)"><svg class="line" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
+              <div style="flex:1">
+                <div class="rl">App Lock</div>
+                <div class="rs">Require Face ID / passcode to open</div>
+              </div>
+              <div class="toggle off"></div>
+            </div>
+          </div>
+        </div></div>
+        <p class="cap">Profile · reminders on</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Still open, if you want to change it</h2>
+    <ul>
+      <li>Is 10am the right default, or should quiet hours be a control?</li>
+      <li>Should “most babies by now” exist at all, or is camera-ready enough?</li>
+      <li>Are 25 firsts too many for Seedling, or is a longer list the point?</li>
+      <li>Remote push (another phone, a partner) is not in this version — local only, this device.</li>
+    </ul>
+    <p style="margin-top:16px">The live screens in the app follow these mockups. Treat the HTML as the look to accept or mark up.</p>
+  </section>
+</div>
+</body>
+</html>

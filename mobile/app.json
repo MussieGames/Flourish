@@ -31,7 +31,8 @@
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.USE_BIOMETRIC",
-        "android.permission.USE_FINGERPRINT"
+        "android.permission.USE_FINGERPRINT",
+        "android.permission.POST_NOTIFICATIONS"
       ],
       "blockedPermissions": [
         "android.permission.READ_MEDIA_IMAGES",
@@ -47,6 +48,13 @@
       "expo-router",
       "expo-secure-store",
       "expo-local-authentication",
+      [
+        "expo-notifications",
+        {
+          "color": "#C17B5C",
+          "defaultChannel": "milestones"
+        }
+      ],
       [
         "expo-splash-screen",
         {

@@ -3,8 +3,9 @@ import { Alert, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-na
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText, Icon, InfoBox, SectionLabel } from '@/components';
 import type { IconName } from '@/components';
-import { useAppLock } from '@/context/AppLockContext';
 import { useAuth } from '@/context/AuthContext';
+import { useAppLock } from '@/context/AppLockContext';
+import { useReminders } from '@/context/RemindersContext';
 import { computeAge } from '@/lib/age';
 import { colors, fonts, radius } from '@/theme';
 import type { PlanId } from '@/types/models';
@@ -20,6 +21,12 @@ export default function Profile() {
   const router = useRouter();
   const { user, profile, activeBaby, emailVerified, signOutUser, resendVerification } = useAuth();
   const { supported, enabled, setEnabled } = useAppLock();
+  const {
+    enabled: remindersOn,
+    permission,
+    enableReminders,
+    disableReminders,
+  } = useReminders();
 
   const age = computeAge(activeBaby?.birthDate);
   const name = activeBaby?.name ?? 'your baby';
@@ -66,6 +73,38 @@ export default function Profile() {
         <Row icon="create-outline" label="Journal" sublabel="The things photos can’t capture" onPress={() => router.push('/(tabs)/journal')} />
 
         <SectionLabel>Privacy &amp; security</SectionLabel>
+        <View style={styles.row}>
+          <View style={styles.rowIcon}>
+            <Icon name="notifications-outline" size={20} color={colors.sienna} />
+          </View>
+          <View style={styles.flex1}>
+            <AppText variant="bodyMedium">Milestone reminders</AppText>
+            <AppText variant="caption">
+              {permission === 'denied'
+                ? 'Notifications are off in system settings'
+                : 'A quiet 10am heads-up when a first is likely near'}
+            </AppText>
+          </View>
+          <Switch
+            value={remindersOn}
+            onValueChange={(next) => {
+              if (next) {
+                enableReminders().then((ok) => {
+                  if (!ok) {
+                    Alert.alert(
+                      'Couldn’t enable reminders',
+                      'Allow notifications for Flourish in your device settings, then try again.',
+                    );
+                  }
+                });
+              } else {
+                disableReminders();
+              }
+            }}
+            trackColor={{ true: colors.sienna, false: colors.border }}
+            thumbColor={colors.warm}
+          />
+        </View>
         <View style={styles.row}>
           <View style={styles.rowIcon}>
             <Icon name="lock-closed-outline" size={20} color={colors.sienna} />

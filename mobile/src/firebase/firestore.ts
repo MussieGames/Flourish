@@ -19,7 +19,7 @@ import {
   type QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db } from './config';
-import { DEFAULT_FIRSTS } from '@/data/firsts';
+import { DEFAULT_FIRSTS, type FirstDef } from '@/data/firsts';
 import { sanitizeName, sanitizeText } from '@/lib/validation';
 import type {
   Baby,
@@ -146,6 +146,20 @@ export async function removePendingInvite(babyId: string, email: string): Promis
 }
 
 // ── Milestones ─────────────────────────────────────────────────────
+function catalogueFields(first: FirstDef) {
+  return {
+    key: first.key,
+    label: first.label,
+    icon: first.icon,
+    typicalAge: first.typicalAge,
+    description: first.description,
+    typicalWeeksMin: first.typicalWeeksMin,
+    typicalWeeksMax: first.typicalWeeksMax,
+    source: first.source,
+    sourceNote: first.sourceNote,
+  };
+}
+
 async function seedMilestones(babyId: string, authorId: string): Promise<void> {
   const col = babySub(babyId, 'milestones');
   const existing = await getDocs(query(col, fbLimit(1)));
@@ -156,12 +170,7 @@ async function seedMilestones(babyId: string, authorId: string): Promise<void> {
     const ref = doc(col);
     batch.set(ref, {
       babyId,
-      key: first.key,
-      label: first.label,
-      icon: first.icon,
-      typicalAge: first.typicalAge,
-      description: first.description,
-      typicalWeeksMax: first.typicalWeeksMax,
+      ...catalogueFields(first),
       status: 'upcoming',
       custom: false,
       authorId,
@@ -169,6 +178,52 @@ async function seedMilestones(babyId: string, authorId: string): Promise<void> {
     });
   }
   await batch.commit();
+}
+
+/**
+ * Add any new catalogue firsts that this baby is missing, and refresh copy on
+ * uncaptured catalogue items so existing families pick up accurate windows.
+ */
+export async function syncCatalogueMilestones(babyId: string, authorId: string): Promise<void> {
+  const col = babySub(babyId, 'milestones');
+  const snap = await getDocs(col);
+  const byKey = new Map(snap.docs.map((d) => [String(d.data().key ?? ''), d]));
+
+  const batch = writeBatch(db);
+  let writes = 0;
+
+  for (const first of DEFAULT_FIRSTS) {
+    const existing = byKey.get(first.key);
+    if (!existing) {
+      batch.set(doc(col), {
+        babyId,
+        ...catalogueFields(first),
+        status: 'upcoming',
+        custom: false,
+        authorId,
+        createdAt: serverTimestamp(),
+      });
+      writes += 1;
+      continue;
+    }
+    const data = existing.data();
+    if (data.status === 'captured' || data.custom) continue;
+    const fields = catalogueFields(first);
+    const changed =
+      data.label !== fields.label ||
+      data.typicalAge !== fields.typicalAge ||
+      data.description !== fields.description ||
+      data.icon !== fields.icon ||
+      data.typicalWeeksMin !== fields.typicalWeeksMin ||
+      data.typicalWeeksMax !== fields.typicalWeeksMax ||
+      data.source !== fields.source ||
+      data.sourceNote !== fields.sourceNote;
+    if (!changed) continue;
+    batch.update(existing.ref, fields);
+    writes += 1;
+  }
+
+  if (writes > 0) await batch.commit();
 }
 
 export async function addCustomMilestone(

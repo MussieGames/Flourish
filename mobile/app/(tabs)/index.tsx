@@ -7,7 +7,7 @@ import { AppText, Icon, SectionLabel } from '@/components';
 import { MemoryThumb } from '@/components/MemoryThumb';
 import { useAuth } from '@/context/AuthContext';
 import { useMemories, useMilestones } from '@/hooks/useBabyData';
-import { iconForFirst } from '@/data/firsts';
+import { iconForFirst, featuredUpcoming, isNearFirst } from '@/data/firsts';
 import { dailyPrompt } from '@/data/prompts';
 import { computeAge } from '@/lib/age';
 import { formatRelative, tsToDate, warmGreeting } from '@/lib/format';
@@ -23,7 +23,11 @@ export default function Dashboard() {
   const { items: milestones } = useMilestones(activeBaby?.id);
 
   const age = useMemo(() => computeAge(activeBaby?.birthDate), [activeBaby?.birthDate]);
-  const nextMilestone = useMemo(() => milestones.find((m) => m.status === 'upcoming'), [milestones]);
+  const nextMilestone = useMemo(
+    () => featuredUpcoming(milestones, age?.weeks ?? 0),
+    [milestones, age?.weeks],
+  );
+  const showAlert = !!(nextMilestone && isNearFirst(nextMilestone.key, age?.weeks ?? 0, nextMilestone.typicalWeeksMax));
   const capturedCount = useMemo(() => milestones.filter((m) => m.status === 'captured').length, [milestones]);
   const recent = memories.slice(0, 4);
   const prompt = useMemo(() => dailyPrompt(activeBaby?.name), [activeBaby?.name]);
@@ -56,7 +60,7 @@ export default function Dashboard() {
           </View>
         ) : null}
 
-        {nextMilestone ? (
+        {showAlert && nextMilestone ? (
           <Pressable
             style={styles.alert}
             onPress={() =>

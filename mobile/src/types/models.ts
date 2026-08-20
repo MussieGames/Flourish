@@ -59,8 +59,13 @@ export interface Milestone {
   emoji?: string;
   typicalAge: string;
   description?: string;
+  /** Approx start of the typical window (weeks from birth). */
+  typicalWeeksMin?: number;
   /** Approx end of the typical window (weeks) for the gentle "missed" state. */
   typicalWeeksMax?: number;
+  /** cdc | who | aap | flourish */
+  source?: string;
+  sourceNote?: string;
   status: MilestoneStatus;
   custom?: boolean;
   capturedAt?: Timestamp | null;

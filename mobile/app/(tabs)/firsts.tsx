@@ -3,12 +3,21 @@ import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText, Button, Icon, SectionLabel } from '@/components';
+import { AppText, Button, Icon, InfoBox, SectionLabel } from '@/components';
 import type { IconName } from '@/components';
 import { useAuth } from '@/context/AuthContext';
+import { useReminders } from '@/context/RemindersContext';
 import { useMilestones } from '@/hooks/useBabyData';
 import { addCustomMilestone, captureMilestone } from '@/firebase/firestore';
-import { iconForFirst } from '@/data/firsts';
+import {
+  defForKey,
+  eraForFirst,
+  featuredUpcoming,
+  iconForFirst,
+  isMissedFirst,
+  sortMilestones,
+} from '@/data/firsts';
+import { ERA_LABELS, ERA_ORDER, GROWTH_DISCLAIMER, SOURCE_SHORT } from '@/data/growth';
 import { computeAge } from '@/lib/age';
 import { colors, fonts, radius } from '@/theme';
 import type { Milestone } from '@/types/models';
@@ -17,6 +26,7 @@ export default function Firsts() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { activeBaby, user } = useAuth();
+  const { enabled: remindersOn } = useReminders();
   const { items: milestones } = useMilestones(activeBaby?.id);
 
   const [adding, setAdding] = useState(false);
@@ -24,20 +34,19 @@ export default function Firsts() {
   const [savingCustom, setSavingCustom] = useState(false);
 
   const ageWeeks = computeAge(activeBaby?.birthDate)?.weeks ?? 0;
+  const ordered = useMemo(() => sortMilestones(milestones), [milestones]);
 
-  const isMissed = (m: Milestone) =>
-    m.status === 'upcoming' && !!m.typicalWeeksMax && ageWeeks > m.typicalWeeksMax + 2;
-
-  const captured = useMemo(() => milestones.filter((m) => m.status === 'captured'), [milestones]);
-  const feature = useMemo(
-    () => milestones.find((m) => m.status === 'upcoming' && !isMissed(m)),
-    [milestones, ageWeeks],
-  );
+  const captured = useMemo(() => ordered.filter((m) => m.status === 'captured'), [ordered]);
+  const feature = useMemo(() => featuredUpcoming(ordered, ageWeeks), [ordered, ageWeeks]);
   const upcoming = useMemo(
-    () => milestones.filter((m) => m.status === 'upcoming' && m.id !== feature?.id && !isMissed(m)),
-    [milestones, feature, ageWeeks],
+    () => ordered.filter((m) => m.status === 'upcoming' && m.id !== feature?.id && !isMissedFirst(m.key, ageWeeks, m.typicalWeeksMax)),
+    [ordered, feature, ageWeeks],
   );
-  const missed = useMemo(() => milestones.filter(isMissed), [milestones, ageWeeks]);
+  const missed = useMemo(
+    () => ordered.filter((m) => m.status === 'upcoming' && isMissedFirst(m.key, ageWeeks, m.typicalWeeksMax)),
+    [ordered, ageWeeks],
+  );
+  const groupedUpcoming = useMemo(() => groupByEra(upcoming), [upcoming]);
 
   const onCapture = async (m: Milestone) => {
     if (!activeBaby) return;
@@ -58,6 +67,8 @@ export default function Firsts() {
   };
 
   const iconFor = (m: Milestone): IconName => (m.icon as IconName) ?? iconForFirst(m.key);
+  const openPreview = (m: Milestone) =>
+    router.push({ pathname: '/milestone', params: { id: m.id, key: m.key, label: m.label, preview: '1' } });
 
   return (
     <ScrollView style={styles.flex} showsVerticalScrollIndicator={false}>
@@ -80,30 +91,29 @@ export default function Firsts() {
         </View>
       </View>
 
-      {/* Featured next */}
       {feature ? (
-        <Pressable
-          style={styles.feature}
-          onPress={() => router.push({ pathname: '/milestone', params: { id: feature.id, key: feature.key, label: feature.label, preview: '1' } })}
-        >
+        <Pressable style={styles.feature} onPress={() => openPreview(feature)}>
           <LinearGradient colors={['rgba(193,123,92,0.18)', 'transparent']} start={{ x: 0.3, y: 0.2 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
           <View style={styles.featureIcon}>
             <Icon name={iconFor(feature)} size={26} color={colors.sienna} />
           </View>
-          <AppText variant="label" color={colors.sienna} style={styles.featureEyebrow}>Coming soon · {feature.typicalAge}</AppText>
+          <AppText variant="label" color={colors.sienna} style={styles.featureEyebrow}>
+            Coming soon · {feature.typicalAge}
+          </AppText>
           <AppText variant="title" color={colors.cream}>{feature.label}</AppText>
           {feature.description ? (
             <AppText variant="serifItalic" color={colors.onDark45} style={styles.featureDesc}>“{feature.description}”</AppText>
           ) : null}
           <View style={styles.readyRow}>
             <Icon name="notifications-outline" size={13} color={colors.sageDark} />
-            <AppText variant="caption" color={colors.sageDark}>Camera ready — Flourish will remind you</AppText>
+            <AppText variant="caption" color={colors.sageDark} style={styles.flex1}>
+              {remindersOn ? 'Camera ready — Flourish will remind you' : 'Turn on reminders in Profile if you’d like a heads-up'}
+            </AppText>
           </View>
         </Pressable>
       ) : null}
 
       <View style={styles.body}>
-        {/* Add your own */}
         {adding ? (
           <View style={styles.addComposer}>
             <TextInput
@@ -129,17 +139,21 @@ export default function Firsts() {
           </Pressable>
         )}
 
-        {upcoming.length > 0 ? <SectionLabel>Coming up</SectionLabel> : null}
-        {upcoming.map((m) => (
-          <View key={m.id} style={styles.row}>
-            <View style={styles.rowIcon}><Icon name={iconFor(m)} size={20} color={colors.inkMuted} /></View>
-            <View style={styles.flex1}>
-              <AppText variant="bodyMedium">{m.label}</AppText>
-              <AppText variant="caption">{m.typicalAge}</AppText>
-            </View>
-            <Pressable style={styles.markBtn} onPress={() => onCapture(m)}>
-              <AppText variant="label" color={colors.white} style={styles.markLabel}>Caught</AppText>
-            </Pressable>
+        {groupedUpcoming.map((group) => (
+          <View key={group.label}>
+            <SectionLabel>{group.label}</SectionLabel>
+            {group.items.map((m) => (
+              <Pressable key={m.id} style={styles.row} onPress={() => openPreview(m)}>
+                <View style={styles.rowIcon}><Icon name={iconFor(m)} size={20} color={colors.inkMuted} /></View>
+                <View style={styles.flex1}>
+                  <AppText variant="bodyMedium">{m.label}</AppText>
+                  <AppText variant="caption">{m.typicalAge}{sourceTag(m)}</AppText>
+                </View>
+                <Pressable style={styles.markBtn} onPress={() => onCapture(m)}>
+                  <AppText variant="label" color={colors.white} style={styles.markLabel}>Caught</AppText>
+                </Pressable>
+              </Pressable>
+            ))}
           </View>
         ))}
 
@@ -160,24 +174,57 @@ export default function Firsts() {
         ))}
 
         {missed.length > 0 ? <View style={styles.gap}><SectionLabel color={colors.inkMuted}>Passed — but not lost</SectionLabel></View> : null}
-        {missed.map((m) => (
-          <View key={m.id} style={styles.row}>
-            <View style={styles.rowIcon}><Icon name={iconFor(m)} size={20} color={colors.inkMuted} /></View>
-            <View style={styles.flex1}>
-              <AppText variant="bodyMedium">{m.label}</AppText>
-              <AppText variant="caption" style={styles.missedNote}>That’s okay — write what you remember. Even one sentence.</AppText>
+        {missed.map((m) => {
+          const grace = defForKey(m.key)?.graceNote ?? 'That’s okay — write what you remember. Even one sentence.';
+          return (
+            <View key={m.id} style={styles.row}>
+              <View style={styles.rowIcon}><Icon name={iconFor(m)} size={20} color={colors.inkMuted} /></View>
+              <View style={styles.flex1}>
+                <AppText variant="bodyMedium">{m.label}</AppText>
+                <AppText variant="caption" style={styles.missedNote}>{grace}</AppText>
+              </View>
+              <Pressable
+                style={styles.writeBtn}
+                onPress={() => router.push({ pathname: '/journal-entry', params: { prompt: `What do you remember about ${activeBaby?.name ?? 'their'} ${m.label.toLowerCase()}?`, milestone: m.label } })}
+              >
+                <AppText variant="label" color={colors.sienna} style={styles.markLabel}>Write it</AppText>
+              </Pressable>
             </View>
-            <Pressable
-              style={styles.writeBtn}
-              onPress={() => router.push({ pathname: '/journal-entry', params: { prompt: `What do you remember about ${activeBaby?.name ?? 'their'} ${m.label.toLowerCase()}?`, milestone: m.label } })}
-            >
-              <AppText variant="label" color={colors.sienna} style={styles.markLabel}>Write it</AppText>
-            </Pressable>
-          </View>
-        ))}
+          );
+        })}
+
+        <InfoBox accent={colors.sageDark} style={styles.disclaimer}>
+          <AppText variant="caption" color={colors.inkLight} style={styles.disclaimerText}>
+            {GROWTH_DISCLAIMER}
+          </AppText>
+        </InfoBox>
       </View>
     </ScrollView>
   );
+}
+
+function sourceTag(m: Milestone): string {
+  const source = (m.source as keyof typeof SOURCE_SHORT | undefined) ?? defForKey(m.key)?.source;
+  if (!source || source === 'flourish') return '';
+  return ` · ${SOURCE_SHORT[source]}`;
+}
+
+function groupByEra(items: Milestone[]): { label: string; items: Milestone[] }[] {
+  const buckets = new Map<string, Milestone[]>();
+  for (const m of items) {
+    const era = eraForFirst(m.key);
+    const label = era ? ERA_LABELS[era] : 'Yours';
+    const list = buckets.get(label) ?? [];
+    list.push(m);
+    buckets.set(label, list);
+  }
+  const eraLabels = ERA_ORDER.map((e) => ERA_LABELS[e]);
+  const ordered: { label: string; items: Milestone[] }[] = [];
+  for (const label of [...eraLabels, 'Yours']) {
+    const list = buckets.get(label);
+    if (list?.length) ordered.push({ label, items: list });
+  }
+  return ordered;
 }
 
 const styles = StyleSheet.create({
@@ -231,4 +278,6 @@ const styles = StyleSheet.create({
   writeBtn: { borderWidth: 1, borderColor: 'rgba(193,123,92,0.4)', paddingHorizontal: 14, paddingVertical: 8, borderRadius: radius.sm },
   markLabel: { letterSpacing: 1 },
   missedNote: { lineHeight: 16 },
+  disclaimer: { marginTop: 18 },
+  disclaimerText: { lineHeight: 18 },
 });

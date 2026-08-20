@@ -10,9 +10,14 @@ import {
 import { AppState, type AppStateStatus } from 'react-native';
 import {
   authenticate,
+  biometricLabel as readBiometricLabel,
+  confirmIdentity as confirmIdentityNative,
   deviceSupportsBiometrics,
   isAppLockEnabled,
+  isAppLockPrompted,
+  markAppLockPrompted,
   setAppLockEnabled,
+  type BiometricLabel,
 } from '@/lib/appLock';
 
 interface AppLockContextValue {
@@ -20,8 +25,12 @@ interface AppLockContextValue {
   supported: boolean;
   enabled: boolean;
   locked: boolean;
+  prompted: boolean;
+  biometricLabel: BiometricLabel;
   unlock: () => Promise<boolean>;
   setEnabled: (enabled: boolean) => Promise<boolean>;
+  confirmIdentity: (reason: string) => Promise<boolean>;
+  skipPrompt: () => Promise<void>;
 }
 
 const AppLockContext = createContext<AppLockContextValue | undefined>(undefined);
@@ -33,17 +42,26 @@ export function AppLockProvider({ children }: { children: ReactNode }) {
   const [supported, setSupported] = useState(false);
   const [enabled, setEnabledState] = useState(false);
   const [locked, setLocked] = useState(false);
+  const [prompted, setPrompted] = useState(true);
+  const [label, setLabel] = useState<BiometricLabel>('Face ID');
   const backgroundedAt = useRef<number | null>(null);
 
   useEffect(() => {
     (async () => {
-      const [isEnabled, canBiometric] = await Promise.all([
+      const [isEnabled, canBiometric, wasPrompted, kind] = await Promise.all([
         isAppLockEnabled(),
         deviceSupportsBiometrics(),
+        isAppLockPrompted(),
+        readBiometricLabel(),
       ]);
       setSupported(canBiometric);
       setEnabledState(isEnabled && canBiometric);
       setLocked(isEnabled && canBiometric);
+      setLabel(kind);
+      // Skip the opt-in if the device can't do it, or they already turned it on.
+      const done = wasPrompted || isEnabled || !canBiometric;
+      if (done && !wasPrompted) await markAppLockPrompted();
+      setPrompted(done);
       setReady(true);
     })();
   }, []);
@@ -74,14 +92,36 @@ export function AppLockProvider({ children }: { children: ReactNode }) {
       if (!ok) return false;
     }
     await setAppLockEnabled(next);
+    await markAppLockPrompted();
     setEnabledState(next);
+    setPrompted(true);
     if (!next) setLocked(false);
     return true;
   }, []);
 
+  const confirmIdentity = useCallback(async (reason: string) => {
+    return confirmIdentityNative(reason);
+  }, []);
+
+  const skipPrompt = useCallback(async () => {
+    await markAppLockPrompted();
+    setPrompted(true);
+  }, []);
+
   return (
     <AppLockContext.Provider
-      value={{ ready, supported, enabled, locked, unlock, setEnabled }}
+      value={{
+        ready,
+        supported,
+        enabled,
+        locked,
+        prompted,
+        biometricLabel: label,
+        unlock,
+        setEnabled,
+        confirmIdentity,
+        skipPrompt,
+      }}
     >
       {children}
     </AppLockContext.Provider>

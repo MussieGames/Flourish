@@ -1,12 +1,14 @@
 import { useRouter } from 'expo-router';
 import { Alert, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText, Icon, InfoBox, SectionLabel } from '@/components';
+import { AppText, BrandMark, Icon, InfoBox, SectionLabel } from '@/components';
 import type { IconName } from '@/components';
 import { useAuth } from '@/context/AuthContext';
 import { useAppLock } from '@/context/AppLockContext';
 import { useReminders } from '@/context/RemindersContext';
+import { useMemories } from '@/hooks/useBabyData';
 import { computeAge } from '@/lib/age';
+import { hasSharingAccess, seedlingUsage } from '@/lib/plans';
 import { colors, fonts, radius } from '@/theme';
 import type { PlanId } from '@/types/models';
 
@@ -19,22 +21,45 @@ const PLAN_NAMES: Record<PlanId, string> = {
 export default function Profile() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user, profile, activeBaby, emailVerified, signOutUser, resendVerification } = useAuth();
-  const { supported, enabled, setEnabled } = useAppLock();
+  const { user, profile, activeBaby, emailVerified, signOutUser, resendVerification, resetPassword } = useAuth();
+  const { supported, enabled, setEnabled, confirmIdentity, biometricLabel } = useAppLock();
   const {
     enabled: remindersOn,
     permission,
     enableReminders,
     disableReminders,
   } = useReminders();
+  const { items: memories } = useMemories(activeBaby?.id);
 
   const age = computeAge(activeBaby?.birthDate);
   const name = activeBaby?.name ?? 'your baby';
+  const plan = profile?.plan ?? 'seedling';
+  const sharingOn = hasSharingAccess(plan);
+  const photos = memories.filter((m) => m.kind === 'photo').length;
+  const videos = memories.filter((m) => m.kind === 'video').length;
+  const usage = seedlingUsage(photos, videos);
+  const lockName = biometricLabel === 'fingerprint' ? 'your fingerprint' : biometricLabel;
 
   const toggleLock = async (next: boolean) => {
     const ok = await setEnabled(next);
     if (!ok && next) {
-      Alert.alert('Couldn’t enable App Lock', 'Biometric authentication was cancelled or unavailable.');
+      Alert.alert('Couldn’t enable App Lock', `${lockName} was cancelled or unavailable.`);
+    }
+  };
+
+  const sendReset = async () => {
+    const email = user?.email;
+    if (!email) return;
+    const ok = await confirmIdentity(`Confirm it’s you to reset your password`);
+    if (!ok) return;
+    try {
+      await resetPassword(email);
+      Alert.alert(
+        'Reset link sent',
+        `If an account exists for ${email}, a link is on its way. App Lock still protects the copy of memories on this device.`,
+      );
+    } catch {
+      Alert.alert('Hmm', 'Couldn’t send a reset email right now. Try again shortly.');
     }
   };
 
@@ -62,17 +87,67 @@ export default function Profile() {
         <SectionLabel>Membership</SectionLabel>
         <Row
           icon="leaf-outline"
-          label={PLAN_NAMES[profile?.plan ?? 'seedling']}
+          label={PLAN_NAMES[plan]}
           sublabel="View plans & upgrade"
           onPress={() => router.push('/plan')}
         />
+        {plan === 'seedling' && usage.showMeter ? (
+          <Pressable style={styles.meter} onPress={() => router.push('/plan')}>
+            <AppText variant="bodyMedium">Photo storage</AppText>
+            <AppText variant="caption" style={styles.meterSub}>
+              {usage.photos} of {usage.photoLimit} photos · {usage.videos} of {usage.videoLimit} videos
+            </AppText>
+            <View style={styles.meterTrack}>
+              <View
+                style={[
+                  styles.meterFill,
+                  { width: `${Math.min(100, Math.max(usage.photoPct, usage.videoPct) * 100)}%` },
+                ]}
+              />
+            </View>
+            <AppText variant="caption" color={colors.sienna} style={styles.meterHint}>
+              Bloom is unlimited, if you want to keep capturing.
+            </AppText>
+          </Pressable>
+        ) : null}
 
         <SectionLabel>{name}&apos;s world</SectionLabel>
-        <Row icon="people-outline" label="Family & sharing" sublabel="Choose who can see their story" onPress={() => router.push('/sharing')} />
+        <Row
+          icon="people-outline"
+          label="Family & sharing"
+          sublabel={sharingOn ? 'Choose who can see their story' : 'Private sharing on Bloom'}
+          onPress={() => router.push('/sharing')}
+        />
         <Row icon="calendar-outline" label="Memory calendar" onPress={() => router.push('/calendar')} />
         <Row icon="create-outline" label="Journal" sublabel="The things photos can’t capture" onPress={() => router.push('/(tabs)/journal')} />
 
         <SectionLabel>Privacy &amp; security</SectionLabel>
+        <View style={styles.row}>
+          <View style={styles.rowIcon}>
+            <Icon name="lock-closed-outline" size={20} color={colors.sienna} />
+          </View>
+          <View style={styles.flex1}>
+            <AppText variant="bodyMedium">App Lock</AppText>
+            <AppText variant="caption">
+              {supported
+                ? `Require ${lockName} to open Flourish`
+                : 'No Face ID or fingerprint enrolled on this device'}
+            </AppText>
+          </View>
+          <Switch
+            value={enabled}
+            onValueChange={toggleLock}
+            disabled={!supported}
+            trackColor={{ true: colors.sienna, false: colors.border }}
+            thumbColor={colors.warm}
+          />
+        </View>
+        <Row
+          icon="key-outline"
+          label="Reset password"
+          sublabel={`We’ll confirm with ${lockName}, then email a link`}
+          onPress={sendReset}
+        />
         <View style={styles.row}>
           <View style={styles.rowIcon}>
             <Icon name="notifications-outline" size={20} color={colors.sienna} />
@@ -105,24 +180,6 @@ export default function Profile() {
             thumbColor={colors.warm}
           />
         </View>
-        <View style={styles.row}>
-          <View style={styles.rowIcon}>
-            <Icon name="lock-closed-outline" size={20} color={colors.sienna} />
-          </View>
-          <View style={styles.flex1}>
-            <AppText variant="bodyMedium">App Lock</AppText>
-            <AppText variant="caption">
-              {supported ? 'Require Face ID / passcode to open' : 'No biometrics enrolled on this device'}
-            </AppText>
-          </View>
-          <Switch
-            value={enabled}
-            onValueChange={toggleLock}
-            disabled={!supported}
-            trackColor={{ true: colors.sienna, false: colors.border }}
-            thumbColor={colors.warm}
-          />
-        </View>
 
         {!emailVerified ? (
           <Row
@@ -141,7 +198,7 @@ export default function Profile() {
 
         <InfoBox accent={colors.sageDark} style={styles.promise}>
           <View style={styles.promiseRow}>
-            <Icon name="lock-closed-outline" size={15} color={colors.sageDark} />
+            <BrandMark size={16} color={colors.sageDark} />
             <AppText variant="caption" color={colors.inkLight} style={styles.promiseText}>
               <AppText style={styles.promiseStrong}>Our promise: </AppText>
               Your data is private by default. Zero ads. Zero data sharing. Only the family members
@@ -211,6 +268,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   pressed: { opacity: 0.85 },
+  meter: {
+    backgroundColor: colors.warm,
+    borderWidth: 1,
+    borderColor: 'rgba(193,123,92,0.35)',
+    borderRadius: radius.md,
+    padding: 16,
+    marginBottom: 10,
+  },
+  meterSub: { marginTop: 4 },
+  meterTrack: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.border,
+    overflow: 'hidden',
+    marginTop: 10,
+  },
+  meterFill: { height: 6, borderRadius: 3, backgroundColor: colors.sienna },
+  meterHint: { marginTop: 8 },
   promise: { marginTop: 12 },
   promiseRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
   promiseText: { flex: 1, lineHeight: 18 },

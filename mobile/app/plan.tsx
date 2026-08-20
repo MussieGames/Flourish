@@ -45,12 +45,12 @@ export default function Plan() {
       <View style={styles.cards}>
         {/* Seedling */}
         <View style={styles.card}>
-          <AppText variant="serifItalic" color={colors.inkMuted} style={styles.intent}>Start catching moments today.</AppText>
+          <AppText variant="serifItalic" color={colors.inkMuted} style={styles.intent}>The moments you choose to keep.</AppText>
           <View style={styles.cardHead}>
             <Badge label="Seedling" tint="rgba(140,120,112,0.1)" color={colors.inkMuted} />
           </View>
           <AppText variant="display" color={colors.sienna} style={styles.price}>$0</AppText>
-          {['Unlimited photo storage', '50 milestone alerts', 'Journal & scrapbook', 'Private family sharing'].map((f) => (
+          {['300 photos · 20 short videos', 'Firsts from newborn through school', 'Journal & scrapbook', 'Add your own firsts'].map((f) => (
             <Feature key={f} text={f} />
           ))}
           <View style={styles.cta}>
@@ -60,7 +60,7 @@ export default function Plan() {
 
         {/* Bloom */}
         <View style={[styles.card, styles.cardBloom]}>
-          <AppText variant="serifItalic" color={colors.inkMuted} style={styles.intent}>For parents who want to catch everything.</AppText>
+          <AppText variant="serifItalic" color={colors.inkMuted} style={styles.intent}>Keep every moment, and share them privately.</AppText>
           <View style={styles.cardHead}>
             <Badge label="Bloom" tint="rgba(193,123,92,0.14)" color={colors.sienna} />
           </View>
@@ -68,14 +68,14 @@ export default function Plan() {
             <AppText variant="display" color={colors.sienna} style={styles.price}>$8</AppText>
             <AppText variant="caption" color={colors.inkMuted} style={styles.per}>/ month</AppText>
           </View>
-          {['Everything in Seedling', '200+ milestone alerts', 'Age-adaptive sticker eras', 'Printed book ordering'].map((f) => (
+          {['Everything in Seedling', 'Unlimited photos & videos', 'Private family sharing', 'Printed book ordering'].map((f) => (
             <Feature key={f} text={f} />
           ))}
           <View style={styles.cta}>
             <Button label={current === 'bloom' ? 'Your current plan' : 'Upgrade to Bloom'} disabled={current === 'bloom'} onPress={() => choose('bloom', 'Bloom')} />
           </View>
           <AppText variant="serifItalic" color={colors.sienna} center style={styles.reframe}>
-            Less than $2 a week to never miss another first
+            Less than $2 a week to keep capturing — not just the first two years
           </AppText>
           <AppText variant="caption" color={colors.inkMuted} center style={styles.clarity}>Cancel anytime · no lock-in</AppText>
         </View>
@@ -94,7 +94,7 @@ export default function Plan() {
             <AppText variant="display" color={colors.gold} style={styles.price}>$79</AppText>
             <AppText variant="caption" color="rgba(201,169,110,0.6)" style={styles.per}>once</AppText>
           </View>
-          {['12 months of Bloom included', '1 printed hardcover book', 'Shipped to your door', 'No subscription starts'].map((f) => (
+          {['Unlimited photos & videos', 'Private family sharing', '1 printed hardcover book', 'No subscription starts'].map((f) => (
             <Feature key={f} text={f} onDark />
           ))}
           <View style={styles.cta}>

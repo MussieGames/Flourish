@@ -19,7 +19,7 @@ export function LockScreen({ onUnlock }: { onUnlock: () => Promise<boolean> }) {
         Flourish
       </AppText>
       <AppText variant="caption" color={colors.onDark45} center style={styles.sub}>
-        Your memories are locked. Unlock to continue.
+        Your memories are locked. Unlock with Face ID, fingerprint, or your device passcode.
       </AppText>
       <View style={styles.button}>
         <Button label="Unlock" onPress={() => onUnlock()} />

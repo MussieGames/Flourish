@@ -123,7 +123,7 @@ export default function Capture() {
             </View>
 
             <View style={styles.captionCard}>
-              <AppText variant="label" color={colors.inkMuted} style={styles.captionLabel}>What were you feeling right now?</AppText>
+              <AppText variant="label" color={colors.inkMuted} style={styles.captionLabel}>What were you feeling in this moment?</AppText>
               <TextInput
                 value={caption}
                 onChangeText={setCaption}

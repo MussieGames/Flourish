@@ -5,15 +5,18 @@ import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText, Button, Icon, InfoBox } from '@/components';
 import { useAuth } from '@/context/AuthContext';
+import { useAppLock } from '@/context/AppLockContext';
 import { useJournal, useMemories } from '@/hooks/useBabyData';
 import { addPendingInvite, removePendingInvite } from '@/firebase/firestore';
+import { hasSharingAccess } from '@/lib/plans';
 import { isValidEmail } from '@/lib/validation';
 import { colors, fonts, radius } from '@/theme';
 
 export default function Sharing() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { activeBaby, user } = useAuth();
+  const { activeBaby, user, profile } = useAuth();
+  const { confirmIdentity, biometricLabel } = useAppLock();
   const { items: memories } = useMemories(activeBaby?.id);
   const { items: journal } = useJournal(activeBaby?.id);
 
@@ -30,12 +33,20 @@ export default function Sharing() {
 
   const invites = activeBaby?.pendingInvites ?? [];
   const isOwner = activeBaby?.ownerId === user?.uid;
+  const sharingOn = hasSharingAccess(profile?.plan);
+  const lockName = biometricLabel === 'fingerprint' ? 'your fingerprint' : biometricLabel;
 
   const sendInvite = async () => {
+    if (!sharingOn) {
+      router.push('/plan');
+      return;
+    }
     if (!activeBaby || !isValidEmail(email)) {
       Alert.alert('Check the email', 'Please enter a valid email address.');
       return;
     }
+    const ok = await confirmIdentity(`Confirm it’s you to invite someone to ${name}’s story`);
+    if (!ok) return;
     setInviting(true);
     try {
       await addPendingInvite(activeBaby.id, email);
@@ -109,7 +120,7 @@ export default function Sharing() {
           </View>
         ))}
 
-        {isOwner ? (
+        {isOwner && sharingOn ? (
           <View style={styles.inviteCard}>
             <AppText variant="titleItalic" color={colors.ink} style={styles.inviteTitle}>
               Share with someone who loves {name}
@@ -129,6 +140,24 @@ export default function Sharing() {
             </View>
             <View style={styles.inviteBtn}>
               <Button label="Send a private invite" loading={inviting} onPress={sendInvite} />
+            </View>
+            <AppText variant="caption" color={colors.inkMuted} style={styles.inviteHint}>
+              We’ll ask for {lockName} before the invite is sent.
+            </AppText>
+          </View>
+        ) : null}
+
+        {isOwner && !sharingOn ? (
+          <View style={styles.inviteCard}>
+            <AppText variant="titleItalic" color={colors.ink} style={styles.inviteTitle}>
+              Private sharing is part of Bloom
+            </AppText>
+            <AppText variant="caption" color={colors.inkLight} style={styles.gateBody}>
+              Seedling keeps {name}’s story on this phone, for you. Bloom lets you invite the people
+              who love them — view only, never the journal.
+            </AppText>
+            <View style={styles.inviteBtn}>
+              <Button label="See Bloom" onPress={() => router.push('/plan')} />
             </View>
           </View>
         ) : null}
@@ -174,6 +203,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14, paddingVertical: 12, fontFamily: fonts.body, fontSize: 14, color: colors.ink,
   },
   inviteBtn: { marginTop: 10 },
+  inviteHint: { marginTop: 10, lineHeight: 18 },
+  gateBody: { lineHeight: 18, marginBottom: 4 },
   note: { marginTop: 16 },
   noteText: { lineHeight: 18 },
 });

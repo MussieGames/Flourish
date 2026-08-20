@@ -11,13 +11,13 @@ import {
 /**
  * Curated "firsts" a parent can photograph and keep.
  *
- * This is not the full CDC checklist. We only include moments that belong in
- * a family scrapbook, then attach the most accurate public window we have:
+ * This is not a health checklist. We only include moments that belong in a
+ * family scrapbook, then attach a typical window in plain language:
  *
- * - CDC (Feb 2022, with AAP): age by which ≥75% of children can do it.
- * - WHO Motor Development Study: 1st–99th percentile window (healthy children).
- * - AAP: typical range for teething and starting solids.
- * - Flourish: family memories that are not developmental milestones.
+ * - Early years: ages when many children do something (from WHO and national
+ *   child-health guidance). Never stamped as a deadline.
+ * - Flourish family firsts: bath, birthdays, first day of school, sleepover.
+ *   No “most children by…” language. School start is whatever year is theirs.
  *
  * Reminders fire at `remindWeeks` ("camera ready") and, when the two dates
  * are far enough apart, again at `windowWeeks` ("most babies by now").
@@ -120,8 +120,7 @@ export const DEFAULT_FIRSTS: FirstDef[] = [
     domain: 'memory',
     era: 'newborn',
     description: 'They still and settle when you speak. They knew you before they saw you.',
-    sourceNote:
-      'Newborns already prefer a parent’s voice. CDC separately notes that most babies turn toward your voice by 4 months.',
+    sourceNote: 'A family first — they knew your voice before they saw you.',
     readyTitle: 'Listen for this one',
     readyBody:
       '{name} may already still when you speak. It’s a quiet first — easy to miss, worth keeping.',
@@ -139,13 +138,13 @@ export const DEFAULT_FIRSTS: FirstDef[] = [
     domain: 'social',
     era: '2mo',
     description: 'The first time they truly look at you — and hold it. You’ll feel it.',
-    sourceNote: 'CDC: most babies look at your face by 2 months.',
+    sourceNote: 'Most babies look at your face by around 2 months.',
     readyTitle: 'Camera ready · first look',
     readyBody:
       '{name} is around the age when held eye contact often appears. Keep the camera close.',
     windowTitle: 'Most babies look at your face by now',
     windowBody:
-      'By around 2 months, most babies look at your face (CDC). If you’ve caught it, mark it. If not, there’s still time.',
+      'Most babies look at your face by around 2 months. If you’ve caught it, mark it. If not, there’s still time.',
   },
   {
     key: 'first-smile',
@@ -160,14 +159,13 @@ export const DEFAULT_FIRSTS: FirstDef[] = [
     domain: 'social',
     era: '2mo',
     description: 'Not a reflex. Full face. Eyes crinkling. This one will stop your heart.',
-    sourceNote:
-      'CDC: most babies smile when you talk to or smile at them by 2 months. A social smile to get your attention is listed by 4 months.',
+    sourceNote: 'Most babies smile at you by around 2 months.',
     readyTitle: 'Camera ready · first real smile',
     readyBody:
       '{name} is around 6 weeks — when real smiles often appear. Not a reflex. Have the camera up.',
     windowTitle: 'Most babies can smile at you by now',
     windowBody:
-      'By around 2 months, most babies smile when you talk or smile at them (CDC). If you’ve already caught it, mark it.',
+      'Most babies smile at you by around 2 months. If you’ve already caught it, mark it.',
   },
   {
     key: 'tummy-head-up',
@@ -182,7 +180,7 @@ export const DEFAULT_FIRSTS: FirstDef[] = [
     domain: 'motor',
     era: '2mo',
     description: 'A small lift, a lot of effort. The first time they hold the world a little higher.',
-    sourceNote: 'CDC: most babies hold their head up when on their tummy by 2 months.',
+    sourceNote: 'Most babies hold their head up on tummy by around 2 months.',
     readyTitle: 'Camera ready · tummy time',
     readyBody: '{name} may start lifting their head during tummy time. A small lift is a whole first.',
   },
@@ -199,7 +197,7 @@ export const DEFAULT_FIRSTS: FirstDef[] = [
     domain: 'social',
     era: '4mo',
     description: 'Not yet a full laugh — a little catch in the chest that means they’re in on it.',
-    sourceNote: 'CDC: most babies chuckle (not yet a full laugh) by 4 months when you try to make them laugh.',
+    sourceNote: 'Most babies chuckle — not yet a full laugh — by around 4 months.',
     readyTitle: 'Camera ready · first chuckle',
     readyBody:
       '{name} is around the age of the first chuckle — not a full laugh yet. You’ll know it when you hear it.',
@@ -217,7 +215,7 @@ export const DEFAULT_FIRSTS: FirstDef[] = [
     domain: 'language',
     era: '4mo',
     description: 'You speak from across the room. They find you.',
-    sourceNote: 'CDC: most babies turn their head toward the sound of your voice by 4 months.',
+    sourceNote: 'Most babies turn toward your voice by around 4 months.',
     readyTitle: 'Listen for this one',
     readyBody: 'Call {name} from the side. The first time they turn to find you is worth keeping.',
   },
@@ -234,13 +232,13 @@ export const DEFAULT_FIRSTS: FirstDef[] = [
     domain: 'social',
     era: '6mo',
     description: 'The sound you’ll spend the rest of your life trying to cause on purpose.',
-    sourceNote: 'CDC: most babies laugh by 6 months. Many start a little earlier, after the first chuckle.',
+    sourceNote: 'Most babies laugh by around 6 months. Many start a little earlier, after the first chuckle.',
     readyTitle: 'Camera ready · first laugh',
     readyBody:
       '{name} is around the age of a first real laugh. The sound you’ll try to cause on purpose forever.',
     windowTitle: 'Most babies laugh by now',
     windowBody:
-      'By around 6 months, most babies laugh (CDC). If you’ve caught it, mark it. If not, keep being ridiculous.',
+      'Most babies laugh by around 6 months. If you’ve caught it, mark it. If not, keep being ridiculous.',
   },
   {
     key: 'first-roll',
@@ -255,7 +253,7 @@ export const DEFAULT_FIRSTS: FirstDef[] = [
     domain: 'motor',
     era: '6mo',
     description: 'One day they’re where you left them. The next, they’re not.',
-    sourceNote: 'CDC: most babies roll from tummy to back by 6 months. Back-to-tummy often comes later.',
+    sourceNote: 'Most babies roll from tummy to back by around 6 months. Back-to-tummy often comes later.',
     readyTitle: 'Camera ready · first roll',
     readyBody:
       '{name} may start rolling tummy to back. Don’t leave the room. Do keep the camera nearby.',
@@ -274,7 +272,7 @@ export const DEFAULT_FIRSTS: FirstDef[] = [
     era: '6mo',
     description: 'The face they pull. Somewhere between betrayal and wonder.',
     sourceNote:
-      'AAP: start complementary foods around 6 months, and not before 4 months. Follow your child’s doctor.',
+      'Most families start solids around 6 months, and not before 4. Follow your GP or child-health nurse.',
     readyTitle: 'Camera ready · first taste',
     readyBody:
       'If you’re starting solids with {name}, have the camera up. The face they pull is the whole story.',
@@ -292,7 +290,7 @@ export const DEFAULT_FIRSTS: FirstDef[] = [
     era: '6mo',
     description: 'A tiny sharp surprise. The gummy smile changes forever after this.',
     sourceNote:
-      'AAP: the first tooth often appears around 6–10 months. Some babies are born with a tooth; others wait past the first birthday. Wide is normal.',
+      'The first tooth often appears around 6–10 months. Some babies are born with a tooth; others wait past the first birthday. Wide is normal.',
     graceNote: 'Late teeth are common. Write the day you felt it — even if the photo came later.',
     readyTitle: 'Camera ready · first tooth',
     readyBody:
@@ -312,13 +310,13 @@ export const DEFAULT_FIRSTS: FirstDef[] = [
     era: '9mo',
     description: 'Hands free. The room looks different from here.',
     sourceNote:
-      'WHO: sitting without support typically between 3.8 and 9.2 months (average about 6). CDC: most babies sit without support by 9 months.',
+      'Sitting without support typically happens sometime between about 4 and 9 months. Wide is normal.',
     readyTitle: 'Camera ready · sitting',
     readyBody:
-      '{name} is entering the typical window for sitting without support (WHO: about 4–9 months). Hands-free is the shot.',
+      '{name} is entering the typical window for sitting without support (about 4–9 months). Hands-free is the shot.',
     windowTitle: 'Sitting often happens around now',
     windowBody:
-      'On average, babies sit without support around 6 months (WHO). Most can by 9 months (CDC). Wide is normal.',
+      'On average, babies sit without support around 6 months. Most can by 9. Wide is normal.',
   },
   {
     key: 'peekaboo',
@@ -333,7 +331,7 @@ export const DEFAULT_FIRSTS: FirstDef[] = [
     domain: 'social',
     era: '9mo',
     description: 'You disappear. You come back. They think you’re a genius.',
-    sourceNote: 'CDC: most babies smile or laugh when you play peek-a-boo by 9 months.',
+    sourceNote: 'Most babies smile or laugh at peek-a-boo by around 9 months.',
     readyTitle: 'Camera ready · peek-a-boo',
     readyBody: 'Hands over your face, then “boo.” {name} may be ready to be in on the joke.',
   },
@@ -351,15 +349,15 @@ export const DEFAULT_FIRSTS: FirstDef[] = [
     era: '9mo',
     description: 'The moment the world stopped being a place you carried them through.',
     sourceNote:
-      'WHO: hands-and-knees crawling typically between 5.2 and 13.5 months. About 4% of children never crawl this way — they shuffle, roll, or go straight to walking.',
+      'Hands-and-knees crawling typically happens sometime between about 5 and 13 months. Some babies never crawl this way — they shuffle, roll, or go straight to walking.',
     graceNote:
       'Some babies skip crawling altogether — that’s a known variation, not a missed first. Bottom-shuffling and rolling count. Write what you remember.',
     readyTitle: 'Camera ready · on the move',
     readyBody:
-      '{name} is entering the typical crawling window (WHO: about 5–13 months). Scooting and shuffling count too.',
+      '{name} is entering the typical crawling window (about 5–13 months). Scooting and shuffling count too.',
     windowTitle: 'Crawling often happens around now',
     windowBody:
-      'Average crawling is around 8½ months (WHO). Some babies never crawl on hands and knees — that’s a known variation.',
+      'Average crawling is around 8½ months. Some babies never crawl on hands and knees — that’s a known variation.',
   },
   {
     key: 'waves-bye',
@@ -374,7 +372,7 @@ export const DEFAULT_FIRSTS: FirstDef[] = [
     domain: 'language',
     era: '12mo',
     description: 'A little open-and-close of the hand that means they know you’re leaving — and coming back.',
-    sourceNote: 'CDC: most babies wave “bye-bye” by 12 months.',
+    sourceNote: 'Most babies wave bye-bye by around 12 months.',
     readyTitle: 'Camera ready · bye-bye',
     readyBody: '{name} may start waving. It’s a tiny gesture and a whole sentence.',
   },
@@ -392,13 +390,13 @@ export const DEFAULT_FIRSTS: FirstDef[] = [
     era: '12mo',
     description: 'It might not be the name you hoped for first. It’ll be perfect anyway.',
     sourceNote:
-      'CDC: most babies call a parent “mama” or “dada” (or another special name) by 12 months. True first words besides that often come a little later.',
+      'Most babies call a parent mama or dada — or another special name — by around 12 months. True first words besides that often come a little later.',
     readyTitle: 'Listen for this one',
     readyBody:
       '{name} is around the age of “mama” or “dada” used for you. Keep an ear out — and maybe a video rolling.',
     windowTitle: 'Most babies name a parent by now',
     windowBody:
-      'By around 12 months, most babies call a parent mama or dada or another special name (CDC).',
+      'Most babies call a parent mama or dada — or another special name — by around 12 months.',
   },
   {
     key: 'pulls-to-stand',
@@ -414,7 +412,7 @@ export const DEFAULT_FIRSTS: FirstDef[] = [
     era: '12mo',
     description: 'Furniture is no longer furniture. It’s a ladder.',
     sourceNote:
-      'CDC: most babies pull up to stand by 12 months. WHO: standing with assistance typically 4.8–11.4 months; standing alone 6.9–16.9 months.',
+      'Most babies pull up to stand by around 12 months. Standing alone often comes later, and the window is wide.',
     readyTitle: 'Camera ready · pulling up',
     readyBody:
       '{name} may start using the sofa as a ladder. Stay close — and get the shot of those knees.',
@@ -433,7 +431,7 @@ export const DEFAULT_FIRSTS: FirstDef[] = [
     era: '12mo',
     description: 'Sideways along the sofa. A rehearsal for the real thing.',
     sourceNote:
-      'WHO: walking with assistance typically 5.9–13.7 months. CDC: most babies walk holding on to furniture by 12 months.',
+      'Walking while holding on typically happens sometime between about 6 and 14 months. Most babies cruise by around 12 months.',
     readyTitle: 'Camera ready · cruising',
     readyBody:
       '{name} may start walking while holding furniture. Sideways along the sofa counts.',
@@ -469,15 +467,15 @@ export const DEFAULT_FIRSTS: FirstDef[] = [
     era: '15mo',
     description: 'Wobbling, arms out, aiming straight for you. Have the camera up.',
     sourceNote:
-      'WHO: walking alone typically 8.2–17.6 months (average about 12). CDC: most children take a few steps on their own by 15 months, and walk without holding on by 18 months.',
+      'Walking alone typically happens sometime between about 8 and 18 months (average around 12). Most take a few steps by 15 months.',
     graceNote:
       'Walking has one of the widest healthy windows. Write what you remember — even if the first steps happened at grandma’s.',
     readyTitle: 'Camera ready · first steps',
     readyBody:
-      '{name} is entering the typical window for first steps (WHO: about 8–18 months). Wobbling counts. Have the camera up.',
+      '{name} is entering the typical window for first steps (about 8–18 months). Wobbling counts. Have the camera up.',
     windowTitle: 'First steps often happen around now',
     windowBody:
-      'Average independent walking is around 12 months (WHO). Most take a few steps by 15 months (CDC). Wide is normal.',
+      'Average independent walking is around 12 months. Most take a few steps by 15 months. Wide is normal.',
   },
   {
     key: 'first-other-word',
@@ -493,7 +491,7 @@ export const DEFAULT_FIRSTS: FirstDef[] = [
     era: '15mo',
     description: '“Ba” for ball. “Da” for dog. You’ll never forget which one it was.',
     sourceNote:
-      'CDC: most children try to say one or two words besides “mama” or “dada” by 15 months, and three or more by 18 months.',
+      'Most children try one or two words besides mama or dada by around 15 months, and three or more by 18 months.',
     readyTitle: 'Listen for this one',
     readyBody:
       '{name} may try a word besides mama or dada — “ba” for ball counts. Keep an ear out.',
@@ -512,7 +510,7 @@ export const DEFAULT_FIRSTS: FirstDef[] = [
     era: '18mo',
     description: 'Not asking. Sharing. Look. This. With you.',
     sourceNote:
-      'CDC: most children point to show you something interesting by 18 months. Pointing to ask for help is listed by 15 months.',
+      'Most children point to show you something interesting by around 18 months. Pointing to ask for help often comes a little earlier.',
     readyTitle: 'Camera ready · look at this',
     readyBody:
       '{name} may start pointing to share something — not to ask, just to say “look.” That’s a first.',
@@ -530,7 +528,7 @@ export const DEFAULT_FIRSTS: FirstDef[] = [
     domain: 'motor',
     era: '24mo',
     description: 'Walking, but with joy in it. You’ll have to pick up the pace.',
-    sourceNote: 'CDC: most children run by 2 years.',
+    sourceNote: 'Most children run by around 2 years.',
     readyTitle: 'Camera ready · first run',
     readyBody: '{name} may start running — walking, but with joy in it. Have the camera up.',
   },
@@ -548,10 +546,57 @@ export const DEFAULT_FIRSTS: FirstDef[] = [
     era: '24mo',
     description: '“More milk.” A whole sentence, as far as you’re concerned.',
     sourceNote:
-      'CDC: most children say at least two words together by 2 years, like “more milk.” By 30 months many combine an action word (“doggie run”).',
+      'Most children say at least two words together by around 2 years, like “more milk.” By 2½ many combine an action word (“doggie run”).',
     readyTitle: 'Listen for this one',
     readyBody:
       '{name} may start putting two words together. “More milk” is a whole sentence. Write it down.',
+  },
+  {
+    key: 'first-lost-tooth',
+    label: 'First lost tooth',
+    icon: 'sparkles-outline',
+    typicalAge: 'Around 5–7 years',
+    typicalWeeksMin: 260,
+    typicalWeeksMax: 416,
+    remindWeeks: 250,
+    source: 'flourish',
+    domain: 'memory',
+    era: 'school',
+    description: 'A wobbly goodbye, a pillow, and a story you’ll both tell forever.',
+    sourceNote: 'A family first — not a developmental milestone. Capture the gap-toothed grin.',
+    graceNote: 'Whenever it happened, write what you remember — even if the tooth fairy got there first.',
+    readyTitle: 'The tooth years are coming',
+    readyBody:
+      '{name} may be heading into the wobbly-tooth years. A gap-toothed grin is worth keeping.',
+  },
+  {
+    key: 'first-day-school',
+    label: 'First day of school',
+    icon: 'school-outline',
+    typicalAge: 'You set the year',
+    typicalWeeksMin: 208,
+    typicalWeeksMax: 364,
+    source: 'flourish',
+    domain: 'memory',
+    era: 'school',
+    description: 'The bag is too big. The photo on the steps is the one you’ll keep.',
+    sourceNote:
+      'A family first — school starts at different times around the world. Capture the day that is theirs.',
+    graceNote: 'Whenever it happened, write what you remember — the bag, the steps, the face.',
+  },
+  {
+    key: 'first-sleepover',
+    label: 'First sleepover',
+    icon: 'moon-outline',
+    typicalAge: 'When they’re ready',
+    typicalWeeksMin: 260,
+    typicalWeeksMax: 624,
+    source: 'flourish',
+    domain: 'memory',
+    era: 'school',
+    description: 'Someone else’s house. Your phone nearby. A morning-after story.',
+    sourceNote: 'A family first — whenever they (and you) were ready.',
+    graceNote: 'A night at grandma’s counts. Write the bit you remember.',
   },
 ];
 

@@ -1,44 +1,39 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText, BrandMark, Button, Icon, InfoBox } from '@/components';
 import { useAuth } from '@/context/AuthContext';
-import { useReminders } from '@/context/RemindersContext';
-import { GROWTH_DISCLAIMER } from '@/data/growth';
+import { useAppLock } from '@/context/AppLockContext';
 import { colors, radius } from '@/theme';
 
-export default function RemindersOptIn() {
+export default function ProtectOptIn() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { activeBaby } = useAuth();
-  const { enableReminders, skipReminders } = useReminders();
+  const { biometricLabel, setEnabled, skipPrompt, supported } = useAppLock();
   const [saving, setSaving] = useState(false);
   const name = activeBaby?.name ?? 'your baby';
 
-  const finish = () => router.replace('/protect');
+  const finish = () => router.replace('/(tabs)');
 
   const onEnable = async () => {
     setSaving(true);
     try {
-      const ok = await enableReminders();
-      if (!ok) {
-        Alert.alert(
-          'Reminders are off for now',
-          'You can turn them on any time from Profile. Flourish will never nag — just a quiet heads-up when a first is likely near.',
-        );
-      }
-      finish();
+      const ok = await setEnabled(true);
+      if (ok) finish();
     } finally {
       setSaving(false);
     }
   };
 
   const onSkip = async () => {
-    await skipReminders();
+    await skipPrompt();
     finish();
   };
+
+  const lockName = biometricLabel === 'fingerprint' ? 'your fingerprint' : biometricLabel;
 
   return (
     <View style={[styles.flex, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 16 }]}>
@@ -53,41 +48,50 @@ export default function RemindersOptIn() {
       <View style={styles.hero}>
         <BrandMark size={28} color={colors.sage} bloom />
         <AppText variant="label" color={colors.gold} style={styles.eyebrow}>
-          Gentle reminders
+          Keep it private
         </AppText>
         <AppText variant="display" color={colors.cream}>
-          We’ll keep the{'\n'}
-          <AppText variant="displayItalic" color={colors.rose}>camera ready.</AppText>
+          Lock {name}&apos;s story{'\n'}
+          <AppText variant="displayItalic" color={colors.rose}>behind {lockName}.</AppText>
         </AppText>
         <AppText variant="bodyLight" color={colors.onDark60} style={styles.lede}>
-          A quiet heads-up a couple of weeks before {name}’s next first is likely —
-          so you can catch it, not chase it.
+          If someone picks up your phone, they shouldn&apos;t see {name}&apos;s memories.
+          We&apos;ll also ask again before a password reset or a sharing invite.
         </AppText>
       </View>
 
       <View style={styles.points}>
-        <Point icon="notifications-outline" title="Once, in the morning">
-          Delivered at 10am. Never in the small hours. Never a checklist alarm.
+        <Point icon="lock-closed-outline" title={`Open with ${lockName}`}>
+          A quiet lock when you come back to Flourish — not a second login.
         </Point>
-        <Point icon="time-outline" title="Windows, not deadlines">
-          Ages from WHO and national child-health guidance — when many children do something, not when yours must.
+        <Point icon="mail-outline" title="Reset still goes to your email">
+          {`Forgot password sends a link to your inbox. ${lockName} still protects the copy on this phone.`}
         </Point>
         <Point icon="close-circle-outline" title="Off whenever you like">
-          One toggle in Profile. Capturing a first cancels its reminder.
+          One toggle in Profile. You can turn it on later.
         </Point>
       </View>
 
-      <InfoBox accent={colors.sageDark} tint="rgba(181,196,177,0.12)" style={styles.disclaimer}>
-        <AppText variant="caption" color={colors.onDark45} style={styles.disclaimerText}>
-          {GROWTH_DISCLAIMER}
-        </AppText>
-      </InfoBox>
+      {!supported ? (
+        <InfoBox accent={colors.sageDark} tint="rgba(181,196,177,0.12)" style={styles.note}>
+          <AppText variant="caption" color={colors.onDark45}>
+            This device doesn&apos;t have Face ID or a fingerprint enrolled. You can still reset your
+            password by email.
+          </AppText>
+        </InfoBox>
+      ) : null}
 
       <View style={styles.actions}>
-        <Button label="Yes — remind me" loading={saving} onPress={onEnable} />
-        <Pressable onPress={onSkip} style={styles.skip}>
-          <AppText variant="label" color={colors.onDark45}>Not now</AppText>
-        </Pressable>
+        <Button
+          label={supported ? `Turn on ${biometricLabel}` : 'Continue'}
+          loading={saving}
+          onPress={supported ? onEnable : onSkip}
+        />
+        {supported ? (
+          <Pressable onPress={onSkip} style={styles.skip}>
+            <AppText variant="label" color={colors.onDark45}>Not now</AppText>
+          </Pressable>
+        ) : null}
       </View>
     </View>
   );
@@ -98,7 +102,7 @@ function Point({
   title,
   children,
 }: {
-  icon: 'notifications-outline' | 'time-outline' | 'close-circle-outline';
+  icon: 'lock-closed-outline' | 'mail-outline' | 'close-circle-outline';
   title: string;
   children: string;
 }) {
@@ -133,8 +137,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   pointBody: { marginTop: 3, lineHeight: 18 },
-  disclaimer: { marginTop: 24 },
-  disclaimerText: { lineHeight: 18 },
+  note: { marginTop: 24 },
   actions: { marginTop: 'auto', paddingTop: 20, gap: 4 },
   skip: { alignItems: 'center', paddingVertical: 14 },
 });

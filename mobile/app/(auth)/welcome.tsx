@@ -27,9 +27,9 @@ const SLIDES: Slide[] = [
     body: 'The feeds, the firsts, the 3am thoughts you swear you’ll remember — Flourish keeps them all, gently, in one private place.',
   },
   {
-    headline: '200 firsts are coming.',
-    emphasis: 'Flourish will tell you before each one.',
-    body: 'A quiet nudge before the first smile, the first giggle, the first steps — so your camera is ready, and you never have to say “I wish I’d caught that.”',
+    headline: 'The firsts are coming.',
+    emphasis: 'Flourish will tell you before the ones that matter.',
+    body: 'A quiet nudge before the first smile, the first steps, the first day of school — so your camera is ready, and you never have to say “I wish I’d caught that.”',
   },
   {
     headline: 'Zero ads. Zero AI training.',

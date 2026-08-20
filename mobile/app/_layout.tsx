@@ -19,8 +19,8 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 
 function RootNavigator() {
   const { initializing, user, babies, babiesLoaded } = useAuth();
-  const { ready: lockReady } = useAppLock();
-  const { ready: remindersReady, prompted } = useReminders();
+  const { ready: lockReady, prompted: lockPrompted } = useAppLock();
+  const { ready: remindersReady, prompted: remindersPrompted } = useReminders();
   const segments = useSegments();
   const router = useRouter();
 
@@ -33,6 +33,7 @@ function RootNavigator() {
     const inAuthGroup = seg[0] === '(auth)';
     const onOnboarding = seg[0] === 'onboarding';
     const onReminders = seg[0] === 'reminders';
+    const onProtect = seg[0] === 'protect';
 
     if (!user) {
       if (!inAuthGroup) router.replace('/(auth)/welcome');
@@ -45,16 +46,31 @@ function RootNavigator() {
       return;
     }
 
-    const atRoot = seg.length === 0;
-    const atGate = inAuthGroup || onOnboarding || onReminders || atRoot;
-    if (babiesLoaded && babies.length > 0 && atGate) {
-      if (!prompted && !onReminders) {
+    if (babiesLoaded && babies.length > 0) {
+      if (!remindersPrompted && !onReminders) {
         router.replace('/reminders');
         return;
       }
-      if (prompted) router.replace('/(tabs)');
+      if (remindersPrompted && !lockPrompted && !onProtect) {
+        router.replace('/protect');
+        return;
+      }
+      const atRoot = seg.length === 0;
+      const atGate = inAuthGroup || onOnboarding || onReminders || onProtect || atRoot;
+      if (remindersPrompted && lockPrompted && atGate) {
+        router.replace('/(tabs)');
+      }
     }
-  }, [bootstrapping, user, babies.length, babiesLoaded, prompted, segments, router]);
+  }, [
+    bootstrapping,
+    user,
+    babies.length,
+    babiesLoaded,
+    remindersPrompted,
+    lockPrompted,
+    segments,
+    router,
+  ]);
 
   if (bootstrapping) {
     return <View style={{ flex: 1, backgroundColor: colors.ink }} />;
@@ -65,6 +81,7 @@ function RootNavigator() {
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="onboarding" />
       <Stack.Screen name="reminders" />
+      <Stack.Screen name="protect" />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="stickers" options={{ presentation: 'modal' }} />
       <Stack.Screen name="journal-entry" options={{ presentation: 'modal' }} />

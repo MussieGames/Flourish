@@ -58,13 +58,14 @@ export default function ForgotPassword() {
             <InfoBox accent={colors.sageDark}>
               <AppText variant="body" color={colors.inkLight}>
                 If an account exists for that email, a reset link is on its way. Check your inbox
-                (and spam folder).
+                (and spam folder). App Lock on this device still protects the copy of memories here.
               </AppText>
             </InfoBox>
           ) : (
             <>
               <AppText variant="body" style={styles.intro}>
-                Enter your email and we&apos;ll send you a secure link to set a new password.
+              Enter your email and we&apos;ll send a secure link to set a new password.
+              If you use App Lock on this phone, their memories stay locked here even after you change it.
               </AppText>
               <TextField
                 icon="mail-outline"

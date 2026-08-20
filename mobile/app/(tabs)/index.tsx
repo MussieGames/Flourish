@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText, Icon, SectionLabel } from '@/components';
+import { AppText, BrandMark, Icon, SectionLabel } from '@/components';
 import { MemoryThumb } from '@/components/MemoryThumb';
 import { useAuth } from '@/context/AuthContext';
 import { useMemories, useMilestones } from '@/hooks/useBabyData';
@@ -55,7 +55,7 @@ export default function Dashboard() {
         </AppText>
         {age ? (
           <View style={styles.ageChip}>
-            <Icon name="leaf-outline" size={11} color={colors.sage} />
+            <BrandMark size={12} color={colors.sage} />
             <AppText variant="caption" color={colors.onDark45}>{age.label}</AppText>
           </View>
         ) : null}

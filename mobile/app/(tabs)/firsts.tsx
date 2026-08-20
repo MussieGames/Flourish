@@ -17,7 +17,7 @@ import {
   isMissedFirst,
   sortMilestones,
 } from '@/data/firsts';
-import { ERA_LABELS, ERA_ORDER, GROWTH_DISCLAIMER, SOURCE_SHORT } from '@/data/growth';
+import { ERA_LABELS, ERA_ORDER, GROWTH_DISCLAIMER } from '@/data/growth';
 import { computeAge } from '@/lib/age';
 import { colors, fonts, radius } from '@/theme';
 import type { Milestone } from '@/types/models';
@@ -134,7 +134,7 @@ export default function Firsts() {
           <Pressable style={styles.addRow} onPress={() => setAdding(true)}>
             <View style={styles.addIcon}><Icon name="add" size={18} color={colors.sienna} /></View>
             <AppText variant="caption" color={colors.inkLight} style={styles.flex1}>
-              Add your own — first laugh at the dog, first reach for your face…
+              Add your own — first day of school, first sleepover, first laugh at the dog…
             </AppText>
           </Pressable>
         )}
@@ -147,7 +147,7 @@ export default function Firsts() {
                 <View style={styles.rowIcon}><Icon name={iconFor(m)} size={20} color={colors.inkMuted} /></View>
                 <View style={styles.flex1}>
                   <AppText variant="bodyMedium">{m.label}</AppText>
-                  <AppText variant="caption">{m.typicalAge}{sourceTag(m)}</AppText>
+                  <AppText variant="caption">{m.typicalAge}</AppText>
                 </View>
                 <Pressable style={styles.markBtn} onPress={() => onCapture(m)}>
                   <AppText variant="label" color={colors.white} style={styles.markLabel}>Caught</AppText>
@@ -201,12 +201,6 @@ export default function Firsts() {
       </View>
     </ScrollView>
   );
-}
-
-function sourceTag(m: Milestone): string {
-  const source = (m.source as keyof typeof SOURCE_SHORT | undefined) ?? defForKey(m.key)?.source;
-  if (!source || source === 'flourish') return '';
-  return ` · ${SOURCE_SHORT[source]}`;
 }
 
 function groupByEra(items: Milestone[]): { label: string; items: Milestone[] }[] {

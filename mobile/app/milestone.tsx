@@ -8,7 +8,7 @@ import type { IconName } from '@/components';
 import { useAuth } from '@/context/AuthContext';
 import { captureMilestone } from '@/firebase/firestore';
 import { defForKey, iconForFirst } from '@/data/firsts';
-import { GROWTH_DISCLAIMER, SOURCE_LABELS } from '@/data/growth';
+import { GROWTH_DISCLAIMER } from '@/data/growth';
 import { preciseAge, weekdayName } from '@/lib/age';
 import { formatTime } from '@/lib/format';
 import { colors, radius } from '@/theme';
@@ -45,7 +45,7 @@ export default function MilestoneMoment() {
   const writeItDown = () => {
     router.replace({
       pathname: '/journal-entry',
-      params: { prompt: 'What were you feeling in this exact moment?', milestone: label },
+      params: { prompt: 'What were you feeling in this moment?', milestone: label },
     });
   };
 
@@ -94,7 +94,7 @@ export default function MilestoneMoment() {
             ) : null}
             {def?.sourceNote ? (
               <AppText variant="caption" color={colors.onDark40} center style={styles.source}>
-                {SOURCE_LABELS[def.source]}. {def.sourceNote}
+                {def.sourceNote}
               </AppText>
             ) : null}
             <View style={styles.readyRow}>
@@ -103,9 +103,11 @@ export default function MilestoneMoment() {
                 A quiet reminder, if you’ve switched them on — never a deadline.
               </AppText>
             </View>
-            <AppText variant="caption" color={colors.onDark25} center style={styles.disclaimer}>
-              {GROWTH_DISCLAIMER}
-            </AppText>
+            {def && def.source !== 'flourish' ? (
+              <AppText variant="caption" color={colors.onDark25} center style={styles.disclaimer}>
+                {GROWTH_DISCLAIMER}
+              </AppText>
+            ) : null}
             <View style={styles.actions}>
               <Button label="I caught it" onPress={markCaught} />
               <Button label="Close" variant="ghost" onPress={() => router.back()} />
@@ -116,7 +118,7 @@ export default function MilestoneMoment() {
             <View style={styles.promptBox}>
               <AppText variant="label" color={colors.sienna} style={styles.promptLabel}>Only you will ever read this —</AppText>
               <AppText variant="serifItalic" color={colors.onDark60} style={styles.promptText}>
-                What were you feeling in this exact moment?
+                What were you feeling in this moment?
               </AppText>
             </View>
             <View style={styles.actions}>

@@ -50,11 +50,11 @@ service cloud.firestore {
 
       allow create: if isUser(uid)
         && request.resource.data.uid == uid
-        && request.resource.data.plan in ['seedling', 'bloom', 'heirloom'];
+        && request.resource.data.plan == 'seedling';
 
       allow update: if isUser(uid)
         && request.resource.data.uid == resource.data.uid
-        && request.resource.data.plan in ['seedling', 'bloom', 'heirloom'];
+        && request.resource.data.plan == resource.data.plan;
 
       allow delete: if false;
     }

@@ -37,6 +37,9 @@ project's waitlist rules live separately in [`firestore.rules`](./firestore.rule
 - **Shape validation.** Every `create`/`update` validates field types, allowed
   enum values (`plan`, `kind`, `status`, event `type`), and length caps so a
   tampered client cannot inject unexpected or oversized fields.
+- **Server-managed entitlements.** A user profile starts on the free
+  `seedling` plan; paid `plan` changes are not client-writable and must be
+  applied by trusted billing/backend code.
 - **Authorship.** Memories/journal entries record the `authorId`; only the
   author or the baby's owner may edit or delete them.
 - **Project isolation.** Because the app has its own Firebase project, a

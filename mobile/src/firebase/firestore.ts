@@ -64,10 +64,6 @@ export function subscribeUserProfile(
   );
 }
 
-export async function updateUserPlan(uid: string, plan: PlanId): Promise<void> {
-  await updateDoc(doc(usersCol, uid), { plan });
-}
-
 // ── Babies ─────────────────────────────────────────────────────────
 function mapBaby(snap: QueryDocumentSnapshot<DocumentData>): Baby {
   const data = snap.data();

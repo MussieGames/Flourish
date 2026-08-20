@@ -70,6 +70,30 @@ const MONTHS = [
 ];
 const MONTHS_SHORT = MONTHS.map((m) => m.slice(0, 3));
 
+const WEEKDAYS = [
+  'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday',
+];
+
+export function weekdayName(date: Date): string {
+  return WEEKDAYS[date.getDay()];
+}
+
+/** "42 days old" — the precise number of days, which carries emotional weight. */
+export function daysOldLabel(birthISO: string | null | undefined, at = new Date()): string | null {
+  const age = computeAge(birthISO, at);
+  if (!age) return null;
+  return `${age.totalDays} ${age.totalDays === 1 ? 'day' : 'days'} old`;
+}
+
+/** "8 weeks · 4 days" — precise weeks + days for capture/journal timestamps. */
+export function preciseAge(birthISO: string | null | undefined, at = new Date()): string | null {
+  const age = computeAge(birthISO, at);
+  if (!age) return null;
+  if (age.totalDays < 7) return `${age.totalDays} ${age.totalDays === 1 ? 'day' : 'days'}`;
+  const w = `${age.weeks} ${age.weeks === 1 ? 'week' : 'weeks'}`;
+  return age.days > 0 ? `${w} · ${age.days} ${age.days === 1 ? 'day' : 'days'}` : w;
+}
+
 export function formatLongDate(date: Date): string {
   return `${date.getDate()} ${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
 }

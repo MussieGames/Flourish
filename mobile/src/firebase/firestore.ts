@@ -1,5 +1,7 @@
 import {
   addDoc,
+  arrayRemove,
+  arrayUnion,
   collection,
   doc,
   getDoc,
@@ -77,6 +79,7 @@ function mapBaby(snap: QueryDocumentSnapshot<DocumentData>): Baby {
     memberIds: data.memberIds ?? [],
     name: data.name ?? '',
     birthDate: data.birthDate ?? null,
+    pendingInvites: data.pendingInvites ?? [],
     createdAt: data.createdAt ?? null,
     updatedAt: data.updatedAt ?? null,
   };
@@ -127,6 +130,21 @@ export async function updateBaby(
   await updateDoc(doc(babiesCol, babyId), data);
 }
 
+export async function addPendingInvite(babyId: string, email: string): Promise<void> {
+  const clean = email.trim().toLowerCase();
+  await updateDoc(doc(babiesCol, babyId), {
+    pendingInvites: arrayUnion(clean),
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function removePendingInvite(babyId: string, email: string): Promise<void> {
+  await updateDoc(doc(babiesCol, babyId), {
+    pendingInvites: arrayRemove(email),
+    updatedAt: serverTimestamp(),
+  });
+}
+
 // ── Milestones ─────────────────────────────────────────────────────
 async function seedMilestones(babyId: string, authorId: string): Promise<void> {
   const col = babySub(babyId, 'milestones');
@@ -140,14 +158,38 @@ async function seedMilestones(babyId: string, authorId: string): Promise<void> {
       babyId,
       key: first.key,
       label: first.label,
-      emoji: first.emoji,
+      icon: first.icon,
       typicalAge: first.typicalAge,
+      description: first.description,
+      typicalWeeksMax: first.typicalWeeksMax,
       status: 'upcoming',
+      custom: false,
       authorId,
       createdAt: serverTimestamp(),
     });
   }
   await batch.commit();
+}
+
+export async function addCustomMilestone(
+  babyId: string,
+  authorId: string,
+  label: string,
+): Promise<string> {
+  const clean = sanitizeText(label, 80) || 'A little first';
+  const ref = await addDoc(babySub(babyId, 'milestones'), {
+    babyId,
+    key: `custom-${Date.now()}`,
+    label: clean,
+    icon: 'star-outline',
+    typicalAge: 'Whenever it happens',
+    description: 'One of your own — a moment only your family would think to keep.',
+    status: 'upcoming',
+    custom: true,
+    authorId,
+    createdAt: serverTimestamp(),
+  });
+  return ref.id;
 }
 
 export function subscribeMilestones(

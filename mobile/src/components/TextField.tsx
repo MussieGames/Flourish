@@ -7,9 +7,10 @@ import {
 } from 'react-native';
 import { colors, fonts, radius } from '@/theme';
 import { AppText } from './Text';
+import { Icon, type IconName } from './Icon';
 
 interface Props extends TextInputProps {
-  icon?: string;
+  icon?: IconName;
   serif?: boolean;
   error?: string | null;
 }
@@ -26,7 +27,9 @@ export function TextField({ icon, serif, error, style, ...rest }: Props) {
           error ? styles.errored : null,
         ]}
       >
-        {icon ? <AppText style={styles.icon}>{icon}</AppText> : null}
+        {icon ? (
+          <Icon name={icon} size={18} color={colors.inkMuted} style={styles.icon} />
+        ) : null}
         <TextInput
           placeholderTextColor={colors.inkMuted}
           style={[
@@ -60,7 +63,7 @@ const styles = StyleSheet.create({
   },
   focused: { borderColor: colors.sienna },
   errored: { borderColor: colors.danger },
-  icon: { fontSize: 18, marginRight: 8 },
+  icon: { marginRight: 8 },
   input: { flex: 1, paddingVertical: 16, color: colors.ink },
   serif: { fontFamily: fonts.displayItalic, fontSize: 20 },
   sans: { fontFamily: fonts.body, fontSize: 15 },

@@ -36,3 +36,23 @@ export function greeting(now = new Date()): string {
   if (h < 18) return 'Good afternoon';
   return 'Good evening';
 }
+
+/**
+ * A warm, time-aware greeting. At the small hours it acknowledges the parent
+ * who's up feeding — the line people quote as "Flourish says the nicest things
+ * at 3am." Returns the full sentence (not uppercased).
+ */
+export function warmGreeting(now = new Date()): string {
+  const h = now.getHours();
+  if (h >= 0 && h < 5) return 'Still up? You’re doing something extraordinary right now.';
+  if (h < 12) return 'Good morning. A new day with them.';
+  if (h < 18) return 'Good afternoon.';
+  if (h < 22) return 'Good evening.';
+  return 'A quiet night together.';
+}
+
+/** True in the small hours — lets screens choose a gentler, nighttime tone. */
+export function isSmallHours(now = new Date()): boolean {
+  const h = now.getHours();
+  return h >= 0 && h < 5;
+}

@@ -1,4 +1,7 @@
 export { AppText } from './Text';
+export { Icon } from './Icon';
+export type { IconName } from './Icon';
+export { BrandMark } from './BrandMark';
 export { Button } from './Button';
 export { TextField } from './TextField';
 export { Hero } from './Hero';

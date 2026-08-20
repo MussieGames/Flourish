@@ -25,6 +25,8 @@ export interface Baby {
   name: string;
   /** ISO date string (yyyy-mm-dd) of birth. */
   birthDate: string | null;
+  /** Emails invited to view; access is activated on acceptance (server-side). */
+  pendingInvites?: string[];
   createdAt: Timestamp | null;
   updatedAt: Timestamp | null;
 }
@@ -51,9 +53,16 @@ export interface Milestone {
   babyId: string;
   key: string;
   label: string;
-  emoji: string;
+  /** Premium line-icon name (replaces the old `emoji`). */
+  icon?: string;
+  /** Legacy — kept for docs created before the icon migration. */
+  emoji?: string;
   typicalAge: string;
+  description?: string;
+  /** Approx end of the typical window (weeks) for the gentle "missed" state. */
+  typicalWeeksMax?: number;
   status: MilestoneStatus;
+  custom?: boolean;
   capturedAt?: Timestamp | null;
   createdAt: Timestamp | null;
 }

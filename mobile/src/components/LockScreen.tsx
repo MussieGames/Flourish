@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { colors } from '@/theme';
 import { AppText } from './Text';
 import { Button } from './Button';
+import { BrandMark } from './BrandMark';
 
 export function LockScreen({ onUnlock }: { onUnlock: () => Promise<boolean> }) {
   useEffect(() => {
@@ -12,7 +13,8 @@ export function LockScreen({ onUnlock }: { onUnlock: () => Promise<boolean> }) {
 
   return (
     <View style={styles.wrap}>
-      <AppText style={styles.emoji}>🌿</AppText>
+      <BrandMark size={40} color={colors.sage} />
+      <View style={styles.emoji} />
       <AppText variant="display" color={colors.cream} center>
         Flourish
       </AppText>
@@ -34,7 +36,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 32,
   },
-  emoji: { fontSize: 44, marginBottom: 12 },
+  emoji: { height: 12 },
   sub: { marginTop: 12, maxWidth: 240 },
   button: { marginTop: 32, alignSelf: 'stretch' },
 });

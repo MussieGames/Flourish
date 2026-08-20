@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { resolveDownloadUrl } from '@/firebase/storage';
 import type { MemoryKind } from '@/types/models';
-import { AppText } from './Text';
+import { Icon, type IconName } from './Icon';
 
 const GRADIENTS: [string, string][] = [
   ['#E8C4B0', '#C4907A'],
@@ -13,10 +13,10 @@ const GRADIENTS: [string, string][] = [
   ['#D4C4D8', '#B4A0C0'],
 ];
 
-const KIND_EMOJI: Record<MemoryKind, string> = {
-  photo: '📷',
-  video: '🎥',
-  note: '✍️',
+const KIND_ICON: Record<MemoryKind, IconName> = {
+  photo: 'camera-outline',
+  video: 'videocam-outline',
+  note: 'create-outline',
 };
 
 export function MemoryThumb({
@@ -54,7 +54,7 @@ export function MemoryThumb({
   return (
     <LinearGradient colors={gradient} style={[styles.placeholder, { height }]}>
       <View style={styles.center}>
-        <AppText style={styles.emoji}>{KIND_EMOJI[kind]}</AppText>
+        <Icon name={KIND_ICON[kind]} size={26} color="rgba(255,255,255,0.9)" />
       </View>
     </LinearGradient>
   );
@@ -64,5 +64,4 @@ const styles = StyleSheet.create({
   image: { width: '100%' },
   placeholder: { width: '100%', alignItems: 'center', justifyContent: 'center' },
   center: { alignItems: 'center', justifyContent: 'center' },
-  emoji: { fontSize: 30 },
 });

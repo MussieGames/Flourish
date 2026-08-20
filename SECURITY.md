@@ -82,13 +82,13 @@ data is sent to Firestore. The same limits are enforced again by Security Rules.
   safe to ship in the client. Authorization is enforced entirely server-side.
 - **No service-account keys or private API secrets** are ever placed in the
   client bundle.
-- The **Cloud Function** (`functions/index.js`) now reads its reCAPTCHA
-  Enterprise **API key from environment variables** instead of hard-coding it
-  (`functions/.env`, git-ignored). Input is validated, CORS is restricted to the
-  Flourish origins, only `POST` is accepted, and writes are idempotent.
-
-  > ⚠️ The reCAPTCHA API key was previously committed in source. It exists in
-  > git history and should be **rotated** in the Google Cloud console.
+- The **CTA Cloud Function** (`functions/index.js`, part of the marketing build)
+  verifies signups with the **reCAPTCHA Enterprise client library**
+  (`@google-cloud/recaptcha-enterprise`), which authenticates via the function's
+  runtime service account (Application Default Credentials) — so **no API key is
+  committed to source**. Only the *public* reCAPTCHA site key appears in code,
+  which is expected. Email confirmations are sent server-side via the Firestore
+  "Trigger Email" flow (`mail` / `auto_reply` collections, locked to clients).
 
 ## 8. Transport & platform
 

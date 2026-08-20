@@ -1,0 +1,46 @@
+rules_version = '2';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Flourish MOBILE APP — Cloud Storage Security Rules
+//
+// Belongs to the dedicated app Firebase project(s) (flourish-app /
+// flourish-app-dev). Photos & videos are stored under an owner-scoped,
+// unguessable path: babies/{babyId}/memories/{uid}/{file}
+//
+// Writes are locked to the authenticated uploader and validated for content
+// type and size (mirrors the client checks in src/firebase/storage.ts).
+//
+// NOTE on reads: Storage Rules cannot query Firestore, so they cannot verify
+// baby-membership here. Reads therefore require authentication plus knowledge
+// of the full, unguessable object path. For stricter per-member enforcement,
+// serve media via signed URLs from a Cloud Function or a custom-claims model.
+// ═══════════════════════════════════════════════════════════════════════════
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidMedia() {
+      return request.resource.size < 15 * 1024 * 1024
+        && (
+          request.resource.contentType.matches('image/.*')
+          || request.resource.contentType.matches('video/.*')
+        );
+    }
+
+    match /babies/{babyId}/memories/{uid}/{fileName} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn()
+        && request.auth.uid == uid
+        && isValidMedia();
+      allow delete: if isSignedIn() && request.auth.uid == uid;
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

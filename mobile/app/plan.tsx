@@ -5,9 +5,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText, Button, InfoBox } from '@/components';
 import { useAuth } from '@/context/AuthContext';
-import { updateUserPlan } from '@/firebase/firestore';
 import { colors, fonts, radius } from '@/theme';
-import type { PlanId } from '@/types/models';
 
 const SEEDLING_FEATURES = [
   '500 photos & videos',
@@ -36,21 +34,15 @@ const HEIRLOOM_FEATURES = [
 export default function Plan() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user, profile } = useAuth();
+  const { profile } = useAuth();
   const currentPlan = profile?.plan ?? 'seedling';
 
-  const choosePlan = (plan: PlanId, name: string) => {
+  const choosePlan = (name: string) => {
     Alert.alert(
       `Upgrade to ${name}`,
-      'In the production app this opens secure in-app billing via the App Store / Google Play. For this preview build we’ll switch your plan directly.',
+      'Secure in-app billing is not connected in this build yet, so your plan was not changed.',
       [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Continue',
-          onPress: () => {
-            if (user) updateUserPlan(user.uid, plan).catch(() => {});
-          },
-        },
+        { text: 'OK' },
       ],
     );
   };
@@ -118,7 +110,7 @@ export default function Plan() {
             <Button
               label={currentPlan === 'bloom' ? 'Your current plan' : 'Upgrade to Bloom'}
               disabled={currentPlan === 'bloom'}
-              onPress={() => choosePlan('bloom', 'Bloom')}
+              onPress={() => choosePlan('Bloom')}
             />
           </View>
         </View>
@@ -147,7 +139,7 @@ export default function Plan() {
             <Feature key={f} text={f} />
           ))}
           <View style={styles.cardButton}>
-            <Button label="Buy as a gift" variant="outline" onPress={() => choosePlan('heirloom', 'Heirloom')} />
+            <Button label="Buy as a gift" variant="outline" onPress={() => choosePlan('Heirloom')} />
           </View>
         </View>
       </View>

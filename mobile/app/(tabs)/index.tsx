@@ -17,7 +17,7 @@ import type { IconName } from '@/components';
 export default function Dashboard() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { activeBaby, emailVerified, resendVerification } = useAuth();
+  const { activeBaby, emailVerified, isOwner, resendVerification } = useAuth();
 
   const { items: memories } = useMemories(activeBaby?.id);
   const { items: milestones } = useMilestones(activeBaby?.id);
@@ -59,6 +59,11 @@ export default function Dashboard() {
             <AppText variant="caption" color={colors.onDark45}>{age.label}</AppText>
           </View>
         ) : null}
+        {!isOwner ? (
+          <AppText variant="caption" color={colors.onDark40} style={styles.viewOnly}>
+            View-only · the journal stays with {name}’s parent
+          </AppText>
+        ) : null}
 
         {showAlert && nextMilestone ? (
           <Pressable
@@ -94,28 +99,31 @@ export default function Dashboard() {
         </Pressable>
       ) : null}
 
-      {/* Daily journal prompt */}
-      <Pressable
-        style={styles.promptCard}
-        onPress={() => router.push({ pathname: '/journal-entry', params: { prompt } })}
-      >
-        <AppText variant="serifItalic" color={colors.inkLight} style={styles.promptText}>
-          “{prompt}”
-        </AppText>
-        <View style={styles.promptTapRow}>
-          <AppText variant="label" color={colors.sienna}>Write in journal</AppText>
-          <Icon name="arrow-forward" size={12} color={colors.sienna} />
-        </View>
-      </Pressable>
+      {isOwner ? (
+        <Pressable
+          style={styles.promptCard}
+          onPress={() => router.push({ pathname: '/journal-entry', params: { prompt } })}
+        >
+          <AppText variant="serifItalic" color={colors.inkLight} style={styles.promptText}>
+            “{prompt}”
+          </AppText>
+          <View style={styles.promptTapRow}>
+            <AppText variant="label" color={colors.sienna}>Write in journal</AppText>
+            <Icon name="arrow-forward" size={12} color={colors.sienna} />
+          </View>
+        </Pressable>
+      ) : null}
 
-      <View style={styles.section}>
-        <SectionLabel>Capture a moment</SectionLabel>
-        <View style={styles.quickRow}>
-          <QuickButton icon="camera-outline" label="Photo" onPress={() => router.push('/(tabs)/capture')} highlight />
-          <QuickButton icon="videocam-outline" label="Video" onPress={() => router.push('/(tabs)/capture')} />
-          <QuickButton icon="create-outline" label="Journal" onPress={() => router.push('/journal-entry')} />
+      {isOwner ? (
+        <View style={styles.section}>
+          <SectionLabel>Capture a moment</SectionLabel>
+          <View style={styles.quickRow}>
+            <QuickButton icon="camera-outline" label="Photo" onPress={() => router.push('/(tabs)/capture')} highlight />
+            <QuickButton icon="videocam-outline" label="Video" onPress={() => router.push('/(tabs)/capture')} />
+            <QuickButton icon="create-outline" label="Journal" onPress={() => router.push('/journal-entry')} />
+          </View>
         </View>
-      </View>
+      ) : null}
 
       <View style={styles.section}>
         <SectionLabel>Recent memories</SectionLabel>
@@ -203,6 +211,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginTop: 8,
   },
+  viewOnly: { marginTop: 10 },
   alert: {
     backgroundColor: 'rgba(193,123,92,0.14)',
     borderWidth: 1,

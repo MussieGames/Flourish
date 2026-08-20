@@ -6,6 +6,7 @@ import {
   signInWithEmailAndPassword,
   signOut,
   updateProfile,
+  type MultiFactorResolver,
   type User,
 } from 'firebase/auth';
 import {
@@ -26,6 +27,7 @@ import {
 } from '@/firebase/firestore';
 import type { Baby, UserProfile } from '@/types/models';
 import { checkPassword, isValidEmail } from '@/lib/validation';
+import { completeTotpSignIn, MfaRequiredError, resolverFromAuthError } from '@/lib/mfa';
 
 interface AuthContextValue {
   initializing: boolean;
@@ -36,7 +38,10 @@ interface AuthContextValue {
   babiesLoaded: boolean;
   activeBaby: Baby | null;
   setActiveBabyId: (id: string) => void;
+  isOwner: boolean;
   signIn: (email: string, password: string) => Promise<void>;
+  completeMfaSignIn: (code: string) => Promise<void>;
+  mfaPending: boolean;
   signUp: (email: string, password: string, babyName?: string) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   resendVerification: () => Promise<void>;
@@ -53,6 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [babies, setBabies] = useState<Baby[]>([]);
   const [babiesLoaded, setBabiesLoaded] = useState(false);
   const [activeBabyId, setActiveBabyId] = useState<string | null>(null);
+  const [mfaResolver, setMfaResolver] = useState<MultiFactorResolver | null>(null);
 
   const profileUnsub = useRef<(() => void) | null>(null);
   const babiesUnsub = useRef<(() => void) | null>(null);
@@ -99,8 +105,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const cleanEmail = email.trim().toLowerCase();
     if (!isValidEmail(cleanEmail)) throw new Error('Please enter a valid email address.');
     if (!password) throw new Error('Please enter your password.');
-    await signInWithEmailAndPassword(auth, cleanEmail, password);
+    try {
+      await signInWithEmailAndPassword(auth, cleanEmail, password);
+      setMfaResolver(null);
+    } catch (error) {
+      const resolver = resolverFromAuthError(error);
+      if (resolver) {
+        setMfaResolver(resolver);
+        throw new MfaRequiredError(resolver);
+      }
+      throw error;
+    }
   }, []);
+
+  const completeMfaSignIn = useCallback(async (code: string) => {
+    if (!mfaResolver) throw new Error('Enter your email and password first.');
+    await completeTotpSignIn(mfaResolver, code);
+    setMfaResolver(null);
+  }, [mfaResolver]);
 
   const signUp = useCallback(
     async (email: string, password: string, babyName?: string) => {
@@ -148,6 +170,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [babies, activeBabyId],
   );
 
+  const isOwner = Boolean(user && activeBaby && activeBaby.ownerId === user.uid);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       initializing,
@@ -158,7 +182,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       babiesLoaded,
       activeBaby,
       setActiveBabyId,
+      isOwner,
       signIn,
+      completeMfaSignIn,
+      mfaPending: Boolean(mfaResolver),
       signUp,
       resetPassword,
       resendVerification,
@@ -172,7 +199,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       babies,
       babiesLoaded,
       activeBaby,
+      isOwner,
       signIn,
+      completeMfaSignIn,
+      mfaResolver,
       signUp,
       resetPassword,
       resendVerification,

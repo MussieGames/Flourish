@@ -16,7 +16,7 @@ import { colors, radius } from '@/theme';
 export default function MilestoneMoment() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { activeBaby } = useAuth();
+  const { activeBaby, isOwner } = useAuth();
   const params = useLocalSearchParams<{ id?: string; key?: string; label?: string; preview?: string }>();
 
   const def = useMemo(() => defForKey(params.key), [params.key]);
@@ -109,20 +109,22 @@ export default function MilestoneMoment() {
               </AppText>
             ) : null}
             <View style={styles.actions}>
-              <Button label="I caught it" onPress={markCaught} />
+              {isOwner ? <Button label="I caught it" onPress={markCaught} /> : null}
               <Button label="Close" variant="ghost" onPress={() => router.back()} />
             </View>
           </>
         ) : (
           <>
-            <View style={styles.promptBox}>
-              <AppText variant="label" color={colors.sienna} style={styles.promptLabel}>Only you will ever read this —</AppText>
-              <AppText variant="serifItalic" color={colors.onDark60} style={styles.promptText}>
-                What were you feeling in this moment?
-              </AppText>
-            </View>
+            {isOwner ? (
+              <View style={styles.promptBox}>
+                <AppText variant="label" color={colors.sienna} style={styles.promptLabel}>Only you will ever read this —</AppText>
+                <AppText variant="serifItalic" color={colors.onDark60} style={styles.promptText}>
+                  What were you feeling in this moment?
+                </AppText>
+              </View>
+            ) : null}
             <View style={styles.actions}>
-              <Button label="Write it down" onPress={writeItDown} />
+              {isOwner ? <Button label="Write it down" onPress={writeItDown} /> : null}
               <Button label="Done" variant="ghost" onPress={() => router.replace('/(tabs)/firsts')} />
             </View>
           </>

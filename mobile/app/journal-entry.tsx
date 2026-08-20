@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -22,7 +22,7 @@ import { colors, fonts, radius } from '@/theme';
 export default function JournalEntry() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { activeBaby, user } = useAuth();
+  const { activeBaby, user, isOwner } = useAuth();
   const params = useLocalSearchParams<{ prompt?: string; milestone?: string }>();
 
   const prompt = useMemo(
@@ -34,10 +34,14 @@ export default function JournalEntry() {
   const [tagsText, setTagsText] = useState(params.milestone ? String(params.milestone) : '');
   const [saving, setSaving] = useState(false);
 
-  const canSave = sanitizeText(body, 4000).length > 0;
+  useEffect(() => {
+    if (activeBaby && !isOwner) router.back();
+  }, [activeBaby, isOwner, router]);
+
+  const canSave = sanitizeText(body, 4000).length > 0 && isOwner;
 
   const save = async () => {
-    if (!activeBaby || !user || !canSave) return;
+    if (!activeBaby || !user || !isOwner || !canSave) return;
     setSaving(true);
     try {
       const tags = tagsText

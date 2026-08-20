@@ -1,5 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -15,10 +15,14 @@ import type { Baby, JournalEntry } from '@/types/models';
 export default function Journal() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { activeBaby } = useAuth();
-  const { items: entries, loading } = useJournal(activeBaby?.id);
+  const { activeBaby, isOwner } = useAuth();
+  const { items: entries, loading } = useJournal(isOwner ? activeBaby?.id : undefined);
   const prompt = useMemo(() => dailyPrompt(activeBaby?.name), [activeBaby?.name]);
   const name = activeBaby?.name ?? 'Baby';
+
+  if (activeBaby && !isOwner) {
+    return <Redirect href="/(tabs)" />;
+  }
 
   return (
     <ScrollView style={styles.flex} showsVerticalScrollIndicator={false}>

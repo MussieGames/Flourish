@@ -11,13 +11,15 @@ import {
 import { AppText, BrandMark, Button, Hero, TextField } from '@/components';
 import { useAuth } from '@/context/AuthContext';
 import { friendlyAuthError } from '@/lib/errors';
+import { isMfaRequiredError } from '@/lib/mfa';
 import { colors } from '@/theme';
 
 export default function SignIn() {
-  const { signIn } = useAuth();
+  const { signIn, completeMfaSignIn, mfaPending } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [mfaCode, setMfaCode] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,9 +27,17 @@ export default function SignIn() {
     setError(null);
     setSubmitting(true);
     try {
-      await signIn(email, password);
+      if (mfaPending) {
+        await completeMfaSignIn(mfaCode);
+      } else {
+        await signIn(email, password);
+      }
     } catch (e) {
-      setError(friendlyAuthError(e));
+      if (isMfaRequiredError(e)) {
+        setError('Enter the 6-digit code from your authenticator app.');
+      } else {
+        setError(friendlyAuthError(e));
+      }
     } finally {
       setSubmitting(false);
     }
@@ -67,18 +77,37 @@ export default function SignIn() {
             keyboardType="email-address"
             autoComplete="email"
             textContentType="emailAddress"
+            editable={!mfaPending}
           />
-          <View style={styles.gap}>
-            <TextField
-              icon="lock-closed-outline"
-              placeholder="Password"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              autoComplete="current-password"
-              textContentType="password"
-            />
-          </View>
+          {mfaPending ? (
+            <View style={styles.gap}>
+              <TextField
+                icon="key-outline"
+                placeholder="6-digit authenticator code"
+                value={mfaCode}
+                onChangeText={(value) => setMfaCode(value.replace(/\D/g, '').slice(0, 6))}
+                keyboardType="number-pad"
+                autoComplete="one-time-code"
+                textContentType="oneTimeCode"
+                maxLength={6}
+              />
+              <AppText variant="caption" color={colors.inkMuted} style={styles.mfaHint}>
+                Open your authenticator app. Flourish never uses text messages.
+              </AppText>
+            </View>
+          ) : (
+            <View style={styles.gap}>
+              <TextField
+                icon="lock-closed-outline"
+                placeholder="Password"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                autoComplete="current-password"
+                textContentType="password"
+              />
+            </View>
+          )}
 
           <Link href="/(auth)/forgot-password" asChild>
             <Pressable hitSlop={8} style={styles.forgot}>
@@ -95,7 +124,7 @@ export default function SignIn() {
           ) : null}
 
           <View style={styles.button}>
-            <Button label="Sign in" loading={submitting} onPress={handleSubmit} />
+            <Button label={mfaPending ? 'Verify' : 'Sign in'} loading={submitting} onPress={handleSubmit} />
           </View>
 
           <Link href="/(auth)/welcome" asChild>
@@ -122,6 +151,7 @@ const styles = StyleSheet.create({
   heroPara: { marginTop: 12 },
   form: { paddingHorizontal: 24, paddingTop: 32 },
   gap: { marginTop: 12 },
+  mfaHint: { marginTop: 8, lineHeight: 18 },
   forgot: { alignSelf: 'flex-end', marginTop: 12 },
   error: { marginTop: 12 },
   button: { marginTop: 24 },

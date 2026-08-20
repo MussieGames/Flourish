@@ -11,6 +11,7 @@ import {
   orderBy,
   query,
   serverTimestamp,
+  Timestamp,
   setDoc,
   updateDoc,
   where,
@@ -24,6 +25,8 @@ import { sanitizeName, sanitizeText } from '@/lib/validation';
 import type {
   Baby,
   CalendarEvent,
+  FamilyInvite,
+  InviteStatus,
   JournalEntry,
   Memory,
   Milestone,
@@ -34,6 +37,7 @@ import type { User } from 'firebase/auth';
 
 const usersCol = collection(db, 'users');
 const babiesCol = collection(db, 'babies');
+const invitesCol = collection(db, 'invites');
 
 const babySub = (babyId: string, name: string) =>
   collection(db, 'babies', babyId, name);
@@ -64,10 +68,6 @@ export function subscribeUserProfile(
     (snap) => cb(snap.exists() ? ({ uid, ...snap.data() } as UserProfile) : null),
     (err) => onError?.(err),
   );
-}
-
-export async function updateUserPlan(uid: string, plan: PlanId): Promise<void> {
-  await updateDoc(doc(usersCol, uid), { plan });
 }
 
 // ── Babies ─────────────────────────────────────────────────────────
@@ -130,19 +130,90 @@ export async function updateBaby(
   await updateDoc(doc(babiesCol, babyId), data);
 }
 
-export async function addPendingInvite(babyId: string, email: string): Promise<void> {
+export async function createFamilyInvite(babyId: string, invitedBy: string, email: string): Promise<string> {
   const clean = email.trim().toLowerCase();
-  await updateDoc(doc(babiesCol, babyId), {
-    pendingInvites: arrayUnion(clean),
-    updatedAt: serverTimestamp(),
+  const ref = doc(invitesCol);
+  await setDoc(ref, {
+    babyId,
+    email: clean,
+    invitedBy,
+    status: 'pending' satisfies InviteStatus,
+    claimedByUid: null,
+    expiresAt: Timestamp.fromMillis(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    createdAt: serverTimestamp(),
+  });
+  return ref.id;
+}
+
+export async function revokeFamilyInvite(inviteId: string): Promise<void> {
+  await updateDoc(doc(invitesCol, inviteId), { status: 'revoked' satisfies InviteStatus });
+}
+
+export async function claimFamilyInvite(inviteId: string, uid: string): Promise<void> {
+  await updateDoc(doc(invitesCol, inviteId), {
+    status: 'claimed' satisfies InviteStatus,
+    claimedByUid: uid,
   });
 }
 
-export async function removePendingInvite(babyId: string, email: string): Promise<void> {
+export async function confirmFamilyInvite(babyId: string, invite: FamilyInvite): Promise<void> {
+  if (!invite.claimedByUid) throw new Error('That invite has not been claimed yet.');
   await updateDoc(doc(babiesCol, babyId), {
-    pendingInvites: arrayRemove(email),
+    memberIds: arrayUnion(invite.claimedByUid),
+    lastInviteId: invite.id,
     updatedAt: serverTimestamp(),
   });
+  await updateDoc(doc(invitesCol, invite.id), { status: 'confirmed' satisfies InviteStatus });
+}
+
+export async function revokeFamilyMember(babyId: string, uid: string, inviteId?: string): Promise<void> {
+  await updateDoc(doc(babiesCol, babyId), {
+    memberIds: arrayRemove(uid),
+    updatedAt: serverTimestamp(),
+  });
+  if (inviteId) {
+    await updateDoc(doc(invitesCol, inviteId), { status: 'revoked' satisfies InviteStatus });
+  }
+}
+
+function mapInvite(snap: QueryDocumentSnapshot<DocumentData>): FamilyInvite {
+  const data = snap.data();
+  return {
+    id: snap.id,
+    babyId: data.babyId,
+    email: data.email,
+    invitedBy: data.invitedBy,
+    status: data.status,
+    claimedByUid: data.claimedByUid ?? null,
+    expiresAt: data.expiresAt ?? null,
+    createdAt: data.createdAt ?? null,
+  };
+}
+
+export function subscribeBabyInvites(
+  babyId: string,
+  cb: (invites: FamilyInvite[]) => void,
+  onError?: (e: Error) => void,
+): () => void {
+  const q = query(invitesCol, where('babyId', '==', babyId));
+  return onSnapshot(
+    q,
+    (snap) => cb(snap.docs.map(mapInvite)),
+    (err) => onError?.(err),
+  );
+}
+
+export function subscribeIncomingInvites(
+  email: string,
+  cb: (invites: FamilyInvite[]) => void,
+  onError?: (e: Error) => void,
+): () => void {
+  const q = query(invitesCol, where('email', '==', email.trim().toLowerCase()));
+  return onSnapshot(
+    q,
+    (snap) => cb(snap.docs.map(mapInvite).filter((i) => i.status === 'pending' || i.status === 'claimed')),
+    (err) => onError?.(err),
+  );
 }
 
 // ── Milestones ─────────────────────────────────────────────────────
@@ -330,7 +401,15 @@ export function subscribeJournal(
   return onSnapshot(
     q,
     (snap) => cb(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as JournalEntry)),
-    (err) => onError?.(err),
+    (err) => {
+      // Members are not allowed to read the journal — treat as empty, not a crash.
+      const code = typeof err === 'object' && err && 'code' in err ? String((err as { code: unknown }).code) : '';
+      if (code.includes('permission-denied')) {
+        cb([]);
+        return;
+      }
+      onError?.(err);
+    },
   );
 }
 

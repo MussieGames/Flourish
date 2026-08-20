@@ -93,24 +93,47 @@ export { app };
  * web working and is a no-op (with a note) on native.
  */
 export async function initAppCheck(): Promise<void> {
-  if (Platform.OS !== 'web') {
-    return;
-  }
-  const recaptchaKey = process.env.EXPO_PUBLIC_FIREBASE_APPCHECK_RECAPTCHA_KEY;
-  if (!recaptchaKey) {
-    return;
-  }
   try {
-    const { initializeAppCheck, ReCaptchaV3Provider } = await import(
-      'firebase/app-check'
-    );
-    if (process.env.EXPO_PUBLIC_FIREBASE_APPCHECK_DEBUG === '1') {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (globalThis as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+    const {
+      initializeAppCheck,
+      ReCaptchaV3Provider,
+      CustomProvider,
+    } = await import('firebase/app-check');
+
+    if (Platform.OS === 'web') {
+      const recaptchaKey = process.env.EXPO_PUBLIC_FIREBASE_APPCHECK_RECAPTCHA_KEY;
+      if (!recaptchaKey) return;
+      if (process.env.EXPO_PUBLIC_FIREBASE_APPCHECK_DEBUG === '1') {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (globalThis as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+      }
+      initializeAppCheck(app, {
+        provider: new ReCaptchaV3Provider(recaptchaKey),
+        isTokenAutoRefreshEnabled: true,
+      });
+      return;
+    }
+
+    // Native: a console-registered debug token lets us turn enforcement on in
+    // development. Production App Attest / Play Integrity needs a native
+    // development build — see SECURITY.md. Never SMS.
+    const debugToken = process.env.EXPO_PUBLIC_FIREBASE_APPCHECK_DEBUG_TOKEN;
+    if (!debugToken) {
+      if (__DEV__) {
+        console.warn(
+          '[Flourish] App Check: set EXPO_PUBLIC_FIREBASE_APPCHECK_DEBUG_TOKEN to attest native debug builds.',
+        );
+      }
+      return;
     }
     initializeAppCheck(app, {
-      provider: new ReCaptchaV3Provider(recaptchaKey),
-      isTokenAutoRefreshEnabled: true,
+      provider: new CustomProvider({
+        getToken: async () => ({
+          token: debugToken,
+          expireTimeMillis: Date.now() + 60 * 60 * 1000,
+        }),
+      }),
+      isTokenAutoRefreshEnabled: false,
     });
   } catch (error) {
     console.warn('[Flourish] App Check init skipped:', error);

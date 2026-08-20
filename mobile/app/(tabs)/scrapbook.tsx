@@ -15,9 +15,9 @@ import { colors, fonts, radius } from '@/theme';
 export default function Scrapbook() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { activeBaby } = useAuth();
+  const { activeBaby, isOwner } = useAuth();
   const { items: memories, loading } = useMemories(activeBaby?.id);
-  const { items: journal } = useJournal(activeBaby?.id);
+  const { items: journal } = useJournal(isOwner ? activeBaby?.id : undefined);
   const [printView, setPrintView] = useState(false);
 
   const age = computeAge(activeBaby?.birthDate);
@@ -67,7 +67,11 @@ export default function Scrapbook() {
           <EmptyState
             icon="book-outline"
             title="The first page is waiting"
-            subtitle="Capture a photo, video or journal entry and it will appear here — kept private and safe."
+            subtitle={
+              isOwner
+                ? 'Capture a photo, video or journal entry and it will appear here — kept private and safe.'
+                : 'Photos and firsts shared with you will appear here. The journal stays with the parent.'
+            }
           />
         ) : (
           <>
@@ -96,7 +100,7 @@ export default function Scrapbook() {
               </View>
             ) : null}
 
-            {latestNote ? (
+            {isOwner && latestNote ? (
               <View style={styles.journalBox}>
                 <AppText variant="label" color={colors.sienna} style={styles.journalPrompt}>Only you will ever read this —</AppText>
                 <AppText variant="serifItalic" color={colors.inkLight} style={styles.journalText} numberOfLines={3}>

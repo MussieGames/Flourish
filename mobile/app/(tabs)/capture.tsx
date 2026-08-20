@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -28,7 +28,7 @@ interface Picked {
 export default function Capture() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { activeBaby, user } = useAuth();
+  const { activeBaby, user, isOwner } = useAuth();
   const { items: milestones } = useMilestones(activeBaby?.id);
   const ageWeeks = computeAge(activeBaby?.birthDate)?.weeks ?? 0;
   const nextMilestone = useMemo(
@@ -66,6 +66,10 @@ export default function Capture() {
       kind: isVideo ? 'video' : 'photo',
     });
   };
+
+  if (activeBaby && !isOwner) {
+    return <Redirect href="/(tabs)" />;
+  }
 
   const persist = async (markMilestone: boolean) => {
     if (!picked || !activeBaby || !user) return;

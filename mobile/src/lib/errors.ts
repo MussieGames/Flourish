@@ -20,6 +20,11 @@ export function friendlyAuthError(error: unknown): string {
       return 'Email or password is incorrect.';
     case 'auth/too-many-requests':
       return 'Too many attempts. Please wait a moment and try again.';
+    case 'auth/multi-factor-auth-required':
+      return 'Enter the 6-digit code from your authenticator app.';
+    case 'auth/invalid-verification-code':
+    case 'auth/invalid-verification-id':
+      return 'That authenticator code didn’t work. Try a fresh one.';
     case 'auth/network-request-failed':
       return 'Network error. Please check your connection and try again.';
     case 'auth/requires-recent-login':

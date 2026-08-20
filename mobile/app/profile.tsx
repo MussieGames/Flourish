@@ -1,13 +1,22 @@
 import { useRouter } from 'expo-router';
+import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText, BrandMark, Icon, InfoBox, SectionLabel } from '@/components';
+import { AppText, BrandMark, Button, Icon, InfoBox, SectionLabel, TextField } from '@/components';
 import type { IconName } from '@/components';
 import { useAuth } from '@/context/AuthContext';
 import { useAppLock } from '@/context/AppLockContext';
 import { useReminders } from '@/context/RemindersContext';
 import { useMemories } from '@/hooks/useBabyData';
 import { computeAge } from '@/lib/age';
+import { friendlyAuthError } from '@/lib/errors';
+import {
+  finishTotpEnrollment,
+  startTotpEnrollment,
+  totpEnrollment,
+  unenrollTotp,
+  type TotpSecret,
+} from '@/lib/mfa';
 import { hasSharingAccess, seedlingUsage } from '@/lib/plans';
 import { colors, fonts, radius } from '@/theme';
 import type { PlanId } from '@/types/models';
@@ -21,7 +30,7 @@ const PLAN_NAMES: Record<PlanId, string> = {
 export default function Profile() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user, profile, activeBaby, emailVerified, signOutUser, resendVerification, resetPassword } = useAuth();
+  const { user, profile, activeBaby, emailVerified, isOwner, signOutUser, resendVerification, resetPassword } = useAuth();
   const { supported, enabled, setEnabled, confirmIdentity, biometricLabel } = useAppLock();
   const {
     enabled: remindersOn,
@@ -39,6 +48,10 @@ export default function Profile() {
   const videos = memories.filter((m) => m.kind === 'video').length;
   const usage = seedlingUsage(photos, videos);
   const lockName = biometricLabel === 'fingerprint' ? 'your fingerprint' : biometricLabel;
+  const [totpSecret, setTotpSecret] = useState<TotpSecret | null>(null);
+  const [totpCode, setTotpCode] = useState('');
+  const [mfaBusy, setMfaBusy] = useState(false);
+  const [totpOn, setTotpOn] = useState(() => totpEnrollment(user).enrolled);
 
   const toggleLock = async (next: boolean) => {
     const ok = await setEnabled(next);
@@ -61,6 +74,80 @@ export default function Profile() {
     } catch {
       Alert.alert('Hmm', 'Couldn’t send a reset email right now. Try again shortly.');
     }
+  };
+
+  const startAuthenticator = async () => {
+    if (!user) return;
+    const ok = await confirmIdentity('Confirm it’s you to turn on an authenticator app');
+    if (!ok) return;
+    setMfaBusy(true);
+    try {
+      const secret = await startTotpEnrollment(user);
+      setTotpSecret(secret);
+      setTotpCode('');
+    } catch (err) {
+      Alert.alert(
+        'Couldn’t start authenticator',
+        (err as { code?: string }).code === 'auth/requires-recent-login'
+          ? 'For safety, please sign out and sign back in, then try again.'
+          : friendlyAuthError(err),
+      );
+    } finally {
+      setMfaBusy(false);
+    }
+  };
+
+  const confirmAuthenticator = async () => {
+    if (!user || !totpSecret || totpCode.length !== 6) return;
+    setMfaBusy(true);
+    try {
+      await finishTotpEnrollment(user, totpSecret, totpCode);
+      setTotpSecret(null);
+      setTotpCode('');
+      setTotpOn(true);
+      Alert.alert(
+        'Authenticator on',
+        'You’ll need a code from your authenticator app the next time you sign in. Flourish never uses text messages.',
+      );
+    } catch (err) {
+      Alert.alert('That code didn’t work', friendlyAuthError(err));
+    } finally {
+      setMfaBusy(false);
+    }
+  };
+
+  const removeAuthenticator = () => {
+    if (!user) return;
+    Alert.alert(
+      'Turn off authenticator?',
+      'You’ll be able to sign in with just your password again.',
+      [
+        { text: 'Keep it on', style: 'cancel' },
+        {
+          text: 'Turn off',
+          style: 'destructive',
+          onPress: async () => {
+            const ok = await confirmIdentity('Confirm it’s you to turn off your authenticator');
+            if (!ok) return;
+            setMfaBusy(true);
+            try {
+              await unenrollTotp(user);
+              setTotpOn(false);
+              Alert.alert('Authenticator off', 'Your account now signs in with email and password only.');
+            } catch (err) {
+              Alert.alert(
+                'Couldn’t turn it off',
+                (err as { code?: string }).code === 'auth/requires-recent-login'
+                  ? 'For safety, please sign out and sign back in, then try again.'
+                  : friendlyAuthError(err),
+              );
+            } finally {
+              setMfaBusy(false);
+            }
+          },
+        },
+      ],
+    );
   };
 
   const confirmSignOut = () => {
@@ -119,7 +206,14 @@ export default function Profile() {
           onPress={() => router.push('/sharing')}
         />
         <Row icon="calendar-outline" label="Memory calendar" onPress={() => router.push('/calendar')} />
-        <Row icon="create-outline" label="Journal" sublabel="The things photos can’t capture" onPress={() => router.push('/(tabs)/journal')} />
+        {isOwner ? (
+          <Row
+            icon="create-outline"
+            label="Journal"
+            sublabel="The things photos can’t capture · private to you"
+            onPress={() => router.push('/(tabs)/journal')}
+          />
+        ) : null}
 
         <SectionLabel>Privacy &amp; security</SectionLabel>
         <View style={styles.row}>
@@ -148,6 +242,54 @@ export default function Profile() {
           sublabel={`We’ll confirm with ${lockName}, then email a link`}
           onPress={sendReset}
         />
+        {totpOn && !totpSecret ? (
+          <Row
+            icon="shield-checkmark-outline"
+            label="Authenticator on"
+            sublabel="Tap to turn off · no texts"
+            onPress={removeAuthenticator}
+          />
+        ) : totpSecret ? (
+          <View style={styles.totpCard}>
+            <AppText variant="bodyMedium">Add this key to your authenticator app</AppText>
+            <AppText selectable variant="caption" color={colors.ink} style={styles.totpSecret}>
+              {totpSecret.secretKey}
+            </AppText>
+            <AppText variant="caption" style={styles.totpHelp}>
+              Google Authenticator, 1Password, or Authy. Then enter the 6-digit code. Flourish never sends codes by text.
+            </AppText>
+            <View style={styles.totpField}>
+              <TextField
+                icon="key-outline"
+                placeholder="000000"
+                value={totpCode}
+                onChangeText={(value) => setTotpCode(value.replace(/\D/g, '').slice(0, 6))}
+                keyboardType="number-pad"
+                maxLength={6}
+                autoComplete="one-time-code"
+                textContentType="oneTimeCode"
+              />
+            </View>
+            <Button
+              label={mfaBusy ? 'Checking…' : 'Turn on authenticator'}
+              loading={mfaBusy}
+              disabled={mfaBusy || totpCode.length !== 6}
+              onPress={() => void confirmAuthenticator()}
+            />
+            <Pressable onPress={() => { setTotpSecret(null); setTotpCode(''); }} style={styles.totpCancel}>
+              <AppText variant="caption" color={colors.inkMuted} center>
+                Cancel
+              </AppText>
+            </Pressable>
+          </View>
+        ) : (
+          <Row
+            icon="shield-outline"
+            label="Authenticator app"
+            sublabel="Off · a code at sign-in, never SMS"
+            onPress={() => void startAuthenticator()}
+          />
+        )}
         <View style={styles.row}>
           <View style={styles.rowIcon}>
             <Icon name="notifications-outline" size={20} color={colors.sienna} />
@@ -286,6 +428,23 @@ const styles = StyleSheet.create({
   },
   meterFill: { height: 6, borderRadius: 3, backgroundColor: colors.sienna },
   meterHint: { marginTop: 8 },
+  totpCard: {
+    backgroundColor: colors.warm,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    padding: 16,
+    marginBottom: 10,
+  },
+  totpSecret: {
+    marginTop: 10,
+    fontFamily: fonts.bodyMedium,
+    letterSpacing: 1.2,
+    lineHeight: 20,
+  },
+  totpHelp: { marginTop: 8, lineHeight: 18 },
+  totpField: { marginTop: 12, marginBottom: 12 },
+  totpCancel: { marginTop: 10, paddingVertical: 6 },
   promise: { marginTop: 12 },
   promiseRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
   promiseText: { flex: 1, lineHeight: 18 },

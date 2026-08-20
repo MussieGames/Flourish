@@ -25,7 +25,7 @@ import type { Milestone } from '@/types/models';
 export default function Firsts() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { activeBaby, user } = useAuth();
+  const { activeBaby, user, isOwner } = useAuth();
   const { enabled: remindersOn } = useReminders();
   const { items: milestones } = useMilestones(activeBaby?.id);
 
@@ -114,7 +114,7 @@ export default function Firsts() {
       ) : null}
 
       <View style={styles.body}>
-        {adding ? (
+        {isOwner && adding ? (
           <View style={styles.addComposer}>
             <TextInput
               value={newLabel}
@@ -130,14 +130,14 @@ export default function Firsts() {
               <View style={styles.flex1}><Button label="Add first" loading={savingCustom} disabled={!newLabel.trim()} onPress={addCustom} /></View>
             </View>
           </View>
-        ) : (
+        ) : isOwner ? (
           <Pressable style={styles.addRow} onPress={() => setAdding(true)}>
             <View style={styles.addIcon}><Icon name="add" size={18} color={colors.sienna} /></View>
             <AppText variant="caption" color={colors.inkLight} style={styles.flex1}>
               Add your own — first day of school, first sleepover, first laugh at the dog…
             </AppText>
           </Pressable>
-        )}
+        ) : null}
 
         {groupedUpcoming.map((group) => (
           <View key={group.label}>
@@ -149,9 +149,13 @@ export default function Firsts() {
                   <AppText variant="bodyMedium">{m.label}</AppText>
                   <AppText variant="caption">{m.typicalAge}</AppText>
                 </View>
-                <Pressable style={styles.markBtn} onPress={() => onCapture(m)}>
-                  <AppText variant="label" color={colors.white} style={styles.markLabel}>Caught</AppText>
-                </Pressable>
+                {isOwner ? (
+                  <Pressable style={styles.markBtn} onPress={() => onCapture(m)}>
+                    <AppText variant="label" color={colors.white} style={styles.markLabel}>Caught</AppText>
+                  </Pressable>
+                ) : (
+                  <Icon name="chevron-forward" size={18} color={colors.inkMuted} />
+                )}
               </Pressable>
             ))}
           </View>
@@ -183,12 +187,14 @@ export default function Firsts() {
                 <AppText variant="bodyMedium">{m.label}</AppText>
                 <AppText variant="caption" style={styles.missedNote}>{grace}</AppText>
               </View>
-              <Pressable
-                style={styles.writeBtn}
-                onPress={() => router.push({ pathname: '/journal-entry', params: { prompt: `What do you remember about ${activeBaby?.name ?? 'their'} ${m.label.toLowerCase()}?`, milestone: m.label } })}
-              >
-                <AppText variant="label" color={colors.sienna} style={styles.markLabel}>Write it</AppText>
-              </Pressable>
+              {isOwner ? (
+                <Pressable
+                  style={styles.writeBtn}
+                  onPress={() => router.push({ pathname: '/journal-entry', params: { prompt: `What do you remember about ${activeBaby?.name ?? 'their'} ${m.label.toLowerCase()}?`, milestone: m.label } })}
+                >
+                  <AppText variant="label" color={colors.sienna} style={styles.markLabel}>Write it</AppText>
+                </Pressable>
+              ) : null}
             </View>
           );
         })}

@@ -27,8 +27,23 @@ export interface Baby {
   birthDate: string | null;
   /** Emails invited to view; access is activated on acceptance (server-side). */
   pendingInvites?: string[];
+  /** Invite id used when confirming a claimed member (rules-checked). */
+  lastInviteId?: string | null;
   createdAt: Timestamp | null;
   updatedAt: Timestamp | null;
+}
+
+export type InviteStatus = 'pending' | 'claimed' | 'confirmed' | 'revoked';
+
+export interface FamilyInvite {
+  id: string;
+  babyId: string;
+  email: string;
+  invitedBy: string;
+  status: InviteStatus;
+  claimedByUid: string | null;
+  expiresAt: Timestamp | null;
+  createdAt: Timestamp | null;
 }
 
 export type MemoryKind = 'photo' | 'video' | 'note';

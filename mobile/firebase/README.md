@@ -7,7 +7,7 @@ kept completely separate from the marketing/CTA project (`flourish-7b8c8`).
 |------|---------|
 | `firestore.rules` | App Firestore rules (users, babies, memories, …) |
 | `storage.rules` | App Cloud Storage rules (photos/videos) |
-| `firestore.indexes.json` | Composite indexes (empty for now) |
+| `firestore.indexes.json` | Composite indexes for family invites (`email+status`, `babyId+status`) |
 | `firebase.json` | Deploy config for the above |
 | `.firebaserc` | Project aliases: `development` (default) and `production` |
 
@@ -28,10 +28,10 @@ Run these from **inside this folder** (`mobile/firebase/`):
 cd mobile/firebase
 
 # Deploy to the DEV project (the default alias)
-firebase deploy --only firestore:rules,storage:rules
+firebase deploy --only firestore:rules,firestore:indexes,storage:rules
 
 # Deploy to PRODUCTION
-firebase deploy -P production --only firestore:rules,storage:rules
+firebase deploy -P production --only firestore:rules,firestore:indexes,storage:rules
 ```
 
 > These commands never touch the marketing/CTA project — that project's rules

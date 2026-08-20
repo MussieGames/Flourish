@@ -3,14 +3,13 @@ rules_version = '2';
 // ═══════════════════════════════════════════════════════════════════════════
 // Flourish MOBILE APP — Firestore Security Rules
 //
-// These rules belong to the DEDICATED app Firebase project(s)
-// (flourish-app / flourish-app-dev) — NOT the marketing/CTA project.
-// The CTA/waitlist rules live separately in /firestore.rules at the repo root.
+// Dedicated app projects (flourish-app / flourish-app-dev) — NOT the CTA.
 //
-// Security model: a baby's data is private by default. Every document is owned
-// by exactly one parent (`ownerId`) and visible only to an explicit allow-list
-// of family members (`memberIds`). No public reads, no cross-account access.
-// Every write is shape-validated. Default-deny everything else.
+// - Default deny.
+// - Journal is owner-only. Invited family never see it.
+// - Members (once confirmed) are view-only: memories, firsts, calendar.
+// - Plan is set to seedling on create and cannot be changed by the client.
+// - memberIds only grows by confirming a claimed, unexpired invite.
 // ═══════════════════════════════════════════════════════════════════════════
 
 service cloud.firestore {
@@ -22,6 +21,16 @@ service cloud.firestore {
 
     function isUser(uid) {
       return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function authEmail() {
+      return request.auth.token.email is string
+        ? request.auth.token.email.lower()
+        : '';
     }
 
     function babyData(babyId) {
@@ -44,19 +53,97 @@ service cloud.firestore {
       return value is string && value.size() <= max;
     }
 
+    function invitePath(inviteId) {
+      return /databases/$(database)/documents/invites/$(inviteId);
+    }
+
+    function addingClaimedMember(babyId) {
+      return request.resource.data.lastInviteId is string
+        && exists(invitePath(request.resource.data.lastInviteId))
+        && get(invitePath(request.resource.data.lastInviteId)).data.babyId == babyId
+        && get(invitePath(request.resource.data.lastInviteId)).data.status == 'claimed'
+        && get(invitePath(request.resource.data.lastInviteId)).data.claimedByUid is string
+        && get(invitePath(request.resource.data.lastInviteId)).data.expiresAt > request.time
+        && !resource.data.memberIds.hasAny([get(invitePath(request.resource.data.lastInviteId)).data.claimedByUid])
+        && request.resource.data.memberIds.hasAll(resource.data.memberIds)
+        && request.resource.data.memberIds.size() == resource.data.memberIds.size() + 1
+        && request.resource.data.memberIds.hasAny([get(invitePath(request.resource.data.lastInviteId)).data.claimedByUid]);
+    }
+
+    function removingMembers() {
+      return resource.data.memberIds.hasAll(request.resource.data.memberIds)
+        && request.resource.data.ownerId in request.resource.data.memberIds
+        && request.resource.data.memberIds.size() < resource.data.memberIds.size();
+    }
+
     // ── Users ──────────────────────────────────────────────────────────
     match /users/{uid} {
       allow read: if isUser(uid);
 
       allow create: if isUser(uid)
         && request.resource.data.uid == uid
-        && request.resource.data.plan in ['seedling', 'bloom', 'heirloom'];
+        && request.resource.data.plan == 'seedling';
 
       allow update: if isUser(uid)
         && request.resource.data.uid == resource.data.uid
-        && request.resource.data.plan in ['seedling', 'bloom', 'heirloom'];
+        && request.resource.data.plan == resource.data.plan;
 
       allow delete: if false;
+    }
+
+    // ── Family invites (top-level so the recipient can see theirs) ─────
+    match /invites/{inviteId} {
+      allow read: if isSignedIn() && (
+        resource.data.invitedBy == request.auth.uid
+        || isOwner(resource.data.babyId)
+        || authEmail() == resource.data.email
+      );
+
+      allow create: if isVerified()
+        && isOwner(request.resource.data.babyId)
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.plan in ['bloom', 'heirloom']
+        && request.resource.data.invitedBy == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.claimedByUid == null
+        && isNonEmptyString(request.resource.data.email, 320)
+        && request.resource.data.email == request.resource.data.email.lower()
+        && request.resource.data.email != authEmail()
+        && request.resource.data.expiresAt is timestamp
+        && request.resource.data.expiresAt > request.time
+        && request.resource.data.expiresAt < request.time + duration.value(15, 'd');
+
+      allow update: if isSignedIn() && (
+        // Recipient claims the invite (must be that exact verified email).
+        (
+          isVerified()
+          && authEmail() == resource.data.email
+          && resource.data.status == 'pending'
+          && resource.data.expiresAt > request.time
+          && request.resource.data.status == 'claimed'
+          && request.resource.data.claimedByUid == request.auth.uid
+          && request.resource.data.email == resource.data.email
+          && request.resource.data.babyId == resource.data.babyId
+          && request.resource.data.invitedBy == resource.data.invitedBy
+        )
+        ||
+        // Owner confirms after adding the claimed uid to memberIds.
+        (
+          isOwner(resource.data.babyId)
+          && resource.data.status == 'claimed'
+          && request.resource.data.status == 'confirmed'
+          && request.resource.data.claimedByUid == resource.data.claimedByUid
+          && request.resource.data.babyId == resource.data.babyId
+        )
+        ||
+        // Owner revokes at any time before or after access.
+        (
+          isOwner(resource.data.babyId)
+          && request.resource.data.status == 'revoked'
+          && request.resource.data.babyId == resource.data.babyId
+        )
+      );
+
+      allow delete: if isSignedIn() && isOwner(resource.data.babyId);
     }
 
     // ── Babies ─────────────────────────────────────────────────────────
@@ -72,57 +159,59 @@ service cloud.firestore {
       allow update: if isOwner(babyId)
         && request.resource.data.ownerId == resource.data.ownerId
         && request.resource.data.ownerId in request.resource.data.memberIds
-        && isNonEmptyString(request.resource.data.name, 40);
+        && isNonEmptyString(request.resource.data.name, 40)
+        && (
+          request.resource.data.memberIds == resource.data.memberIds
+          || addingClaimedMember(babyId)
+          || removingMembers()
+        );
 
       allow delete: if isOwner(babyId);
 
-      // ── Memories ─────────────────────────────────────────────────────
+      // Memories: members may view; only the owner may write.
       match /memories/{memoryId} {
         allow read: if isMember(babyId);
-        allow create: if isMember(babyId)
+        allow create: if isOwner(babyId)
           && request.resource.data.authorId == request.auth.uid
           && request.resource.data.kind in ['photo', 'video', 'note']
           && isNonEmptyString(request.resource.data.title, 80)
           && isBoundedString(request.resource.data.caption, 500);
-        allow update, delete: if isMember(babyId)
-          && (resource.data.authorId == request.auth.uid || isOwner(babyId));
+        allow update, delete: if isOwner(babyId);
       }
 
-      // ── Milestones ───────────────────────────────────────────────────
+      // Firsts: members may view; only the owner may capture or add.
       match /milestones/{milestoneId} {
         allow read: if isMember(babyId);
-        allow create: if isMember(babyId)
+        allow create: if isOwner(babyId)
           && isNonEmptyString(request.resource.data.label, 80)
           && request.resource.data.status in ['upcoming', 'captured'];
-        allow update: if isMember(babyId)
+        allow update: if isOwner(babyId)
           && request.resource.data.status in ['upcoming', 'captured'];
         allow delete: if isOwner(babyId);
       }
 
-      // ── Journal ──────────────────────────────────────────────────────
+      // Journal: owner only. Invited family never see this collection.
       match /journal/{entryId} {
-        allow read: if isMember(babyId);
-        allow create: if isMember(babyId)
+        allow read: if isOwner(babyId);
+        allow create: if isOwner(babyId)
           && request.resource.data.authorId == request.auth.uid
           && isBoundedString(request.resource.data.body, 4000)
           && request.resource.data.tags is list
           && request.resource.data.tags.size() <= 8;
-        allow update, delete: if isMember(babyId)
-          && (resource.data.authorId == request.auth.uid || isOwner(babyId));
+        allow update, delete: if isOwner(babyId);
       }
 
-      // ── Calendar events ──────────────────────────────────────────────
+      // Calendar: members may view; only the owner may write.
       match /events/{eventId} {
         allow read: if isMember(babyId);
-        allow create: if isMember(babyId)
+        allow create: if isOwner(babyId)
           && request.resource.data.type in ['milestone', 'memory', 'appointment']
           && isNonEmptyString(request.resource.data.title, 80)
           && isNonEmptyString(request.resource.data.date, 10);
-        allow update, delete: if isMember(babyId);
+        allow update, delete: if isOwner(babyId);
       }
     }
 
-    // Default deny — anything not explicitly matched above is forbidden.
     match /{document=**} {
       allow read, write: if false;
     }

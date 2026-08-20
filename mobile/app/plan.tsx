@@ -1,27 +1,21 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText, Button, Icon } from '@/components';
 import { useAuth } from '@/context/AuthContext';
-import { updateUserPlan } from '@/firebase/firestore';
 import { colors, fonts, radius } from '@/theme';
-import type { PlanId } from '@/types/models';
 
 export default function Plan() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user, profile } = useAuth();
+  const { profile } = useAuth();
   const current = profile?.plan ?? 'seedling';
 
-  const choose = (plan: PlanId, name: string) => {
+  const choose = (name: string) => {
     Alert.alert(
       `Upgrade to ${name}`,
-      'In the live app this opens secure in-app billing (App Store / Google Play). For this preview we’ll switch your plan directly.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Continue', onPress: () => user && updateUserPlan(user.uid, plan).catch(() => {}) },
-      ],
+      'Billing is handled by the App Store or Google Play. Flourish cannot change your plan from the phone — that keeps Seedling from being upgraded by a modified app.',
+      [{ text: 'OK' }],
     );
   };
 
@@ -72,7 +66,7 @@ export default function Plan() {
             <Feature key={f} text={f} />
           ))}
           <View style={styles.cta}>
-            <Button label={current === 'bloom' ? 'Your current plan' : 'Upgrade to Bloom'} disabled={current === 'bloom'} onPress={() => choose('bloom', 'Bloom')} />
+            <Button label={current === 'bloom' ? 'Your current plan' : 'Upgrade to Bloom'} disabled={current === 'bloom'} onPress={() => choose('Bloom')} />
           </View>
           <AppText variant="serifItalic" color={colors.sienna} center style={styles.reframe}>
             Less than $2 a week to keep capturing — not just the first two years
@@ -98,7 +92,7 @@ export default function Plan() {
             <Feature key={f} text={f} onDark />
           ))}
           <View style={styles.cta}>
-            <Button label="Get the Heirloom" variant="dark" onPress={() => choose('heirloom', 'Heirloom')} />
+            <Button label="Get the Heirloom" variant="dark" onPress={() => choose('Heirloom')} />
           </View>
           <Pressable style={styles.giftBtn} onPress={gift}>
             <Icon name="gift-outline" size={15} color={colors.gold} />

@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { Platform, StyleSheet, type ColorValue } from 'react-native';
+import { useAuth } from '@/context/AuthContext';
 import { colors, fonts } from '@/theme';
 
 type IconName = keyof typeof Ionicons.glyphMap;
@@ -12,6 +13,8 @@ function tabIcon(active: IconName, inactive: IconName) {
 }
 
 export default function TabsLayout() {
+  const { isOwner } = useAuth();
+
   return (
     <Tabs
       screenOptions={{
@@ -25,10 +28,24 @@ export default function TabsLayout() {
       }}
     >
       <Tabs.Screen name="index" options={{ title: 'Home', tabBarIcon: tabIcon('home', 'home-outline') }} />
-      <Tabs.Screen name="capture" options={{ title: 'Capture', tabBarIcon: tabIcon('camera', 'camera-outline') }} />
+      <Tabs.Screen
+        name="capture"
+        options={{
+          title: 'Capture',
+          tabBarIcon: tabIcon('camera', 'camera-outline'),
+          href: isOwner ? undefined : null,
+        }}
+      />
       <Tabs.Screen name="scrapbook" options={{ title: 'Scrapbook', tabBarIcon: tabIcon('book', 'book-outline') }} />
       <Tabs.Screen name="firsts" options={{ title: 'Firsts', tabBarIcon: tabIcon('star', 'star-outline') }} />
-      <Tabs.Screen name="journal" options={{ title: 'Journal', tabBarIcon: tabIcon('create', 'create-outline') }} />
+      <Tabs.Screen
+        name="journal"
+        options={{
+          title: 'Journal',
+          tabBarIcon: tabIcon('create', 'create-outline'),
+          href: isOwner ? undefined : null,
+        }}
+      />
     </Tabs>
   );
 }

@@ -35,8 +35,15 @@ export function resolverFromAuthError(error: unknown): MultiFactorResolver | nul
 }
 
 export function totpEnrollment(user: User | null): { enrolled: boolean; uid?: string } {
-  const factor = user?.multiFactor?.enrolledFactors.find((f) => f.factorId === TotpMultiFactorGenerator.FACTOR_ID);
-  return { enrolled: Boolean(factor), uid: factor?.uid };
+  if (!user) return { enrolled: false };
+  try {
+    const factor = multiFactor(user).enrolledFactors.find(
+      (f) => f.factorId === TotpMultiFactorGenerator.FACTOR_ID,
+    );
+    return { enrolled: Boolean(factor), uid: factor?.uid };
+  } catch {
+    return { enrolled: false };
+  }
 }
 
 export async function startTotpEnrollment(user: User): Promise<TotpSecret> {
@@ -54,9 +61,10 @@ export async function finishTotpEnrollment(
 }
 
 export async function unenrollTotp(user: User): Promise<void> {
-  const factor = user.multiFactor.enrolledFactors.find((f) => f.factorId === TotpMultiFactorGenerator.FACTOR_ID);
+  const mfaUser = multiFactor(user);
+  const factor = mfaUser.enrolledFactors.find((f) => f.factorId === TotpMultiFactorGenerator.FACTOR_ID);
   if (!factor) return;
-  await multiFactor(user).unenroll(factor);
+  await mfaUser.unenroll(factor);
 }
 
 export async function completeTotpSignIn(resolver: MultiFactorResolver, code: string): Promise<void> {

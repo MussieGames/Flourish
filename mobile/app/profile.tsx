@@ -1,8 +1,8 @@
-import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Alert, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText, Hero, InfoBox, SectionLabel } from '@/components';
+import { AppText, Icon, InfoBox, SectionLabel } from '@/components';
+import type { IconName } from '@/components';
 import { useAppLock } from '@/context/AppLockContext';
 import { useAuth } from '@/context/AuthContext';
 import { computeAge } from '@/lib/age';
@@ -22,6 +22,7 @@ export default function Profile() {
   const { supported, enabled, setEnabled } = useAppLock();
 
   const age = computeAge(activeBaby?.birthDate);
+  const name = activeBaby?.name ?? 'your baby';
 
   const toggleLock = async (next: boolean) => {
     const ok = await setEnabled(next);
@@ -39,17 +40,16 @@ export default function Profile() {
 
   return (
     <ScrollView style={styles.flex} showsVerticalScrollIndicator={false}>
-      <Hero paddingTop={insets.top + 20} glow="rgba(201,169,110,0.16)">
-        <AppText variant="label" color={colors.gold}>
-          Your account
-        </AppText>
-        <AppText variant="display" color={colors.cream}>
-          {activeBaby?.name ?? 'Profile'}
-        </AppText>
+      <View style={[styles.hero, { paddingTop: insets.top + 12 }]}>
+        <Pressable onPress={() => router.back()} hitSlop={12} style={styles.back}>
+          <Icon name="chevron-back" size={26} color={colors.cream} />
+        </Pressable>
+        <AppText variant="label" color={colors.gold}>Your account</AppText>
+        <AppText variant="display" color={colors.cream}>{activeBaby?.name ?? 'Profile'}</AppText>
         <AppText variant="caption" color={colors.onDark45} style={styles.sub}>
           {age ? age.label : 'Set up in progress'} · {user?.email}
         </AppText>
-      </Hero>
+      </View>
 
       <View style={styles.body}>
         <SectionLabel>Membership</SectionLabel>
@@ -60,14 +60,15 @@ export default function Profile() {
           onPress={() => router.push('/plan')}
         />
 
-        <SectionLabel>{activeBaby?.name ?? 'Baby'}&apos;s world</SectionLabel>
+        <SectionLabel>{name}&apos;s world</SectionLabel>
+        <Row icon="people-outline" label="Family & sharing" sublabel="Choose who can see their story" onPress={() => router.push('/sharing')} />
         <Row icon="calendar-outline" label="Memory calendar" onPress={() => router.push('/calendar')} />
-        <Row icon="journal-outline" label="Journal" onPress={() => router.push('/journal')} sublabel="The things photos can’t capture" />
+        <Row icon="create-outline" label="Journal" sublabel="The things photos can’t capture" onPress={() => router.push('/(tabs)/journal')} />
 
         <SectionLabel>Privacy &amp; security</SectionLabel>
-        <View style={styles.lockRow}>
+        <View style={styles.row}>
           <View style={styles.rowIcon}>
-            <Ionicons name="lock-closed-outline" size={20} color={colors.sienna} />
+            <Icon name="lock-closed-outline" size={20} color={colors.sienna} />
           </View>
           <View style={styles.flex1}>
             <AppText variant="bodyMedium">App Lock</AppText>
@@ -100,18 +101,19 @@ export default function Profile() {
         )}
 
         <InfoBox accent={colors.sageDark} style={styles.promise}>
-          <AppText variant="caption" color={colors.inkLight} style={styles.promiseText}>
-            <AppText style={styles.promiseStrong}>🔒 Our promise: </AppText>
-            Your data is private by default. Zero ads. Zero data sharing. Only the family members
-            you invite can ever see {activeBaby?.name ?? 'your baby'}&apos;s memories.
-          </AppText>
+          <View style={styles.promiseRow}>
+            <Icon name="lock-closed-outline" size={15} color={colors.sageDark} />
+            <AppText variant="caption" color={colors.inkLight} style={styles.promiseText}>
+              <AppText style={styles.promiseStrong}>Our promise: </AppText>
+              Your data is private by default. Zero ads. Zero data sharing. Only the family members
+              you invite can ever see {name}&apos;s memories.
+            </AppText>
+          </View>
         </InfoBox>
 
         <Pressable style={styles.signOut} onPress={confirmSignOut}>
-          <Ionicons name="log-out-outline" size={18} color={colors.danger} />
-          <AppText variant="bodyMedium" color={colors.danger}>
-            Sign out
-          </AppText>
+          <Icon name="log-out-outline" size={18} color={colors.danger} />
+          <AppText variant="bodyMedium" color={colors.danger}>Sign out</AppText>
         </Pressable>
       </View>
     </ScrollView>
@@ -124,25 +126,21 @@ function Row({
   sublabel,
   onPress,
 }: {
-  icon: keyof typeof Ionicons.glyphMap;
+  icon: IconName;
   label: string;
   sublabel?: string;
   onPress?: () => void;
 }) {
   return (
-    <Pressable
-      onPress={onPress}
-      disabled={!onPress}
-      style={({ pressed }) => [styles.row, pressed && onPress ? styles.pressed : null]}
-    >
+    <Pressable onPress={onPress} disabled={!onPress} style={({ pressed }) => [styles.row, pressed && onPress ? styles.pressed : null]}>
       <View style={styles.rowIcon}>
-        <Ionicons name={icon} size={20} color={colors.sienna} />
+        <Icon name={icon} size={20} color={colors.sienna} />
       </View>
       <View style={styles.flex1}>
         <AppText variant="bodyMedium">{label}</AppText>
         {sublabel ? <AppText variant="caption">{sublabel}</AppText> : null}
       </View>
-      {onPress ? <Ionicons name="chevron-forward" size={18} color={colors.inkMuted} /> : null}
+      {onPress ? <Icon name="chevron-forward" size={18} color={colors.inkMuted} /> : null}
     </Pressable>
   );
 }
@@ -150,20 +148,11 @@ function Row({
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.cream },
   flex1: { flex: 1 },
+  hero: { backgroundColor: colors.ink, paddingHorizontal: 24, paddingBottom: 24 },
+  back: { marginBottom: 8 },
   sub: { marginTop: 6 },
   body: { padding: 20, paddingBottom: 40 },
   row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    backgroundColor: colors.warm,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    padding: 16,
-    marginBottom: 10,
-  },
-  lockRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
@@ -184,14 +173,8 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: 0.85 },
   promise: { marginTop: 12 },
-  promiseText: { lineHeight: 18 },
+  promiseRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
+  promiseText: { flex: 1, lineHeight: 18 },
   promiseStrong: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.sageDark },
-  signOut: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    marginTop: 24,
-    paddingVertical: 14,
-  },
+  signOut: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 24, paddingVertical: 14 },
 });

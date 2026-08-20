@@ -1,6 +1,5 @@
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useMemo, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -12,24 +11,27 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText, Button } from '@/components';
+import { AppText, Button, Icon } from '@/components';
 import { useAuth } from '@/context/AuthContext';
 import { addJournalEntry } from '@/firebase/firestore';
+import { dailyPrompt } from '@/data/prompts';
 import { friendlyError } from '@/lib/errors';
 import { sanitizeText } from '@/lib/validation';
 import { colors, fonts, radius } from '@/theme';
-import type { Mood } from '@/types/models';
-
-const MOODS: Mood[] = ['🥰', '😊', '😴', '🥲', '😭', '🤯'];
 
 export default function JournalEntry() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { activeBaby, user } = useAuth();
+  const params = useLocalSearchParams<{ prompt?: string; milestone?: string }>();
+
+  const prompt = useMemo(
+    () => params.prompt || dailyPrompt(activeBaby?.name),
+    [params.prompt, activeBaby?.name],
+  );
 
   const [body, setBody] = useState('');
-  const [mood, setMood] = useState<Mood | undefined>(undefined);
-  const [tagsText, setTagsText] = useState('');
+  const [tagsText, setTagsText] = useState(params.milestone ? String(params.milestone) : '');
   const [saving, setSaving] = useState(false);
 
   const canSave = sanitizeText(body, 4000).length > 0;
@@ -42,7 +44,7 @@ export default function JournalEntry() {
         .split(',')
         .map((t) => sanitizeText(t, 24))
         .filter(Boolean);
-      await addJournalEntry(activeBaby.id, user.uid, { body, mood, tags });
+      await addJournalEntry(activeBaby.id, user.uid, { body, tags });
       router.back();
     } catch (e) {
       Alert.alert('Couldn’t save', friendlyError(e, 'Something went wrong.'));
@@ -55,60 +57,42 @@ export default function JournalEntry() {
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <Pressable onPress={() => router.back()} hitSlop={12}>
-          <Ionicons name="close" size={26} color={colors.ink} />
+          <Icon name="close" size={26} color={colors.ink} />
         </Pressable>
-        <AppText variant="titleItalic" color={colors.sienna} style={styles.headerTitle}>
-          A new entry
-        </AppText>
+        <AppText variant="titleItalic" color={colors.sienna} style={styles.headerTitle}>A new entry</AppText>
         <View style={{ width: 26 }} />
       </View>
 
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.scroll}>
-        <AppText variant="caption" style={styles.prompt}>
-          What are you feeling right now? The smell, the thought, the thing you&apos;ll forget by
-          morning.
-        </AppText>
+        <View style={styles.privateRow}>
+          <Icon name="lock-closed-outline" size={12} color={colors.inkMuted} />
+          <AppText variant="caption">Only you will ever read this</AppText>
+        </View>
+
+        <AppText variant="titleItalic" color={colors.ink} style={styles.prompt}>{prompt}</AppText>
 
         <TextInput
           value={body}
           onChangeText={setBody}
-          placeholder="He fell asleep on my chest tonight…"
+          placeholder="Write freely — there’s no wrong answer here…"
           placeholderTextColor={colors.inkMuted}
           multiline
+          autoFocus
           textAlignVertical="top"
           style={styles.bodyInput}
           maxLength={4000}
         />
 
-        <AppText variant="label" style={styles.label}>
-          How does this moment feel?
-        </AppText>
-        <View style={styles.moodRow}>
-          {MOODS.map((m) => (
-            <Pressable
-              key={m}
-              onPress={() => setMood((cur) => (cur === m ? undefined : m))}
-              style={[styles.moodChip, mood === m && styles.moodSelected]}
-            >
-              <AppText style={styles.moodEmoji}>{m}</AppText>
-            </Pressable>
-          ))}
-        </View>
-
-        <AppText variant="label" style={styles.label}>
-          Tags (optional)
-        </AppText>
+        <AppText variant="label" style={styles.label}>Tags (optional)</AppText>
         <TextInput
           value={tagsText}
           onChangeText={setTagsText}
-          placeholder="3am feed, Week 8, First time"
+          placeholder="3am feed, Week 8, first time"
           placeholderTextColor={colors.inkMuted}
           style={styles.tagsInput}
           maxLength={120}
         />
-        <AppText variant="caption" style={styles.tagHint}>
-          Separate with commas.
-        </AppText>
+        <AppText variant="caption" style={styles.tagHint}>Separate with commas.</AppText>
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
@@ -132,9 +116,10 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: 22 },
   scroll: { padding: 24 },
-  prompt: { lineHeight: 18, marginBottom: 16 },
+  privateRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 14 },
+  prompt: { fontSize: 22, lineHeight: 30, marginBottom: 16 },
   bodyInput: {
-    minHeight: 160,
+    minHeight: 180,
     backgroundColor: colors.warm,
     borderWidth: 1,
     borderColor: colors.border,
@@ -146,19 +131,6 @@ const styles = StyleSheet.create({
     color: colors.inkLight,
   },
   label: { marginTop: 24, marginBottom: 12 },
-  moodRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  moodChip: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: colors.warm,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  moodSelected: { borderColor: colors.sienna, backgroundColor: 'rgba(193,123,92,0.1)' },
-  moodEmoji: { fontSize: 24 },
   tagsInput: {
     backgroundColor: colors.warm,
     borderWidth: 1,

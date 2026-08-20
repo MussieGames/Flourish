@@ -1,206 +1,151 @@
-import { Link, useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useRouter } from 'expo-router';
+import { useRef, useState } from 'react';
 import {
-  KeyboardAvoidingView,
-  Platform,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Pressable,
   ScrollView,
   StyleSheet,
   View,
+  useWindowDimensions,
 } from 'react-native';
-import { AppText, Button, Hero, InfoBox, TextField } from '@/components';
-import { useAuth } from '@/context/AuthContext';
-import { friendlyAuthError } from '@/lib/errors';
-import { checkPassword, isValidEmail } from '@/lib/validation';
-import { colors, fonts } from '@/theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AppText, BrandMark, Button } from '@/components';
+import { colors } from '@/theme';
 
-const STRENGTH_LABELS = ['Too weak', 'Weak', 'Okay', 'Good', 'Strong'];
-const STRENGTH_COLORS = [colors.danger, colors.danger, colors.gold, colors.sageDark, colors.sageDark];
+interface Slide {
+  headline: string;
+  emphasis: string;
+  body: string;
+}
+
+const SLIDES: Slide[] = [
+  {
+    headline: 'The most important year of your life',
+    emphasis: 'deserves better than a messy camera roll.',
+    body: 'The feeds, the firsts, the 3am thoughts you swear you’ll remember — Flourish keeps them all, gently, in one private place.',
+  },
+  {
+    headline: '200 firsts are coming.',
+    emphasis: 'Flourish will tell you before each one.',
+    body: 'A quiet nudge before the first smile, the first giggle, the first steps — so your camera is ready, and you never have to say “I wish I’d caught that.”',
+  },
+  {
+    headline: 'Zero ads. Zero AI training.',
+    emphasis: 'Your baby’s story is yours alone.',
+    body: 'Private by default. Shared only with the people you choose. We never sell, mine, or train on a single moment you keep here.',
+  },
+];
 
 export default function Welcome() {
-  const { signUp } = useAuth();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const scrollRef = useRef<ScrollView>(null);
+  const [index, setIndex] = useState(0);
 
-  const [babyName, setBabyName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const i = Math.round(e.nativeEvent.contentOffset.x / width);
+    if (i !== index) setIndex(i);
+  };
 
-  const strength = useMemo(() => checkPassword(password), [password]);
-  const canSubmit = isValidEmail(email) && strength.ok;
-
-  const handleSubmit = async () => {
-    setError(null);
-    setSubmitting(true);
-    try {
-      await signUp(email, password, babyName);
-      // Auth state change + guard will route to /onboarding to finish setup.
-    } catch (e) {
-      setError(friendlyAuthError(e));
-    } finally {
-      setSubmitting(false);
+  const advance = () => {
+    if (index < SLIDES.length - 1) {
+      scrollRef.current?.scrollTo({ x: (index + 1) * width, animated: true });
+    } else {
+      router.push('/(auth)/sign-up');
     }
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <View style={styles.flex}>
+      <LinearGradient
+        colors={['rgba(193,123,92,0.18)', 'transparent']}
+        start={{ x: 0.85, y: 0.1 }}
+        end={{ x: 0.2, y: 0.8 }}
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none"
+      />
+
+      <View style={[styles.brandRow, { paddingTop: insets.top + 24 }]}>
+        <BrandMark size={30} color={colors.sage} bloom />
+        <AppText variant="display" color={colors.cream} style={styles.logo}>
+          flour<AppText variant="displayItalic" color={colors.rose} style={styles.logo}>ish</AppText>
+        </AppText>
+        <AppText variant="serifItalic" color={colors.onDark40} style={styles.tagline}>
+          Every first, forever.
+        </AppText>
+      </View>
+
       <ScrollView
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={styles.scroll}
-        showsVerticalScrollIndicator={false}
+        ref={scrollRef}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        style={styles.slides}
       >
-        <Hero paddingTop={72} style={styles.hero}>
-          <AppText style={styles.moon}>🌿</AppText>
-          <AppText variant="display" color={colors.cream}>
-            Welcome to{'\n'}
-            <AppText variant="displayItalic" color={colors.rose}>
-              Flourish.
-            </AppText>
-          </AppText>
-          <AppText variant="bodyLight" color={colors.onDark60} style={styles.heroPara}>
-            You just did something extraordinary. And in between the feeds, the tears, the love
-            that doesn&apos;t fit into words — we&apos;ll help you catch every moment before it
-            slips by.
-          </AppText>
-        </Hero>
-
-        <View style={styles.form}>
-          <AppText variant="label">Let&apos;s begin</AppText>
-          <AppText variant="title" style={styles.question}>
-            What&apos;s your{'\n'}
-            <AppText variant="titleItalic" color={colors.sienna}>
-              little one&apos;s
-            </AppText>{' '}
-            name?
-          </AppText>
-
-          <TextField
-            icon="🍼"
-            serif
-            placeholder="e.g. Oliver…"
-            value={babyName}
-            onChangeText={setBabyName}
-            autoCapitalize="words"
-            maxLength={40}
-            returnKeyType="next"
-          />
-          <AppText variant="caption" style={styles.hint}>
-            You can always change this later. This is just for us to make their story feel like
-            theirs.
-          </AppText>
-
-          <View style={styles.gap}>
-            <TextField
-              icon="✉️"
-              placeholder="Your email"
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              autoComplete="email"
-              textContentType="emailAddress"
-            />
-          </View>
-          <View style={styles.gap}>
-            <TextField
-              icon="🔒"
-              placeholder="Create a password"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              autoComplete="new-password"
-              textContentType="newPassword"
-            />
-          </View>
-
-          {password.length > 0 ? (
-            <View style={styles.strengthRow}>
-              <View style={styles.strengthTrack}>
-                <View
-                  style={[
-                    styles.strengthFill,
-                    {
-                      width: `${(strength.score / 4) * 100}%`,
-                      backgroundColor: STRENGTH_COLORS[strength.score],
-                    },
-                  ]}
-                />
-              </View>
-              <AppText variant="caption" color={STRENGTH_COLORS[strength.score]}>
-                {STRENGTH_LABELS[strength.score]}
+        {SLIDES.map((slide) => (
+          <View key={slide.headline} style={[styles.slide, { width }]}>
+            <AppText variant="display" color={colors.cream} style={styles.headline}>
+              {slide.headline}{'\n'}
+              <AppText variant="displayItalic" color={colors.rose} style={styles.headline}>
+                {slide.emphasis}
               </AppText>
-            </View>
-          ) : null}
-
-          {error ? (
-            <AppText variant="caption" color={colors.danger} style={styles.error}>
-              {error}
             </AppText>
-          ) : null}
-
-          <View style={styles.button}>
-            <Button
-              label="Begin their story →"
-              loading={submitting}
-              disabled={!canSubmit}
-              onPress={handleSubmit}
-            />
+            <AppText variant="bodyLight" color={colors.onDark60} style={styles.body}>
+              {slide.body}
+            </AppText>
           </View>
+        ))}
+      </ScrollView>
 
-          <Link href="/(auth)/sign-in" asChild>
-            <Pressable hitSlop={8}>
-              <AppText variant="caption" center style={styles.signIn}>
-                Already have an account?{' '}
-                <AppText variant="caption" color={colors.sienna} style={styles.underline}>
-                  Sign in
-                </AppText>
-              </AppText>
-            </Pressable>
-          </Link>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
+        <View style={styles.dots}>
+          {SLIDES.map((_, i) => (
+            <View key={i} style={[styles.dot, i === index ? styles.dotOn : styles.dotOff]} />
+          ))}
         </View>
 
-        <InfoBox accent={colors.sageDark} style={styles.reassure}>
-          <AppText variant="caption" color={colors.inkLight} style={styles.reassureText}>
-            <AppText variant="bodyMedium" color={colors.sageDark} style={styles.lockText}>
-              🔒 This is your private space.{' '}
-            </AppText>
-            Only people you invite can see your baby&apos;s memories. We never share, sell, or use
-            your data. Ever.
+        <Button label="Create your baby’s story" onPress={() => router.push('/(auth)/sign-up')} />
+
+        <Pressable hitSlop={8} onPress={advance} style={styles.secondary}>
+          <AppText variant="bodyMedium" color={colors.rose}>
+            {index < SLIDES.length - 1 ? 'Continue  →' : 'Get started  →'}
           </AppText>
-        </InfoBox>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </Pressable>
+
+        <AppText variant="caption" color={colors.onDark25} center style={styles.micro}>
+          Free forever at Seedling · No credit card needed
+        </AppText>
+
+        <Pressable hitSlop={8} onPress={() => router.push('/(auth)/sign-in')}>
+          <AppText variant="caption" color={colors.onDark40} center style={styles.signIn}>
+            I already have an account
+          </AppText>
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colors.cream },
-  scroll: { paddingBottom: 40 },
-  hero: { paddingBottom: 40 },
-  moon: { fontSize: 36, marginBottom: 16 },
-  heroPara: { marginTop: 12 },
-  form: { paddingHorizontal: 24, paddingTop: 28 },
-  question: { marginTop: 16, marginBottom: 20 },
-  hint: { marginTop: 4, lineHeight: 18 },
-  gap: { marginTop: 12 },
-  strengthRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12 },
-  strengthTrack: {
-    flex: 1,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: 'rgba(196,169,160,0.3)',
-    overflow: 'hidden',
-  },
-  strengthFill: { height: 4, borderRadius: 2 },
-  error: { marginTop: 12 },
-  button: { marginTop: 24 },
-  signIn: { marginTop: 18 },
-  underline: { textDecorationLine: 'underline' },
-  reassure: { marginHorizontal: 24, marginTop: 28 },
-  reassureText: { lineHeight: 18 },
-  lockText: { fontFamily: fonts.bodyMedium, fontSize: 12 },
+  flex: { flex: 1, backgroundColor: colors.ink },
+  brandRow: { alignItems: 'center', paddingBottom: 8 },
+  logo: { fontSize: 30, marginTop: 10 },
+  tagline: { fontSize: 13, marginTop: 2 },
+  slides: { flex: 1 },
+  slide: { flex: 1, justifyContent: 'center', paddingHorizontal: 32 },
+  headline: { fontSize: 32, lineHeight: 36 },
+  body: { marginTop: 16, fontSize: 15, lineHeight: 24 },
+  footer: { paddingHorizontal: 28, gap: 4 },
+  dots: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginBottom: 20 },
+  dot: { height: 4, borderRadius: 2 },
+  dotOn: { width: 16, backgroundColor: colors.sienna },
+  dotOff: { width: 5, backgroundColor: 'rgba(255,255,255,0.15)' },
+  secondary: { alignItems: 'center', paddingVertical: 12 },
+  micro: { marginTop: 2 },
+  signIn: { marginTop: 14, textDecorationLine: 'underline' },
 });

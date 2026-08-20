@@ -5,9 +5,9 @@ import { colors, fonts } from '@/theme';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
-function tabIcon(name: IconName) {
-  return ({ color, size }: { color: ColorValue; size: number }) => (
-    <Ionicons name={name} color={color as string} size={size} />
+function tabIcon(active: IconName, inactive: IconName) {
+  return ({ color, size, focused }: { color: ColorValue; size: number; focused: boolean }) => (
+    <Ionicons name={focused ? active : inactive} color={color as string} size={size} />
   );
 }
 
@@ -24,26 +24,11 @@ export default function TabsLayout() {
         sceneStyle: { backgroundColor: colors.cream },
       }}
     >
-      <Tabs.Screen
-        name="index"
-        options={{ title: 'Home', tabBarIcon: tabIcon('home') }}
-      />
-      <Tabs.Screen
-        name="capture"
-        options={{ title: 'Capture', tabBarIcon: tabIcon('camera') }}
-      />
-      <Tabs.Screen
-        name="scrapbook"
-        options={{ title: 'Scrapbook', tabBarIcon: tabIcon('book') }}
-      />
-      <Tabs.Screen
-        name="firsts"
-        options={{ title: 'Firsts', tabBarIcon: tabIcon('star') }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{ title: 'Profile', tabBarIcon: tabIcon('person') }}
-      />
+      <Tabs.Screen name="index" options={{ title: 'Home', tabBarIcon: tabIcon('home', 'home-outline') }} />
+      <Tabs.Screen name="capture" options={{ title: 'Capture', tabBarIcon: tabIcon('camera', 'camera-outline') }} />
+      <Tabs.Screen name="scrapbook" options={{ title: 'Scrapbook', tabBarIcon: tabIcon('book', 'book-outline') }} />
+      <Tabs.Screen name="firsts" options={{ title: 'Firsts', tabBarIcon: tabIcon('star', 'star-outline') }} />
+      <Tabs.Screen name="journal" options={{ title: 'Journal', tabBarIcon: tabIcon('create', 'create-outline') }} />
     </Tabs>
   );
 }
@@ -57,10 +42,5 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   tabItem: { paddingVertical: 2 },
-  tabLabel: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 8,
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-  },
+  tabLabel: { fontFamily: fonts.bodyMedium, fontSize: 8, letterSpacing: 0.6, textTransform: 'uppercase' },
 });

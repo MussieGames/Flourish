@@ -8,7 +8,7 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import { AppText, Button, Hero, TextField } from '@/components';
+import { AppText, BrandMark, Button, Hero, TextField } from '@/components';
 import { useAuth } from '@/context/AuthContext';
 import { friendlyAuthError } from '@/lib/errors';
 import { colors } from '@/theme';
@@ -44,7 +44,8 @@ export default function SignIn() {
         showsVerticalScrollIndicator={false}
       >
         <Hero paddingTop={80} style={styles.hero}>
-          <AppText style={styles.moon}>🌙</AppText>
+          <BrandMark size={26} color={colors.sage} bloom />
+          <View style={styles.moon} />
           <AppText variant="display" color={colors.cream}>
             Welcome{'\n'}
             <AppText variant="displayItalic" color={colors.rose}>
@@ -58,7 +59,7 @@ export default function SignIn() {
 
         <View style={styles.form}>
           <TextField
-            icon="✉️"
+            icon="mail-outline"
             placeholder="Your email"
             value={email}
             onChangeText={setEmail}
@@ -69,7 +70,7 @@ export default function SignIn() {
           />
           <View style={styles.gap}>
             <TextField
-              icon="🔒"
+              icon="lock-closed-outline"
               placeholder="Password"
               value={password}
               onChangeText={setPassword}
@@ -117,7 +118,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.cream },
   scroll: { paddingBottom: 40 },
   hero: { paddingBottom: 44 },
-  moon: { fontSize: 36, marginBottom: 16 },
+  moon: { height: 12 },
   heroPara: { marginTop: 12 },
   form: { paddingHorizontal: 24, paddingTop: 32 },
   gap: { marginTop: 12 },

@@ -8,7 +8,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { AppText, Button, Hero, InfoBox } from '@/components';
+import { AppText, BrandMark, Button, Hero, InfoBox } from '@/components';
 import { useAuth } from '@/context/AuthContext';
 import { createBaby } from '@/firebase/firestore';
 import { toISODate } from '@/lib/age';
@@ -50,7 +50,8 @@ export default function Onboarding() {
     >
       <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <Hero paddingTop={76} style={styles.hero}>
-          <AppText style={styles.emoji}>👶</AppText>
+          <BrandMark size={30} color={colors.sage} bloom />
+          <View style={styles.emoji} />
           <AppText variant="display" color={colors.cream}>
             Tell us about{'\n'}
             <AppText variant="displayItalic" color={colors.rose}>
@@ -158,7 +159,7 @@ function buildDate(day: string, month: string, year: string): Date | null {
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.cream },
   hero: { paddingBottom: 40 },
-  emoji: { fontSize: 36, marginBottom: 16 },
+  emoji: { height: 14 },
   heroPara: { marginTop: 12 },
   form: { paddingHorizontal: 24, paddingTop: 28 },
   nameWrap: { marginTop: 4 },

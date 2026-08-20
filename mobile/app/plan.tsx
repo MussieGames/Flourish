@@ -1,240 +1,161 @@
-import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText, Button, InfoBox } from '@/components';
+import { AppText, Button, Icon } from '@/components';
 import { useAuth } from '@/context/AuthContext';
 import { updateUserPlan } from '@/firebase/firestore';
 import { colors, fonts, radius } from '@/theme';
 import type { PlanId } from '@/types/models';
 
-const SEEDLING_FEATURES = [
-  '500 photos & videos',
-  '25 milestones tracked',
-  'Basic scrapbook layouts',
-  'Share with 2 family members',
-];
-
-const BLOOM_FEATURES = [
-  'Unlimited photos & videos',
-  'All 200+ milestones',
-  'Premium scrapbook layouts',
-  'Share with 10 family members',
-  'Yearly video montage',
-  'Printed book discounts',
-];
-
-const HEIRLOOM_FEATURES = [
-  '1 printed hardcover scrapbook',
-  '12 months of Bloom included',
-  'Shipped to your door',
-  'No subscription started',
-  'Perfect baby shower gift',
-];
-
 export default function Plan() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user, profile } = useAuth();
-  const currentPlan = profile?.plan ?? 'seedling';
+  const current = profile?.plan ?? 'seedling';
 
-  const choosePlan = (plan: PlanId, name: string) => {
+  const choose = (plan: PlanId, name: string) => {
     Alert.alert(
       `Upgrade to ${name}`,
-      'In the production app this opens secure in-app billing via the App Store / Google Play. For this preview build we’ll switch your plan directly.',
+      'In the live app this opens secure in-app billing (App Store / Google Play). For this preview we’ll switch your plan directly.',
       [
         { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Continue',
-          onPress: () => {
-            if (user) updateUserPlan(user.uid, plan).catch(() => {});
-          },
-        },
+        { text: 'Continue', onPress: () => user && updateUserPlan(user.uid, plan).catch(() => {}) },
       ],
     );
   };
 
+  const gift = () => {
+    Alert.alert('Give the Heirloom', 'A gifting flow (recipient, message, delivery date) is coming soon — the perfect baby-shower gift.');
+  };
+
   return (
     <ScrollView style={styles.flex} showsVerticalScrollIndicator={false}>
-      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <Pressable onPress={() => router.back()} hitSlop={12}>
-          <Ionicons name="close" size={26} color={colors.cream} />
+      <View style={[styles.hero, { paddingTop: insets.top + 12 }]}>
+        <Pressable onPress={() => router.back()} hitSlop={12} style={styles.back}>
+          <Icon name="close" size={26} color={colors.cream} />
         </Pressable>
-        <AppText variant="label" color={colors.gold} style={styles.headerLabel}>
-          Your plan
-        </AppText>
+        <AppText variant="label" color={colors.gold}>Your plan</AppText>
         <AppText variant="display" color={colors.cream}>
-          Simple,{'\n'}
-          <AppText variant="displayItalic" color={colors.gold}>
-            honest
-          </AppText>{' '}
-          pricing.
+          Simple, <AppText variant="displayItalic" color={colors.gold}>honest</AppText> pricing.
         </AppText>
-        <AppText variant="caption" color={colors.onDark40} style={styles.headerSub}>
-          No surprises. No selling your data. Just Flourish.
-        </AppText>
+        <AppText variant="caption" color={colors.onDark40} style={styles.sub}>No surprises. No selling your data. Ever.</AppText>
       </View>
 
-      {/* Current plan */}
-      <LinearGradient colors={[colors.ink, '#3D2820']} style={styles.currentPlan}>
-        <View style={styles.currentBadge}>
-          <AppText variant="label" color={colors.ink} style={styles.currentBadgeText}>
-            Current plan
-          </AppText>
-        </View>
-        <AppText variant="title" color={colors.cream}>
-          {currentPlan === 'bloom' ? 'Bloom' : currentPlan === 'heirloom' ? 'Heirloom' : 'Seedling'}
-        </AppText>
-        <AppText variant="caption" color={colors.onDark40} style={styles.currentPrice}>
-          {currentPlan === 'seedling' ? 'Free forever' : currentPlan === 'bloom' ? '$8 / month' : 'One-time gift'}
-        </AppText>
-        {SEEDLING_FEATURES.map((f) => (
-          <Feature key={f} text={f} color={colors.gold} textColor={colors.onDark60} />
-        ))}
-      </LinearGradient>
-
       <View style={styles.cards}>
-        {/* Bloom */}
-        <View style={[styles.card, styles.recommended]}>
-          <View style={styles.recBadge}>
-            <AppText variant="label" color={colors.white} style={styles.recBadgeText}>
-              Most loved
-            </AppText>
+        {/* Seedling */}
+        <View style={styles.card}>
+          <AppText variant="serifItalic" color={colors.inkMuted} style={styles.intent}>Start catching moments today.</AppText>
+          <View style={styles.cardHead}>
+            <Badge label="Seedling" tint="rgba(140,120,112,0.1)" color={colors.inkMuted} />
           </View>
-          <View style={styles.cardTop}>
-            <AppText variant="title">Bloom</AppText>
-            <View style={styles.priceCol}>
-              <AppText variant="title">$8</AppText>
-              <AppText variant="caption" style={styles.period}>
-                per month
-              </AppText>
-            </View>
-          </View>
-          {BLOOM_FEATURES.map((f) => (
+          <AppText variant="display" color={colors.sienna} style={styles.price}>$0</AppText>
+          {['Unlimited photo storage', '50 milestone alerts', 'Journal & scrapbook', 'Private family sharing'].map((f) => (
             <Feature key={f} text={f} />
           ))}
-          <View style={styles.cardButton}>
-            <Button
-              label={currentPlan === 'bloom' ? 'Your current plan' : 'Upgrade to Bloom'}
-              disabled={currentPlan === 'bloom'}
-              onPress={() => choosePlan('bloom', 'Bloom')}
-            />
+          <View style={styles.cta}>
+            <Button label={current === 'seedling' ? 'Your current plan' : 'Downgrade'} variant="outline" disabled={current === 'seedling'} onPress={() => {}} />
           </View>
+        </View>
+
+        {/* Bloom */}
+        <View style={[styles.card, styles.cardBloom]}>
+          <AppText variant="serifItalic" color={colors.inkMuted} style={styles.intent}>For parents who want to catch everything.</AppText>
+          <View style={styles.cardHead}>
+            <Badge label="Bloom" tint="rgba(193,123,92,0.14)" color={colors.sienna} />
+          </View>
+          <View style={styles.priceRow}>
+            <AppText variant="display" color={colors.sienna} style={styles.price}>$8</AppText>
+            <AppText variant="caption" color={colors.inkMuted} style={styles.per}>/ month</AppText>
+          </View>
+          {['Everything in Seedling', '200+ milestone alerts', 'Age-adaptive sticker eras', 'Printed book ordering'].map((f) => (
+            <Feature key={f} text={f} />
+          ))}
+          <View style={styles.cta}>
+            <Button label={current === 'bloom' ? 'Your current plan' : 'Upgrade to Bloom'} disabled={current === 'bloom'} onPress={() => choose('bloom', 'Bloom')} />
+          </View>
+          <AppText variant="serifItalic" color={colors.sienna} center style={styles.reframe}>
+            Less than $2 a week to never miss another first
+          </AppText>
+          <AppText variant="caption" color={colors.inkMuted} center style={styles.clarity}>Cancel anytime · no lock-in</AppText>
         </View>
 
         {/* Heirloom */}
-        <View style={styles.card}>
-          <View style={styles.cardTop}>
-            <AppText variant="title">Heirloom</AppText>
-            <View style={styles.priceCol}>
-              <AppText variant="title">$79</AppText>
-              <AppText variant="caption" style={styles.period}>
-                one-time · gift
-              </AppText>
+        <View style={[styles.card, styles.cardHeirloom]}>
+          <AppText variant="serifItalic" color="rgba(201,169,110,0.6)" style={styles.intent}>For parents who want to hold everything.</AppText>
+          <View style={styles.cardHead}>
+            <Badge label="Heirloom" tint="rgba(201,169,110,0.16)" color={colors.gold} />
+            <View style={styles.social}>
+              <Icon name="star" size={11} color={colors.sageDark} />
+              <AppText variant="caption" color={colors.sageDark}>Most gifted at baby showers</AppText>
             </View>
           </View>
-          <InfoBox accent={colors.gold} tint="rgba(201,169,110,0.1)" style={styles.clarity}>
-            <AppText variant="label" color={colors.gold} style={styles.clarityLabel}>
-              What&apos;s included in $79
-            </AppText>
-            <AppText variant="caption" color={colors.inkLight} style={styles.clarityText}>
-              One printed hardcover book + 12 months of Bloom access — paid once, nothing more.
-              After 12 months, continue Bloom at $8/mo or stay free. The book is yours forever.
-            </AppText>
-          </InfoBox>
-          {HEIRLOOM_FEATURES.map((f) => (
-            <Feature key={f} text={f} />
-          ))}
-          <View style={styles.cardButton}>
-            <Button label="Buy as a gift" variant="outline" onPress={() => choosePlan('heirloom', 'Heirloom')} />
+          <View style={styles.priceRow}>
+            <AppText variant="display" color={colors.gold} style={styles.price}>$79</AppText>
+            <AppText variant="caption" color="rgba(201,169,110,0.6)" style={styles.per}>once</AppText>
           </View>
+          {['12 months of Bloom included', '1 printed hardcover book', 'Shipped to your door', 'No subscription starts'].map((f) => (
+            <Feature key={f} text={f} onDark />
+          ))}
+          <View style={styles.cta}>
+            <Button label="Get the Heirloom" variant="dark" onPress={() => choose('heirloom', 'Heirloom')} />
+          </View>
+          <Pressable style={styles.giftBtn} onPress={gift}>
+            <Icon name="gift-outline" size={15} color={colors.gold} />
+            <AppText variant="label" color={colors.gold} style={styles.giftText}>Buy as a gift for someone</AppText>
+          </Pressable>
+          <AppText variant="caption" color="rgba(251,247,242,0.35)" center style={styles.clarity}>$79 once. No ongoing charges. Ever.</AppText>
         </View>
       </View>
 
-      <InfoBox accent={colors.sageDark} style={styles.promise}>
-        <AppText variant="caption" color={colors.inkLight} style={styles.promiseText}>
-          <AppText style={styles.promiseStrong}>🔒 Our promise: </AppText>
-          Upgrading never changes what we do with your data. Zero ads. Zero data sharing. Always.
-          Cancel Bloom any time — no questions asked.
-        </AppText>
-      </InfoBox>
       <View style={{ height: insets.bottom + 24 }} />
     </ScrollView>
   );
 }
 
-function Feature({
-  text,
-  color = colors.sageDark,
-  textColor = colors.inkLight,
-}: {
-  text: string;
-  color?: string;
-  textColor?: string;
-}) {
+function Badge({ label, tint, color }: { label: string; tint: string; color: string }) {
+  return (
+    <View style={[styles.badge, { backgroundColor: tint }]}>
+      <AppText variant="label" color={color} style={styles.badgeText}>{label}</AppText>
+    </View>
+  );
+}
+
+function Feature({ text, onDark }: { text: string; onDark?: boolean }) {
   return (
     <View style={styles.feature}>
-      <Ionicons name="checkmark" size={14} color={color} />
-      <AppText variant="caption" color={textColor} style={styles.featureText}>
-        {text}
-      </AppText>
+      <Icon name="checkmark" size={14} color={colors.sageDark} />
+      <AppText variant="caption" color={onDark ? colors.onDark60 : colors.inkLight} style={styles.featureText}>{text}</AppText>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.cream },
-  header: {
-    backgroundColor: colors.ink,
-    paddingHorizontal: 24,
-    paddingBottom: 28,
+  hero: { backgroundColor: colors.ink, paddingHorizontal: 24, paddingBottom: 24 },
+  back: { marginBottom: 8 },
+  sub: { marginTop: 8 },
+  cards: { padding: 20, gap: 14 },
+  card: { backgroundColor: colors.warm, borderWidth: 1.5, borderColor: colors.border, borderRadius: radius.md, padding: 18 },
+  cardBloom: { borderColor: 'rgba(193,123,92,0.4)', backgroundColor: '#FDF3EC' },
+  cardHeirloom: { backgroundColor: colors.ink, borderColor: 'rgba(201,169,110,0.25)' },
+  intent: { fontSize: 13, marginBottom: 10 },
+  cardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+  badge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 8 },
+  badgeText: { letterSpacing: 1 },
+  social: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  priceRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 6 },
+  price: { fontSize: 34, lineHeight: 38 },
+  per: { marginBottom: 8 },
+  feature: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 7 },
+  featureText: { flex: 1, fontSize: 12.5 },
+  cta: { marginTop: 16 },
+  reframe: { marginTop: 12, fontSize: 13 },
+  clarity: { marginTop: 6 },
+  giftBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    borderWidth: 1, borderColor: 'rgba(201,169,110,0.3)', borderRadius: radius.sm,
+    paddingVertical: 12, marginTop: 8,
   },
-  headerLabel: { marginTop: 16, marginBottom: 8 },
-  headerSub: { marginTop: 8 },
-  currentPlan: {
-    marginHorizontal: 20,
-    marginTop: 20,
-    padding: 22,
-    borderRadius: radius.md,
-  },
-  currentBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: colors.gold,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    marginBottom: 12,
-  },
-  currentBadgeText: { letterSpacing: 1.2 },
-  currentPrice: { marginTop: 4, marginBottom: 12 },
-  cards: { padding: 20, gap: 16 },
-  card: {
-    backgroundColor: colors.warm,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    padding: 22,
-  },
-  recommended: { borderColor: colors.sienna },
-  recBadge: {
-    position: 'absolute',
-    top: -10,
-    left: 20,
-    backgroundColor: colors.sienna,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-  },
-  recBadgeText: { letterSpacing: 1, fontSize: 8 },
-  cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 },
-  priceCol: { alignItems: 'flex-end' },
-  period: { fontSize: 10 },
-  feature: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 7 },
-  featureText: { flex: 1, fontSize: 12 },
-  cardButton: { marginTop: 16 },
-  clarity: { marginBottom: 12 },
-  clarityLabel: { marginBottom: 4 },
-  clarityText: { lineHeight: 17 },
-  promise: { marginHorizontal: 20, marginTop: 4 },
-  promiseText: { lineHeight: 18 },
-  promiseStrong: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.sageDark },
+  giftText: { letterSpacing: 0.8 },
 });

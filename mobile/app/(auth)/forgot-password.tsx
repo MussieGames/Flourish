@@ -8,7 +8,7 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import { AppText, Button, Hero, InfoBox, TextField } from '@/components';
+import { AppText, Button, Hero, Icon, InfoBox, TextField } from '@/components';
 import { useAuth } from '@/context/AuthContext';
 import { friendlyAuthError } from '@/lib/errors';
 import { colors } from '@/theme';
@@ -42,8 +42,8 @@ export default function ForgotPassword() {
     >
       <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <Hero paddingTop={80} style={styles.hero}>
-          <Pressable onPress={() => router.back()} hitSlop={12}>
-            <AppText style={styles.back}>‹</AppText>
+          <Pressable onPress={() => router.back()} hitSlop={12} style={styles.back}>
+            <Icon name="chevron-back" size={26} color={colors.cream} />
           </Pressable>
           <AppText variant="display" color={colors.cream}>
             Reset{'\n'}
@@ -67,7 +67,7 @@ export default function ForgotPassword() {
                 Enter your email and we&apos;ll send you a secure link to set a new password.
               </AppText>
               <TextField
-                icon="✉️"
+                icon="mail-outline"
                 placeholder="Your email"
                 value={email}
                 onChangeText={setEmail}
@@ -100,7 +100,7 @@ export default function ForgotPassword() {
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.cream },
   hero: { paddingBottom: 44 },
-  back: { fontSize: 30, color: colors.cream, marginBottom: 8 },
+  back: { marginBottom: 8 },
   form: { paddingHorizontal: 24, paddingTop: 28 },
   intro: { marginBottom: 20 },
   error: { marginTop: 12 },

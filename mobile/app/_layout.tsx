@@ -60,7 +60,8 @@ function RootNavigator() {
       <Stack.Screen name="milestone" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
       <Stack.Screen name="plan" options={{ presentation: 'modal' }} />
       <Stack.Screen name="calendar" />
-      <Stack.Screen name="journal" />
+      <Stack.Screen name="profile" />
+      <Stack.Screen name="sharing" />
     </Stack>
   );
 }

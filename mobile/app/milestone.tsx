@@ -1,114 +1,116 @@
-import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useRef } from 'react';
-import { Animated, Easing, Pressable, Share, StyleSheet, View } from 'react-native';
+import { useEffect, useMemo, useRef } from 'react';
+import { Animated, Easing, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppText, Button } from '@/components';
+import { AppText, Button, Icon } from '@/components';
+import type { IconName } from '@/components';
 import { useAuth } from '@/context/AuthContext';
-import { formatLongDate } from '@/lib/age';
+import { captureMilestone } from '@/firebase/firestore';
+import { DEFAULT_FIRSTS, iconForFirst } from '@/data/firsts';
+import { preciseAge, weekdayName } from '@/lib/age';
 import { formatTime } from '@/lib/format';
-import { colors } from '@/theme';
-
-const CONFETTI = ['✨', '🌸', '⭐', '🌿', '💛'];
+import { colors, radius } from '@/theme';
 
 export default function MilestoneMoment() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { activeBaby } = useAuth();
-  const params = useLocalSearchParams<{ emoji?: string; label?: string; preview?: string }>();
+  const params = useLocalSearchParams<{ id?: string; key?: string; label?: string; preview?: string }>();
 
-  const emoji = params.emoji ?? '🎉';
-  const label = params.label ?? 'A new first';
+  const def = useMemo(() => DEFAULT_FIRSTS.find((f) => f.key === params.key), [params.key]);
+  const label = params.label ?? def?.label ?? 'A new first';
+  const icon: IconName = (def?.icon as IconName) ?? iconForFirst(params.key);
+  const description = def?.description;
   const isPreview = params.preview === '1';
   const now = new Date();
 
-  const pulse = useRef(new Animated.Value(1)).current;
-
+  const glow = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, { toValue: 1.08, duration: 1000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 1, duration: 1000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [pulse]);
+    Animated.timing(glow, { toValue: 1, duration: 900, easing: Easing.out(Easing.ease), useNativeDriver: true }).start();
+  }, [glow]);
 
-  const share = async () => {
-    try {
-      await Share.share({
-        message: `${activeBaby?.name ?? 'Our baby'} just reached a milestone: ${label}! 💛 — shared from Flourish`,
-      });
-    } catch {
-      /* user cancelled */
+  const markCaught = async () => {
+    if (activeBaby && params.id) {
+      try {
+        await captureMilestone(activeBaby.id, params.id);
+      } catch {
+        /* non-fatal */
+      }
     }
+    router.replace({ pathname: '/milestone', params: { key: params.key, label } });
   };
+
+  const writeItDown = () => {
+    router.replace({
+      pathname: '/journal-entry',
+      params: { prompt: 'What were you feeling in this exact moment?', milestone: label },
+    });
+  };
+
+  const ageLine = (() => {
+    const pa = preciseAge(activeBaby?.birthDate, now);
+    return `${pa ? `${pa} · ` : ''}${weekdayName(now)} ${formatTime(now)}`;
+  })();
+
+  const glowColor = isPreview ? 'rgba(193,123,92,0.22)' : 'rgba(122,158,126,0.22)';
 
   return (
     <View style={styles.flex}>
-      <LinearGradient
-        colors={['rgba(193,123,92,0.25)', 'transparent']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
-      <LinearGradient
-        colors={['transparent', 'rgba(181,196,177,0.15)']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
+      <Animated.View style={[StyleSheet.absoluteFill, { opacity: glow }]} pointerEvents="none">
+        <LinearGradient colors={[glowColor, 'transparent']} start={{ x: 0.5, y: 0.15 }} end={{ x: 0.5, y: 0.9 }} style={StyleSheet.absoluteFill} />
+      </Animated.View>
 
       <Pressable onPress={() => router.back()} hitSlop={12} style={[styles.close, { top: insets.top + 12 }]}>
-        <Ionicons name="close" size={26} color={colors.onDark60} />
+        <Icon name="close" size={26} color={colors.onDark60} />
       </Pressable>
 
-      <View style={[styles.confetti, { top: insets.top + 8 }]} pointerEvents="none">
-        {CONFETTI.map((c) => (
-          <AppText key={c} style={styles.confettiItem}>
-            {c}
-          </AppText>
-        ))}
-      </View>
-
       <View style={styles.center}>
-        <View style={styles.badge}>
-          <AppText variant="label" color={colors.white} style={styles.badgeText}>
-            {isPreview ? 'Coming soon' : 'First captured'}
-          </AppText>
+        <View style={[styles.iconRing, { borderColor: isPreview ? 'rgba(193,123,92,0.4)' : 'rgba(122,158,126,0.4)' }]}>
+          <Icon name={icon} size={40} color={isPreview ? colors.sienna : colors.sageDark} />
         </View>
 
-        <Animated.Text style={[styles.emoji, { transform: [{ scale: pulse }] }]}>{emoji}</Animated.Text>
+        <AppText variant="label" color={isPreview ? colors.sienna : colors.sageDark} style={styles.eyebrow}>
+          {isPreview ? `Coming soon${def ? ` · ${def.typicalAge}` : ''}` : 'First caught'}
+        </AppText>
 
         <AppText variant="display" color={colors.cream} center style={styles.title}>
-          {activeBaby?.name ?? 'Baby'}&apos;s{'\n'}
-          <AppText variant="displayItalic" color={colors.rose} style={styles.titleItalic}>
-            {label}
-          </AppText>
+          {isPreview ? '' : `${activeBaby?.name ?? 'Baby'}’s\n`}
+          <AppText variant="displayItalic" color={colors.rose} style={styles.title}>{label}</AppText>
         </AppText>
 
-        <AppText variant="caption" color={colors.onDark40} center style={styles.date}>
-          {formatLongDate(now)} · {formatTime(now)}
-        </AppText>
+        {!isPreview ? (
+          <AppText variant="caption" color={colors.onDark40} center style={styles.age}>{ageLine}</AppText>
+        ) : null}
 
-        <AppText variant="bodyLight" color={colors.onDark60} center style={styles.para}>
-          {isPreview
-            ? 'Keep your camera close — this one is just around the corner, and you won’t want to miss it.'
-            : 'You caught it. The one that changes everything — and it was meant just for you.'}
-        </AppText>
-
-        <View style={styles.actions}>
-          <Button label="📸 Add a photo of this moment" onPress={() => router.replace('/(tabs)/capture')} />
-          <Button label="Save to scrapbook →" variant="ghost" onPress={() => router.replace('/(tabs)/scrapbook')} />
-        </View>
-
-        <View style={styles.shareRow}>
-          <Pressable style={styles.shareIcon} onPress={share}>
-            <Ionicons name="share-social-outline" size={18} color={colors.onDark60} />
-          </Pressable>
-        </View>
+        {isPreview ? (
+          <>
+            {description ? (
+              <AppText variant="serifItalic" color={colors.onDark60} center style={styles.desc}>“{description}”</AppText>
+            ) : null}
+            <View style={styles.readyRow}>
+              <Icon name="notifications-outline" size={14} color={colors.sageDark} />
+              <AppText variant="caption" color={colors.sageDark}>Flourish will remind you before it happens</AppText>
+            </View>
+            <View style={styles.actions}>
+              <Button label="I caught it" onPress={markCaught} />
+              <Button label="Close" variant="ghost" onPress={() => router.back()} />
+            </View>
+          </>
+        ) : (
+          <>
+            <View style={styles.promptBox}>
+              <AppText variant="label" color={colors.sienna} style={styles.promptLabel}>Only you will ever read this —</AppText>
+              <AppText variant="serifItalic" color={colors.onDark60} style={styles.promptText}>
+                What were you feeling in this exact moment?
+              </AppText>
+            </View>
+            <View style={styles.actions}>
+              <Button label="Write it down" onPress={writeItDown} />
+              <Button label="Done" variant="ghost" onPress={() => router.replace('/(tabs)/firsts')} />
+            </View>
+          </>
+        )}
       </View>
     </View>
   );
@@ -117,30 +119,31 @@ export default function MilestoneMoment() {
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.ink },
   close: { position: 'absolute', right: 20, zIndex: 10 },
-  confetti: { position: 'absolute', left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-around', paddingHorizontal: 20 },
-  confettiItem: { fontSize: 20, opacity: 0.6 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 },
-  badge: {
-    backgroundColor: colors.sienna,
-    paddingHorizontal: 16,
-    paddingVertical: 5,
-    borderRadius: 2,
-    marginBottom: 24,
-  },
-  badgeText: { letterSpacing: 1.5 },
-  emoji: { fontSize: 72, marginBottom: 20 },
-  title: { fontSize: 40, lineHeight: 44 },
-  titleItalic: { fontSize: 40, lineHeight: 44 },
-  date: { marginTop: 12, letterSpacing: 1 },
-  para: { marginTop: 24, marginBottom: 32, maxWidth: 300 },
-  actions: { alignSelf: 'stretch', gap: 6 },
-  shareRow: { flexDirection: 'row', gap: 12, marginTop: 16 },
-  shareIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 30 },
+  iconRing: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 22,
   },
+  eyebrow: { marginBottom: 12 },
+  title: { fontSize: 36, lineHeight: 40 },
+  age: { marginTop: 12, letterSpacing: 0.6 },
+  desc: { marginTop: 18, fontSize: 15, lineHeight: 24, maxWidth: 300 },
+  readyRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 20 },
+  promptBox: {
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.07)',
+    borderRadius: radius.md,
+    padding: 18,
+    marginTop: 24,
+    alignSelf: 'stretch',
+  },
+  promptLabel: { marginBottom: 8 },
+  promptText: { fontSize: 15, lineHeight: 24 },
+  actions: { alignSelf: 'stretch', gap: 4, marginTop: 24 },
 });

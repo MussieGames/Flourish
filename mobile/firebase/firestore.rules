@@ -67,7 +67,7 @@ service cloud.firestore {
         && request.resource.data.ownerId == request.auth.uid
         && request.resource.data.memberIds is list
         && request.resource.data.memberIds.size() == 1
-        && request.resource.data.memberIds[0] == request.auth.uid
+        && request.resource.data.memberIds.hasAll([request.auth.uid])
         && isNonEmptyString(request.resource.data.name, 40);
 
       allow update: if isOwner(babyId)

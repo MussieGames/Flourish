@@ -63,6 +63,7 @@ Reviewable HTML mockups live in [`mockups/`](mockups/):
 - [`mockups/all-screens.html`](mockups/all-screens.html) — every screen, welcome through plans
 - [`mockups/milestone-notifications.html`](mockups/milestone-notifications.html) — reminder flow in detail
 - [`mockups/screens/`](mockups/screens/) — PNG captures of each phone
+- [`mockups/screens/index.html`](mockups/screens/index.html) — those PNGs in one page (use this if a numbered path 404s)
 
 ### Scripts
 

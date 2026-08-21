@@ -66,11 +66,13 @@ service cloud.firestore {
       allow create: if isSignedIn()
         && request.resource.data.ownerId == request.auth.uid
         && request.resource.data.memberIds is list
-        && request.resource.data.memberIds.hasOnly([request.auth.uid])
+        && request.resource.data.memberIds.size() == 1
+        && request.resource.data.memberIds.hasAll([request.auth.uid])
         && isNonEmptyString(request.resource.data.name, 40);
 
       allow update: if isOwner(babyId)
         && request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.memberIds == resource.data.memberIds
         && request.resource.data.ownerId in request.resource.data.memberIds
         && isNonEmptyString(request.resource.data.name, 40);
 

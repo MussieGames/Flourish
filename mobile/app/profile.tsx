@@ -256,7 +256,7 @@ export default function Profile() {
               {totpSecret.secretKey}
             </AppText>
             <AppText variant="caption" style={styles.totpHelp}>
-              Google Authenticator, 1Password, or Authy. Then enter the 6-digit code. Flourish never sends codes by text.
+              Google Authenticator, 1Password, or Authy are common. Any authenticator app works. Then enter the 6-digit code. Flourish never sends codes by text.
             </AppText>
             <View style={styles.totpField}>
               <TextField

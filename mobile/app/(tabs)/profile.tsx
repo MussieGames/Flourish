@@ -12,7 +12,7 @@ import type { PlanId } from '@/types/models';
 const PLAN_NAMES: Record<PlanId, string> = {
   seedling: 'Seedling (Free)',
   bloom: 'Bloom',
-  heirloom: 'Heirloom',
+  heirloom: 'Bloom · Heirloom book',
 };
 
 export default function Profile() {
@@ -56,7 +56,15 @@ export default function Profile() {
         <Row
           icon="leaf-outline"
           label={PLAN_NAMES[profile?.plan ?? 'seedling']}
-          sublabel="View plans & upgrade"
+          sublabel={profile?.plan === 'heirloom' ? 'Bloom year + the 10×10 book' : 'View membership & the book'}
+          onPress={() => router.push('/plan')}
+        />
+
+        <SectionLabel>The book</SectionLabel>
+        <Row
+          icon="book-outline"
+          label="Heirloom"
+          sublabel="10×10 of the pictures you choose, mailed to you"
           onPress={() => router.push('/plan')}
         />
 
@@ -100,11 +108,14 @@ export default function Profile() {
         )}
 
         <InfoBox accent={colors.sageDark} style={styles.promise}>
-          <AppText variant="caption" color={colors.inkLight} style={styles.promiseText}>
-            <AppText style={styles.promiseStrong}>🔒 Our promise: </AppText>
-            Your data is private by default. Zero ads. Zero data sharing. Only the family members
-            you invite can ever see {activeBaby?.name ?? 'your baby'}&apos;s memories.
-          </AppText>
+          <View style={styles.promiseRow}>
+            <Ionicons name="lock-closed-outline" size={16} color={colors.sageDark} />
+            <AppText variant="caption" color={colors.inkLight} style={styles.promiseText}>
+              <AppText style={styles.promiseStrong}>Our promise: </AppText>
+              Your data is private by default. Zero ads. Zero data sharing. Only the family members
+              you invite can ever see {activeBaby?.name ?? 'your baby'}&apos;s memories.
+            </AppText>
+          </View>
         </InfoBox>
 
         <Pressable style={styles.signOut} onPress={confirmSignOut}>
@@ -184,7 +195,8 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: 0.85 },
   promise: { marginTop: 12 },
-  promiseText: { lineHeight: 18 },
+  promiseRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  promiseText: { flex: 1, lineHeight: 18 },
   promiseStrong: { fontFamily: fonts.bodyMedium, fontSize: 12, color: colors.sageDark },
   signOut: {
     flexDirection: 'row',

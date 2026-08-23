@@ -7,13 +7,10 @@ rules_version = '2';
 // flourish-app-dev). Photos & videos are stored under an owner-scoped,
 // unguessable path: babies/{babyId}/memories/{uid}/{file}
 //
-// Writes are locked to the authenticated uploader and validated for content
-// type and size (mirrors the client checks in src/firebase/storage.ts).
-//
-// NOTE on reads: Storage Rules cannot query Firestore, so they cannot verify
-// baby-membership here. Reads therefore require authentication plus knowledge
-// of the full, unguessable object path. For stricter per-member enforcement,
-// serve media via signed URLs from a Cloud Function or a custom-claims model.
+// Reads and writes are checked against the Firestore baby membership document
+// so removing a member also removes access to private media. Writes are also
+// locked to the authenticated uploader and validated for content type and size
+// (mirrors the client checks in src/firebase/storage.ts).
 // ═══════════════════════════════════════════════════════════════════════════
 
 service firebase.storage {
@@ -21,6 +18,18 @@ service firebase.storage {
 
     function isSignedIn() {
       return request.auth != null;
+    }
+
+    function babyData(babyId) {
+      return firestore.get(/databases/(default)/documents/babies/$(babyId)).data;
+    }
+
+    function isMember(babyId) {
+      return isSignedIn() && request.auth.uid in babyData(babyId).memberIds;
+    }
+
+    function isOwner(babyId) {
+      return isSignedIn() && request.auth.uid == babyData(babyId).ownerId;
     }
 
     function isValidMedia() {
@@ -32,11 +41,12 @@ service firebase.storage {
     }
 
     match /babies/{babyId}/memories/{uid}/{fileName} {
-      allow read: if isSignedIn();
-      allow create, update: if isSignedIn()
+      allow read: if isMember(babyId);
+      allow create, update: if isMember(babyId)
         && request.auth.uid == uid
         && isValidMedia();
-      allow delete: if isSignedIn() && request.auth.uid == uid;
+      allow delete: if isMember(babyId)
+        && (request.auth.uid == uid || isOwner(babyId));
     }
 
     match /{allPaths=**} {

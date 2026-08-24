@@ -25,6 +25,8 @@ const BLOOM_FEATURES = [
 const HEIRLOOM_FEATURES = [
   'Everything in Bloom for 12 months',
   'An 11×8.5″ hardcover of the pictures you choose',
+  'Sage cover, their name in gold — a date if you want',
+  'Flourish sits quietly in the background',
   'HD print on 440gsm photographic pages',
   'Posted to the address you approve on the proof',
   'Nothing else starts — after 12 months, continue Bloom at $8/mo or stay free',
@@ -57,7 +59,7 @@ export default function Plan() {
   const orderHeirloom = () => {
     Alert.alert(
       'Order the Heirloom',
-      'This is the book — not another membership. You’ll pick the pictures, approve a proof that shows the posting address, and we’ll mail an 11×8.5″ hardcover. Twelve months of Bloom is included. Billing will be App Store / Google Play in production.',
+      'This is the book — not another membership. You’ll pick the pictures, add their name (and a date if you want), and approve a proof that shows the posting address. The cover is sage and gold; Flourish sits quietly in the background. Twelve months of Bloom is included.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -183,10 +185,12 @@ export default function Plan() {
           </View>
           <InfoBox accent={colors.gold} tint="rgba(201,169,110,0.1)" style={styles.clarity}>
             <AppText variant="caption" color={colors.inkLight} style={styles.clarityText}>
-              You choose the pictures. You approve a proof that includes the posting address. We print an
-              11×8.5″ HD book on 440gsm pages and mail it there. We never keep a standing home address on
-              your account. Twelve months of Bloom is included. After that, stay on Bloom at $8/mo or return
-              to Seedling. Extra pages are $6 each if you want more than 20.
+              You choose the pictures, and their name — a date too, if you want. The cover is always ours:
+              sage, with that name in gold. Flourish is there, quietly, in the background. You approve a
+              proof that includes the posting address. We print an 11×8.5″ HD book on 440gsm pages and mail
+              it there. We never keep a standing home address on your account. Twelve months of Bloom is
+              included. After that, stay on Bloom at $8/mo or return to Seedling. Extra pages are $6 each
+              if you want more than 20.
             </AppText>
           </InfoBox>
           {HEIRLOOM_FEATURES.map((f) => (

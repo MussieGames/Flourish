@@ -64,7 +64,7 @@ export default function Profile() {
         <Row
           icon="book-outline"
           label="Heirloom"
-          sublabel="11×8.5″ of the pictures you choose, mailed to you"
+          sublabel="Their name on a sage cover. Pictures you choose, mailed to you"
           onPress={() => router.push('/plan')}
         />
 

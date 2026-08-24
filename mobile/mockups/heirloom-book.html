@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flourish — Membership & the book</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,400&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream:#FBF7F2; --warm:#FEFCF9; --sienna:#C17B5C; --ink:#2C2420;
+    --ink-l:#5C4A42; --ink-m:#8C7870; --gold:#C9A96E; --sage-d:#7A9E7E;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'DM Sans',sans-serif; background:var(--cream); color:var(--ink); -webkit-font-smoothing:antialiased; }
+  .page { max-width:1280px; margin:0 auto; padding:48px 24px 80px; }
+  .kicker { font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--sienna); font-weight:500; margin-bottom:14px; }
+  h1 { font-family:'Cormorant Garamond',serif; font-weight:300; font-size:44px; line-height:1.05; margin-bottom:14px; }
+  h1 em { font-style:italic; color:var(--sienna); }
+  .lede { font-size:16px; line-height:1.6; color:var(--ink-l); max-width:640px; font-weight:400; }
+  .phones { display:flex; flex-wrap:wrap; gap:36px; justify-content:center; margin-top:40px; }
+  .phone-wrap { display:flex; flex-direction:column; align-items:center; gap:12px; }
+  .cap { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-m); text-align:center; max-width:280px; }
+  .phone { width:320px; height:700px; background:var(--ink); border-radius:36px; padding:10px; box-shadow:0 30px 60px rgba(44,36,32,.18); }
+  .screen { width:100%; height:100%; background:var(--cream); border-radius:28px; overflow:hidden; position:relative; display:flex; flex-direction:column; }
+  .status { display:flex; justify-content:space-between; padding:10px 18px 4px; font-size:11px; font-weight:500; color:var(--cream); }
+  .status.light { color:var(--ink); }
+  .hero { background:var(--ink); color:var(--cream); padding:4px 20px 18px; }
+  .eyebrow { font-size:9px; letter-spacing:.18em; text-transform:uppercase; color:var(--gold); font-weight:500; margin:8px 0; }
+  .display { font-family:'Cormorant Garamond',serif; font-weight:300; font-size:26px; line-height:1.08; color:var(--cream); }
+  .display em { font-style:italic; color:var(--gold); }
+  .sub { font-size:11px; line-height:1.45; color:rgba(251,247,242,.4); margin-top:8px; }
+  .scroll { flex:1; overflow:hidden; }
+  .pad { padding:12px 16px 16px; }
+  .current { background:linear-gradient(180deg,var(--ink),#3D2820); border-radius:4px; padding:14px 16px; margin:12px 16px 0; }
+  .badge { display:inline-block; background:var(--gold); color:var(--ink); font-size:8px; letter-spacing:1.2px; text-transform:uppercase; font-weight:500; padding:3px 8px; margin-bottom:8px; }
+  .title { font-family:'Cormorant Garamond',serif; font-weight:300; font-size:22px; line-height:1.1; }
+  .muted { font-size:11px; color:rgba(251,247,242,.4); margin:4px 0 8px; }
+  .feat { display:flex; gap:6px; align-items:flex-start; font-size:11px; color:var(--ink-l); margin-bottom:5px; }
+  .feat.on-d { color:rgba(251,247,242,.6); }
+  .check { color:var(--sage-d); font-size:11px; line-height:1.2; }
+  .check.gold { color:var(--gold); }
+  .label { display:flex; align-items:center; gap:8px; font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--sienna); font-weight:500; margin:12px 0 6px; }
+  .label::before { content:''; width:14px; height:1px; background:var(--sienna); }
+  .help { font-size:11px; line-height:1.45; color:var(--ink-m); margin-bottom:10px; }
+  .card { background:var(--warm); border:1.5px solid rgba(196,169,160,.25); border-radius:4px; padding:14px; margin-bottom:12px; }
+  .card.bloom { border-color:var(--sienna); position:relative; margin-top:14px; }
+  .card.book { border-color:rgba(201,169,110,.45); background:#FBF6EC; }
+  .loved { position:absolute; top:-9px; left:14px; background:var(--sienna); color:#fff; font-size:8px; letter-spacing:1px; text-transform:uppercase; padding:3px 8px; }
+  .top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; }
+  .price { font-family:'Cormorant Garamond',serif; font-size:22px; line-height:1; text-align:right; }
+  .period { font-size:9px; color:var(--ink-m); text-align:right; margin-top:2px; }
+  .btn { background:var(--sienna); color:#fff; text-align:center; padding:11px 8px; border-radius:2px; font-size:10px; letter-spacing:1.2px; text-transform:uppercase; font-weight:500; margin-top:12px; }
+  .btn.outline { background:transparent; border:1px solid rgba(196,169,160,.4); color:var(--ink-l); }
+  .btn.disabled { opacity:.5; }
+  .info { border-left:2px solid var(--gold); background:rgba(201,169,110,.1); padding:10px 12px; font-size:10px; line-height:1.5; color:var(--ink-l); margin-bottom:10px; }
+  .book-eye { font-size:9px; letter-spacing:.18em; text-transform:uppercase; color:var(--gold); font-weight:500; margin-bottom:6px; }
+  .gift { font-size:10px; color:var(--ink-m); text-align:center; margin-top:8px; line-height:1.4; }
+  .row { display:flex; gap:10px; align-items:center; background:var(--warm); border:1px solid rgba(196,169,160,.25); border-radius:4px; padding:12px; margin-bottom:8px; }
+  .ri { width:34px; height:34px; border-radius:17px; flex-shrink:0; background:rgba(193,123,92,.1); display:grid; place-items:center; color:var(--sienna); }
+  .rl { font-size:13px; font-weight:500; color:var(--ink); }
+  .rs { font-size:10px; color:var(--ink-m); line-height:1.35; margin-top:2px; }
+  .chev { color:var(--ink-m); font-size:16px; }
+  .tabs { display:flex; background:var(--warm); border-top:1px solid rgba(196,169,160,.25); padding:8px 4px 10px; }
+  .tab { flex:1; text-align:center; font-size:7px; letter-spacing:.6px; text-transform:uppercase; color:var(--ink-m); font-weight:500; }
+  .tab.on { color:var(--sienna); }
+  .promise { border-left:2px solid var(--sage-d); background:rgba(181,196,177,.15); padding:10px 12px; font-size:10px; line-height:1.5; color:var(--ink-l); margin-top:8px; display:flex; gap:8px; }
+  svg.line { width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
+</style>
+</head>
+<body>
+<div class="page">
+  <p class="kicker">Review · membership & the book</p>
+  <h1>Bloom is the app.<br><em>Heirloom is the book.</em></h1>
+  <p class="lede">Membership is Seedling or Bloom. Heirloom is not a third plan — it is Bloom plus an 11×8.5″ hardcover of the pictures they choose, mailed to them.</p>
+
+  <div class="phones">
+
+    <!-- 1. Plans · membership -->
+    <div class="phone-wrap">
+      <div class="phone"><div class="screen">
+        <div class="hero">
+          <div class="status"><span>9:41</span><span>●●●</span></div>
+          <div style="font-size:18px;color:var(--cream);margin-bottom:4px">×</div>
+          <p class="eyebrow">Membership & the book</p>
+          <p class="display">Bloom is the app.<br><em>Heirloom is the book.</em></p>
+          <p class="sub">$8 keeps their story going. The hardcover is a gift you order when you’re ready — not a third plan.</p>
+        </div>
+        <div class="current">
+          <div class="badge">Your membership</div>
+          <div class="title" style="color:var(--cream)">Seedling</div>
+          <div class="muted">Free forever</div>
+          <div class="feat on-d"><span class="check gold">✓</span> 500 photos & videos</div>
+          <div class="feat on-d"><span class="check gold">✓</span> 25 milestones tracked</div>
+          <div class="feat on-d"><span class="check gold">✓</span> Basic scrapbook layouts</div>
+          <div class="feat on-d"><span class="check gold">✓</span> Share with 2 family members</div>
+        </div>
+        <div class="pad">
+          <div class="label">Membership</div>
+          <p class="help">Seedling is free. Bloom is $8 a month — unlimited capture, sharing, and firsts.</p>
+          <div class="card">
+            <div class="top">
+              <div class="title">Seedling</div>
+              <div>
+                <div class="price">$0</div>
+                <div class="period">free forever</div>
+              </div>
+            </div>
+            <div class="feat"><span class="check">✓</span> 500 photos & videos</div>
+            <div class="feat"><span class="check">✓</span> 25 milestones tracked</div>
+            <div class="feat"><span class="check">✓</span> Basic scrapbook layouts</div>
+            <div class="feat"><span class="check">✓</span> Share with 2 family members</div>
+            <div class="btn outline disabled">Your current membership</div>
+          </div>
+        </div>
+      </div></div>
+      <p class="cap">Plans · Membership (Seedling)</p>
+    </div>
+
+    <!-- 2. Plans · Bloom -->
+    <div class="phone-wrap">
+      <div class="phone"><div class="screen">
+        <div class="status light"><span>9:41</span><span>●●●</span></div>
+        <div class="pad" style="padding-top:8px">
+          <div class="label">Membership</div>
+          <p class="help">Seedling is free. Bloom is $8 a month — unlimited capture, sharing, and firsts.</p>
+          <div class="card bloom">
+            <div class="loved">Most loved</div>
+            <div class="top">
+              <div class="title">Bloom</div>
+              <div>
+                <div class="price">$8</div>
+                <div class="period">per month</div>
+              </div>
+            </div>
+            <div class="feat"><span class="check">✓</span> Unlimited photos & videos</div>
+            <div class="feat"><span class="check">✓</span> All 200+ milestones</div>
+            <div class="feat"><span class="check">✓</span> Premium scrapbook layouts</div>
+            <div class="feat"><span class="check">✓</span> Share with 10 family members</div>
+            <div class="feat"><span class="check">✓</span> Yearly video montage</div>
+            <div class="btn">Upgrade to Bloom</div>
+          </div>
+          <div class="label">The book</div>
+          <p class="help">Not a plan. An 11×8.5″ hardcover of the pictures you choose, mailed to you — with a year of Bloom.</p>
+          <div class="card book">
+            <div class="book-eye">Heirloom</div>
+            <div class="top">
+              <div class="title" style="font-size:20px">Bloom, plus the book</div>
+              <div>
+                <div class="price">$229</div>
+                <div class="period">once</div>
+              </div>
+            </div>
+            <div class="info">You choose the pictures. You approve a proof. We print an 11×8.5″ HD book on 440gsm pages and mail it.</div>
+          </div>
+        </div>
+      </div></div>
+      <p class="cap">Plans · Bloom, then the book</p>
+    </div>
+
+    <!-- 3. Plans · Heirloom -->
+    <div class="phone-wrap">
+      <div class="phone"><div class="screen">
+        <div class="status light"><span>9:41</span><span>●●●</span></div>
+        <div class="pad" style="padding-top:8px">
+          <div class="label">The book</div>
+          <p class="help">Not a plan. An 11×8.5″ hardcover of the pictures you choose, mailed to you — with a year of Bloom.</p>
+          <div class="card book">
+            <div class="book-eye">Heirloom</div>
+            <div class="top">
+              <div class="title" style="font-size:20px">Bloom, plus the book</div>
+              <div>
+                <div class="price">$229</div>
+                <div class="period">once</div>
+              </div>
+            </div>
+            <div class="info">You choose the pictures. You approve a proof. We print an 11×8.5″ HD book on 440gsm pages and mail it. Twelve months of Bloom is included. After that, stay on Bloom at $8/mo or return to Seedling. Extra pages are $6 each if you want more than 20.</div>
+            <div class="feat"><span class="check">✓</span> Everything in Bloom for 12 months</div>
+            <div class="feat"><span class="check">✓</span> An 11×8.5″ hardcover of the pictures you choose</div>
+            <div class="feat"><span class="check">✓</span> HD print on 440gsm photographic pages</div>
+            <div class="feat"><span class="check">✓</span> Mailed to the address you give us</div>
+            <div class="feat"><span class="check">✓</span> After 12 months, continue Bloom at $8/mo or stay free</div>
+            <div class="btn">Order the Heirloom</div>
+            <p class="gift">Also a baby-shower gift — we can post it to someone else.</p>
+          </div>
+        </div>
+      </div></div>
+      <p class="cap">Plans · Heirloom 11×8.5″</p>
+    </div>
+
+    <!-- 4. Profile -->
+    <div class="phone-wrap">
+      <div class="phone"><div class="screen">
+        <div class="hero" style="padding-bottom:22px">
+          <div class="status"><span>9:41</span><span>●●●</span></div>
+          <p class="eyebrow">Your account</p>
+          <p class="display">Aria</p>
+          <p class="sub">7 months · you@email.com</p>
+        </div>
+        <div class="pad">
+          <div class="label">Membership</div>
+          <div class="row">
+            <div class="ri"><svg class="line" viewBox="0 0 24 24"><path d="M12 21.5c-.2-5 .3-10.5 0-18"/><path d="M12 18.8c-3.6-.8-5.8-2.8-7-5.2"/><path d="M12 18.8c3.6-.8 5.8-2.8 7-5.2"/></svg></div>
+            <div style="flex:1"><div class="rl">Seedling (Free)</div><div class="rs">View membership & the book</div></div>
+            <span class="chev">›</span>
+          </div>
+          <div class="label">The book</div>
+          <div class="row">
+            <div class="ri"><svg class="line" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M4 4.5A2.5 2.5 0 0 1 6.5 7H20v13H6.5A2.5 2.5 0 0 1 4 17.5z"/></svg></div>
+            <div style="flex:1"><div class="rl">Heirloom</div><div class="rs">11×8.5″ of the pictures you choose, mailed to you</div></div>
+            <span class="chev">›</span>
+          </div>
+          <div class="label">Aria's world</div>
+          <div class="row">
+            <div class="ri"><svg class="line" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+            <div style="flex:1"><div class="rl">Memory calendar</div></div>
+            <span class="chev">›</span>
+          </div>
+          <div class="row">
+            <div class="ri"><svg class="line" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M8 7h8M8 11h6"/></svg></div>
+            <div style="flex:1"><div class="rl">Journal</div><div class="rs">The things photos can’t capture</div></div>
+            <span class="chev">›</span>
+          </div>
+          <div class="promise">
+            <svg class="line" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+            <div><strong style="color:var(--sage-d)">Our promise:</strong> Your data is private by default. Zero ads. Zero data sharing.</div>
+          </div>
+        </div>
+        <div class="tabs">
+          <div class="tab">Home</div>
+          <div class="tab">Capture</div>
+          <div class="tab">Scrapbook</div>
+          <div class="tab">Firsts</div>
+          <div class="tab on">Profile</div>
+        </div>
+      </div></div>
+      <p class="cap">Profile · Membership and the book</p>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

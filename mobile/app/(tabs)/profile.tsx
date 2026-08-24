@@ -56,7 +56,7 @@ export default function Profile() {
         <Row
           icon="leaf-outline"
           label={PLAN_NAMES[profile?.plan ?? 'seedling']}
-          sublabel={profile?.plan === 'heirloom' ? 'Bloom year + the 10×10 book' : 'View membership & the book'}
+          sublabel={profile?.plan === 'heirloom' ? 'Bloom year + the 11×8.5″ book' : 'View membership & the book'}
           onPress={() => router.push('/plan')}
         />
 
@@ -64,7 +64,7 @@ export default function Profile() {
         <Row
           icon="book-outline"
           label="Heirloom"
-          sublabel="10×10 of the pictures you choose, mailed to you"
+          sublabel="11×8.5″ of the pictures you choose, mailed to you"
           onPress={() => router.push('/plan')}
         />
 

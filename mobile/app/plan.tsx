@@ -26,7 +26,7 @@ const BLOOM_FEATURES = [
 
 const HEIRLOOM_FEATURES = [
   'Everything in Bloom for 12 months',
-  'A 10×10 hardcover of the pictures you choose',
+  'An 11×8.5″ hardcover of the pictures you choose',
   'HD print on 440gsm photographic pages',
   'Mailed to the address you give us',
   'Nothing else starts — after 12 months, continue Bloom at $8/mo or stay free',
@@ -63,7 +63,7 @@ export default function Plan() {
   const orderHeirloom = () => {
     Alert.alert(
       'Order the Heirloom',
-      'This is the book — not another membership. You’ll pick the pictures, approve a proof, and we’ll mail a 10×10 hardcover. Twelve months of Bloom is included. Billing will be App Store / Google Play in production.',
+      'This is the book — not another membership. You’ll pick the pictures, approve a proof, and we’ll mail an 11×8.5″ hardcover. Twelve months of Bloom is included. Billing will be App Store / Google Play in production.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -176,7 +176,7 @@ export default function Plan() {
           <SectionLabel>The book</SectionLabel>
         </View>
         <AppText variant="caption" color={colors.inkMuted} style={styles.sectionHelp}>
-          Not a plan. A 10×10 hardcover of the pictures you choose, mailed to you — with a year of Bloom.
+          Not a plan. An 11×8.5″ hardcover of the pictures you choose, mailed to you — with a year of Bloom.
         </AppText>
 
         <View style={[styles.card, styles.bookCard]}>
@@ -196,7 +196,7 @@ export default function Plan() {
           </View>
           <InfoBox accent={colors.gold} tint="rgba(201,169,110,0.1)" style={styles.clarity}>
             <AppText variant="caption" color={colors.inkLight} style={styles.clarityText}>
-              You choose the pictures. You approve a proof. We print a 10×10 HD book on 440gsm pages and
+              You choose the pictures. You approve a proof. We print an 11×8.5″ HD book on 440gsm pages and
               mail it. Twelve months of Bloom is included. After that, stay on Bloom at $8/mo or return to
               Seedling. Extra pages are $6 each if you want more than 20.
             </AppText>

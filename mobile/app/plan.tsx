@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,13 +6,12 @@ import { AppText, Button, InfoBox, SectionLabel } from '@/components';
 import { useAuth } from '@/context/AuthContext';
 import { updateUserPlan } from '@/firebase/firestore';
 import { colors, fonts, radius } from '@/theme';
-import type { PlanId } from '@/types/models';
 
 const SEEDLING_FEATURES = [
-  '500 photos & videos',
+  '200 photos',
   '25 milestones tracked',
   'Basic scrapbook layouts',
-  'Share with 2 family members',
+  'Just for you — no sharing',
 ];
 
 const BLOOM_FEATURES = [
@@ -32,16 +30,12 @@ const HEIRLOOM_FEATURES = [
   'Nothing else starts — after 12 months, continue Bloom at $8/mo or stay free',
 ];
 
-function membershipName(plan: PlanId): string {
-  if (plan === 'bloom' || plan === 'heirloom') return 'Bloom';
-  return 'Seedling';
-}
-
 export default function Plan() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user, profile } = useAuth();
   const currentPlan = profile?.plan ?? 'seedling';
+  const onSeedling = currentPlan === 'seedling';
   const onBloom = currentPlan === 'bloom' || currentPlan === 'heirloom';
 
   const chooseBloom = () => {
@@ -86,44 +80,30 @@ export default function Plan() {
           Membership & the book
         </AppText>
         <AppText variant="display" color={colors.cream}>
-          Bloom is the app.{'\n'}
+          Keep their days.{'\n'}
           <AppText variant="displayItalic" color={colors.gold}>
-            Heirloom is the book.
+            Hold them when you’re ready.
           </AppText>
         </AppText>
         <AppText variant="caption" color={colors.onDark40} style={styles.headerSub}>
-          $8 keeps their story going. The hardcover is a gift you order when you’re ready — not a third plan.
+          A quiet membership for the everyday. The hardcover is a gift you order — not another plan.
         </AppText>
       </View>
-
-      <LinearGradient colors={[colors.ink, '#3D2820']} style={styles.currentPlan}>
-        <View style={styles.currentBadge}>
-          <AppText variant="label" color={colors.ink} style={styles.currentBadgeText}>
-            Your membership
-          </AppText>
-        </View>
-        <AppText variant="title" color={colors.cream}>
-          {membershipName(currentPlan)}
-        </AppText>
-        <AppText variant="caption" color={colors.onDark40} style={styles.currentPrice}>
-          {currentPlan === 'seedling'
-            ? 'Free forever'
-            : currentPlan === 'heirloom'
-              ? 'Bloom year included with your book'
-              : '$8 / month'}
-        </AppText>
-        {(onBloom ? BLOOM_FEATURES : SEEDLING_FEATURES).map((f) => (
-          <Feature key={f} text={f} color={colors.gold} textColor={colors.onDark60} />
-        ))}
-      </LinearGradient>
 
       <View style={styles.cards}>
         <SectionLabel>Membership</SectionLabel>
         <AppText variant="caption" color={colors.inkMuted} style={styles.sectionHelp}>
-          Seedling is free. Bloom is $8 a month — unlimited capture, sharing, and firsts.
+          Seedling is free — 200 photos, just for you. Bloom is $8 a month, with sharing and room for everything.
         </AppText>
 
-        <View style={[styles.card, styles.seedlingCard]}>
+        <View style={[styles.card, styles.seedlingCard, onSeedling && styles.cardCurrent]}>
+          {onSeedling ? (
+            <View style={styles.yoursBadge}>
+              <AppText variant="label" color={colors.ink} style={styles.yoursBadgeText}>
+                Yours
+              </AppText>
+            </View>
+          ) : null}
           <View style={styles.cardTop}>
             <AppText variant="title">Seedling</AppText>
             <View style={styles.priceCol}>
@@ -136,19 +116,21 @@ export default function Plan() {
           {SEEDLING_FEATURES.map((f) => (
             <Feature key={f} text={f} />
           ))}
-          <View style={styles.cardButton}>
-            <Button
-              label={currentPlan === 'seedling' ? 'Your current membership' : 'Included if you leave Bloom'}
-              disabled
-              variant="outline"
-            />
-          </View>
+          {onSeedling ? (
+            <View style={styles.cardButton}>
+              <Button label="Your current membership" disabled variant="outline" />
+            </View>
+          ) : null}
         </View>
 
-        <View style={[styles.card, styles.recommended]}>
-          <View style={styles.recBadge}>
-            <AppText variant="label" color={colors.white} style={styles.recBadgeText}>
-              Most loved
+        <View style={[styles.card, styles.bloomCard, onBloom && styles.cardCurrent]}>
+          <View style={onBloom ? styles.yoursBadge : styles.recBadge}>
+            <AppText
+              variant="label"
+              color={onBloom ? colors.ink : colors.white}
+              style={onBloom ? styles.yoursBadgeText : styles.recBadgeText}
+            >
+              {onBloom ? 'Yours' : 'Most loved'}
             </AppText>
           </View>
           <View style={styles.cardTop}>
@@ -160,6 +142,11 @@ export default function Plan() {
               </AppText>
             </View>
           </View>
+          {currentPlan === 'heirloom' ? (
+            <AppText variant="caption" color={colors.inkMuted} style={styles.bloomNote}>
+              Included with your book for 12 months
+            </AppText>
+          ) : null}
           {BLOOM_FEATURES.map((f) => (
             <Feature key={f} text={f} />
           ))}
@@ -261,25 +248,11 @@ const styles = StyleSheet.create({
   },
   headerLabel: { marginTop: 16, marginBottom: 8 },
   headerSub: { marginTop: 8, lineHeight: 18 },
-  currentPlan: {
-    marginHorizontal: 20,
-    marginTop: 20,
-    padding: 22,
-    borderRadius: radius.md,
-  },
-  currentBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: colors.gold,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    marginBottom: 12,
-  },
-  currentBadgeText: { letterSpacing: 1.2 },
-  currentPrice: { marginTop: 4, marginBottom: 12 },
-  cards: { padding: 20, paddingTop: 8 },
+  cards: { padding: 20, paddingTop: 16 },
   sectionHelp: { marginTop: -4, marginBottom: 12, lineHeight: 18 },
   bookLabel: { marginTop: 18, marginBottom: -8 },
-  seedlingCard: { marginBottom: 14 },
+  seedlingCard: { marginBottom: 14, marginTop: 8 },
+  bloomCard: { borderColor: colors.sienna, marginTop: 12 },
   card: {
     backgroundColor: colors.warm,
     borderWidth: 1.5,
@@ -287,8 +260,25 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     padding: 22,
   },
-  recommended: { borderColor: colors.sienna, marginTop: 12 },
+  cardCurrent: {
+    borderColor: colors.gold,
+    backgroundColor: '#FBF6EC',
+    shadowColor: colors.gold,
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
   bookCard: { borderColor: 'rgba(201,169,110,0.45)', backgroundColor: '#FBF6EC' },
+  yoursBadge: {
+    position: 'absolute',
+    top: -10,
+    left: 20,
+    backgroundColor: colors.gold,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+  },
+  yoursBadgeText: { letterSpacing: 1.2 },
   recBadge: {
     position: 'absolute',
     top: -10,
@@ -302,6 +292,7 @@ const styles = StyleSheet.create({
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 },
   priceCol: { alignItems: 'flex-end' },
   period: { fontSize: 10 },
+  bloomNote: { marginTop: -8, marginBottom: 10, lineHeight: 18 },
   feature: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 7 },
   featureText: { flex: 1, fontSize: 12 },
   cardButton: { marginTop: 16 },

@@ -44,6 +44,34 @@ service cloud.firestore {
       return value is string && value.size() <= max;
     }
 
+    function isOwnedStoragePath(babyId, uid, value) {
+      return value == null
+        || (value is string
+          && value.matches('^babies/' + babyId + '/memories/' + uid + '/[^/]+$'));
+    }
+
+    function isValidMemoryData(babyId, authorId) {
+      return request.resource.data.babyId == babyId
+        && request.resource.data.authorId == authorId
+        && request.resource.data.kind in ['photo', 'video', 'note']
+        && isNonEmptyString(request.resource.data.title, 80)
+        && isBoundedString(request.resource.data.caption, 500)
+        && (
+          (request.resource.data.kind == 'note' && request.resource.data.storagePath == null)
+          || (request.resource.data.kind in ['photo', 'video']
+            && isOwnedStoragePath(babyId, authorId, request.resource.data.storagePath))
+        );
+    }
+
+    function isValidJournalData(babyId, authorId) {
+      return request.resource.data.babyId == babyId
+        && request.resource.data.authorId == authorId
+        && isBoundedString(request.resource.data.body, 4000)
+        && request.resource.data.tags is list
+        && request.resource.data.tags.size() <= 8
+        && isOwnedStoragePath(babyId, authorId, request.resource.data.storagePath);
+    }
+
     // ── Users ──────────────────────────────────────────────────────────
     match /users/{uid} {
       allow read: if isUser(uid);
@@ -80,11 +108,11 @@ service cloud.firestore {
       match /memories/{memoryId} {
         allow read: if isMember(babyId);
         allow create: if isMember(babyId)
-          && request.resource.data.authorId == request.auth.uid
-          && request.resource.data.kind in ['photo', 'video', 'note']
-          && isNonEmptyString(request.resource.data.title, 80)
-          && isBoundedString(request.resource.data.caption, 500);
-        allow update, delete: if isMember(babyId)
+          && isValidMemoryData(babyId, request.auth.uid);
+        allow update: if isMember(babyId)
+          && (resource.data.authorId == request.auth.uid || isOwner(babyId))
+          && isValidMemoryData(babyId, resource.data.authorId);
+        allow delete: if isMember(babyId)
           && (resource.data.authorId == request.auth.uid || isOwner(babyId));
       }
 
@@ -103,11 +131,11 @@ service cloud.firestore {
       match /journal/{entryId} {
         allow read: if isMember(babyId);
         allow create: if isMember(babyId)
-          && request.resource.data.authorId == request.auth.uid
-          && isBoundedString(request.resource.data.body, 4000)
-          && request.resource.data.tags is list
-          && request.resource.data.tags.size() <= 8;
-        allow update, delete: if isMember(babyId)
+          && isValidJournalData(babyId, request.auth.uid);
+        allow update: if isMember(babyId)
+          && (resource.data.authorId == request.auth.uid || isOwner(babyId))
+          && isValidJournalData(babyId, resource.data.authorId);
+        allow delete: if isMember(babyId)
           && (resource.data.authorId == request.auth.uid || isOwner(babyId));
       }
 

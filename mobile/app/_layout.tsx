@@ -3,7 +3,7 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { LockScreen } from '@/components/LockScreen';
 import { AppLockProvider, useAppLock } from '@/context/AppLockContext';
@@ -16,11 +16,10 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 
 function RootNavigator() {
   const { initializing, user, babies, babiesLoaded } = useAuth();
-  const { ready: lockReady } = useAppLock();
   const segments = useSegments();
   const router = useRouter();
 
-  const bootstrapping = initializing || !lockReady;
+  const bootstrapping = initializing;
 
   useEffect(() => {
     if (bootstrapping) return;
@@ -65,14 +64,18 @@ function RootNavigator() {
   );
 }
 
-function LockOverlay() {
-  const { locked, unlock } = useAppLock();
-  if (!locked) return null;
-  return (
-    <View style={StyleSheet.absoluteFill}>
-      <LockScreen onUnlock={unlock} />
-    </View>
-  );
+function LockedAppShell() {
+  const { ready, locked, unlock } = useAppLock();
+
+  if (!ready) {
+    return <View style={{ flex: 1, backgroundColor: colors.ink }} />;
+  }
+
+  if (locked) {
+    return <LockScreen onUnlock={unlock} />;
+  }
+
+  return <RootNavigator />;
 }
 
 export default function RootLayout() {
@@ -93,8 +96,7 @@ export default function RootLayout() {
       <StatusBar style="light" />
       <AuthProvider>
         <AppLockProvider>
-          <RootNavigator />
-          <LockOverlay />
+          <LockedAppShell />
         </AppLockProvider>
       </AuthProvider>
     </SafeAreaProvider>

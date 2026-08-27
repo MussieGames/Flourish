@@ -3,7 +3,6 @@ import {
   collection,
   doc,
   getDoc,
-  getDocs,
   limit as fbLimit,
   onSnapshot,
   orderBy,
@@ -88,7 +87,10 @@ export async function createBaby(
   birthDate: string | null,
 ): Promise<string> {
   const cleanName = sanitizeName(name) || 'Little one';
-  const ref = await addDoc(babiesCol, {
+  const ref = doc(babiesCol);
+  const batch = writeBatch(db);
+
+  batch.set(ref, {
     ownerId,
     memberIds: [ownerId],
     name: cleanName,
@@ -96,7 +98,9 @@ export async function createBaby(
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
-  await seedMilestones(ref.id, ownerId);
+
+  seedMilestones(batch, ref.id, ownerId);
+  await batch.commit();
   return ref.id;
 }
 
@@ -128,12 +132,12 @@ export async function updateBaby(
 }
 
 // ── Milestones ─────────────────────────────────────────────────────
-async function seedMilestones(babyId: string, authorId: string): Promise<void> {
+function seedMilestones(
+  batch: ReturnType<typeof writeBatch>,
+  babyId: string,
+  authorId: string,
+): void {
   const col = babySub(babyId, 'milestones');
-  const existing = await getDocs(query(col, fbLimit(1)));
-  if (!existing.empty) return;
-
-  const batch = writeBatch(db);
   for (const first of DEFAULT_FIRSTS) {
     const ref = doc(col);
     batch.set(ref, {
@@ -147,7 +151,6 @@ async function seedMilestones(babyId: string, authorId: string): Promise<void> {
       createdAt: serverTimestamp(),
     });
   }
-  await batch.commit();
 }
 
 export function subscribeMilestones(

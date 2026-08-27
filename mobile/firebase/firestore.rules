@@ -28,8 +28,16 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/babies/$(babyId)).data;
     }
 
+    function babyDataAfter(babyId) {
+      return getAfter(/databases/$(database)/documents/babies/$(babyId)).data;
+    }
+
     function isMember(babyId) {
       return isSignedIn() && request.auth.uid in babyData(babyId).memberIds;
+    }
+
+    function isMemberAfter(babyId) {
+      return isSignedIn() && request.auth.uid in babyDataAfter(babyId).memberIds;
     }
 
     function isOwner(babyId) {
@@ -91,7 +99,7 @@ service cloud.firestore {
       // ── Milestones ───────────────────────────────────────────────────
       match /milestones/{milestoneId} {
         allow read: if isMember(babyId);
-        allow create: if isMember(babyId)
+        allow create: if isMemberAfter(babyId)
           && isNonEmptyString(request.resource.data.label, 80)
           && request.resource.data.status in ['upcoming', 'captured'];
         allow update: if isMember(babyId)

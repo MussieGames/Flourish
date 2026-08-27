@@ -1,4 +1,5 @@
 import {
+  deleteObject,
   getDownloadURL,
   ref as storageRef,
   uploadBytes,
@@ -44,6 +45,10 @@ export async function uploadMemoryAsset(
 
 export async function resolveDownloadUrl(path: string): Promise<string> {
   return getDownloadURL(storageRef(storage, path));
+}
+
+export async function deleteMemoryAsset(path: string): Promise<void> {
+  await deleteObject(storageRef(storage, path));
 }
 
 function randomId(): string {

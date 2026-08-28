@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -26,18 +26,21 @@ export default function Onboarding() {
   const [year, setYear] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const submitInFlight = useRef(false);
 
   const birthDate = useMemo(() => buildDate(day, month, year), [day, month, year]);
   const canSubmit = isValidName(name) && !!birthDate;
 
   const handleSubmit = async () => {
-    if (!user) return;
+    if (!user || submitInFlight.current) return;
+    submitInFlight.current = true;
     setError(null);
     setSubmitting(true);
     try {
       await createBaby(user.uid, sanitizeName(name), birthDate ? toISODate(birthDate) : null);
       // Guard will route into the tabs once the baby document arrives.
     } catch (e) {
+      submitInFlight.current = false;
       setError(friendlyError(e, 'We couldn’t save that. Please try again.'));
       setSubmitting(false);
     }

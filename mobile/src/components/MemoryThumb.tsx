@@ -2,7 +2,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { resolveDownloadUrl } from '@/firebase/storage';
+import { resolvePrivateMediaUri } from '@/firebase/storage';
 import type { MemoryKind } from '@/types/models';
 import { AppText } from './Text';
 
@@ -36,7 +36,7 @@ export function MemoryThumb({
   useEffect(() => {
     let active = true;
     if (storagePath) {
-      resolveDownloadUrl(storagePath)
+      resolvePrivateMediaUri(storagePath)
         .then((u) => active && setUrl(u))
         .catch(() => active && setUrl(null));
     } else {

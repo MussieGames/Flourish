@@ -1,5 +1,6 @@
 import {
-  getDownloadURL,
+  getBytes,
+  getMetadata,
   ref as storageRef,
   uploadBytes,
 } from 'firebase/storage';
@@ -42,10 +43,36 @@ export async function uploadMemoryAsset(
   return path;
 }
 
-export async function resolveDownloadUrl(path: string): Promise<string> {
-  return getDownloadURL(storageRef(storage, path));
+export async function resolvePrivateMediaUri(path: string): Promise<string> {
+  const objectRef = storageRef(storage, path);
+  const [metadata, bytes] = await Promise.all([
+    getMetadata(objectRef),
+    getBytes(objectRef, MAX_UPLOAD_BYTES),
+  ]);
+  const contentType = metadata.contentType ?? 'application/octet-stream';
+  return `data:${contentType};base64,${arrayBufferToBase64(bytes)}`;
 }
 
 function randomId(): string {
   return Math.random().toString(36).slice(2, 10);
+}
+
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+  let output = '';
+
+  for (let i = 0; i < bytes.length; i += 3) {
+    const a = bytes[i];
+    const b = i + 1 < bytes.length ? bytes[i + 1] : 0;
+    const c = i + 2 < bytes.length ? bytes[i + 2] : 0;
+    const triplet = (a << 16) | (b << 8) | c;
+
+    output += chars[(triplet >> 18) & 63];
+    output += chars[(triplet >> 12) & 63];
+    output += i + 1 < bytes.length ? chars[(triplet >> 6) & 63] : '=';
+    output += i + 2 < bytes.length ? chars[triplet & 63] : '=';
+  }
+
+  return output;
 }

@@ -7,13 +7,12 @@ rules_version = '2';
 // flourish-app-dev). Photos & videos are stored under an owner-scoped,
 // unguessable path: babies/{babyId}/memories/{uid}/{file}
 //
-// Writes are locked to the authenticated uploader and validated for content
-// type and size (mirrors the client checks in src/firebase/storage.ts).
+// Writes are locked to the authenticated uploader, verified against baby
+// membership in Firestore, and validated for content type and size (mirrors
+// the client checks in src/firebase/storage.ts).
 //
-// NOTE on reads: Storage Rules cannot query Firestore, so they cannot verify
-// baby-membership here. Reads therefore require authentication plus knowledge
-// of the full, unguessable object path. For stricter per-member enforcement,
-// serve media via signed URLs from a Cloud Function or a custom-claims model.
+// NOTE on reads: the current app resolves stored paths with getDownloadURL(),
+// so read-side membership enforcement requires removing those bearer URLs too.
 // ═══════════════════════════════════════════════════════════════════════════
 
 service firebase.storage {
@@ -31,12 +30,23 @@ service firebase.storage {
         );
     }
 
+    function babyData(babyId) {
+      return firestore.get(/databases/(default)/documents/babies/$(babyId)).data;
+    }
+
+    function isBabyMember(babyId) {
+      return isSignedIn() && request.auth.uid in babyData(babyId).memberIds;
+    }
+
     match /babies/{babyId}/memories/{uid}/{fileName} {
       allow read: if isSignedIn();
       allow create, update: if isSignedIn()
         && request.auth.uid == uid
+        && isBabyMember(babyId)
         && isValidMedia();
-      allow delete: if isSignedIn() && request.auth.uid == uid;
+      allow delete: if isSignedIn()
+        && request.auth.uid == uid
+        && isBabyMember(babyId);
     }
 
     match /{allPaths=**} {

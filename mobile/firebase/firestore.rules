@@ -44,6 +44,33 @@ service cloud.firestore {
       return value is string && value.size() <= max;
     }
 
+    function hasValidOptionalTimestamp(data, field) {
+      return !(field in data) || data[field] is timestamp;
+    }
+
+    function isValidMilestone(data, babyId) {
+      return data.keys().hasOnly([
+          'babyId',
+          'key',
+          'label',
+          'emoji',
+          'typicalAge',
+          'status',
+          'authorId',
+          'createdAt',
+          'capturedAt'
+        ])
+        && data.babyId == babyId
+        && isNonEmptyString(data.key, 80)
+        && isNonEmptyString(data.label, 80)
+        && isNonEmptyString(data.emoji, 16)
+        && isNonEmptyString(data.typicalAge, 40)
+        && isNonEmptyString(data.authorId, 128)
+        && data.status in ['upcoming', 'captured']
+        && data.createdAt is timestamp
+        && hasValidOptionalTimestamp(data, 'capturedAt');
+    }
+
     // ── Users ──────────────────────────────────────────────────────────
     match /users/{uid} {
       allow read: if isUser(uid);
@@ -92,10 +119,12 @@ service cloud.firestore {
       match /milestones/{milestoneId} {
         allow read: if isMember(babyId);
         allow create: if isMember(babyId)
-          && isNonEmptyString(request.resource.data.label, 80)
-          && request.resource.data.status in ['upcoming', 'captured'];
+          && request.resource.data.authorId == request.auth.uid
+          && isValidMilestone(request.resource.data, babyId);
         allow update: if isMember(babyId)
-          && request.resource.data.status in ['upcoming', 'captured'];
+          && isValidMilestone(request.resource.data, babyId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'capturedAt'])
+          && request.resource.data.status == 'captured';
         allow delete: if isOwner(babyId);
       }
 

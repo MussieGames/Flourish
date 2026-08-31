@@ -44,6 +44,62 @@ service cloud.firestore {
       return value is string && value.size() <= max;
     }
 
+    function isOptionalBoundedString(data, field, max) {
+      return !data.keys().hasAny([field])
+        || data[field] == null
+        || isBoundedString(data[field], max);
+    }
+
+    function isValidTagAt(tags, index) {
+      return tags.size() <= index || isBoundedString(tags[index], 24);
+    }
+
+    function isValidTags(tags) {
+      return tags is list
+        && tags.size() <= 8
+        && isValidTagAt(tags, 0)
+        && isValidTagAt(tags, 1)
+        && isValidTagAt(tags, 2)
+        && isValidTagAt(tags, 3)
+        && isValidTagAt(tags, 4)
+        && isValidTagAt(tags, 5)
+        && isValidTagAt(tags, 6)
+        && isValidTagAt(tags, 7);
+    }
+
+    function isDocAuthor(data) {
+      return data.keys().hasAll(['authorId']) && data.authorId == request.auth.uid;
+    }
+
+    function isAuthorOrOwner(babyId, data) {
+      return isDocAuthor(data) || isOwner(babyId);
+    }
+
+    function isValidJournalEntry(babyId, data) {
+      return data.keys().hasOnly(['babyId', 'authorId', 'body', 'mood', 'tags', 'storagePath', 'createdAt'])
+        && data.keys().hasAll(['babyId', 'authorId', 'body', 'tags', 'createdAt'])
+        && data.babyId == babyId
+        && data.authorId is string
+        && isBoundedString(data.body, 4000)
+        && isOptionalBoundedString(data, 'mood', 8)
+        && isOptionalBoundedString(data, 'storagePath', 500)
+        && isValidTags(data.tags)
+        && data.createdAt is timestamp;
+    }
+
+    function isValidCalendarEvent(babyId, data) {
+      return data.keys().hasOnly(['babyId', 'authorId', 'type', 'title', 'meta', 'date', 'createdAt'])
+        && data.keys().hasAll(['babyId', 'authorId', 'type', 'title', 'meta', 'date', 'createdAt'])
+        && data.babyId == babyId
+        && data.authorId is string
+        && data.type in ['milestone', 'memory', 'appointment']
+        && isNonEmptyString(data.title, 80)
+        && isBoundedString(data.meta, 120)
+        && data.date is string
+        && data.date.matches('^\\d{4}-\\d{2}-\\d{2}$')
+        && data.createdAt is timestamp;
+    }
+
     // ── Users ──────────────────────────────────────────────────────────
     match /users/{uid} {
       allow read: if isUser(uid);
@@ -104,21 +160,31 @@ service cloud.firestore {
         allow read: if isMember(babyId);
         allow create: if isMember(babyId)
           && request.resource.data.authorId == request.auth.uid
-          && isBoundedString(request.resource.data.body, 4000)
-          && request.resource.data.tags is list
-          && request.resource.data.tags.size() <= 8;
-        allow update, delete: if isMember(babyId)
-          && (resource.data.authorId == request.auth.uid || isOwner(babyId));
+          && isValidJournalEntry(babyId, request.resource.data);
+        allow update: if isMember(babyId)
+          && isAuthorOrOwner(babyId, resource.data)
+          && isValidJournalEntry(babyId, request.resource.data)
+          && request.resource.data.authorId == resource.data.authorId
+          && request.resource.data.babyId == resource.data.babyId
+          && request.resource.data.createdAt == resource.data.createdAt;
+        allow delete: if isMember(babyId)
+          && isAuthorOrOwner(babyId, resource.data);
       }
 
       // ── Calendar events ──────────────────────────────────────────────
       match /events/{eventId} {
         allow read: if isMember(babyId);
         allow create: if isMember(babyId)
-          && request.resource.data.type in ['milestone', 'memory', 'appointment']
-          && isNonEmptyString(request.resource.data.title, 80)
-          && isNonEmptyString(request.resource.data.date, 10);
-        allow update, delete: if isMember(babyId);
+          && request.resource.data.authorId == request.auth.uid
+          && isValidCalendarEvent(babyId, request.resource.data);
+        allow update: if isMember(babyId)
+          && isAuthorOrOwner(babyId, resource.data)
+          && isValidCalendarEvent(babyId, request.resource.data)
+          && request.resource.data.authorId == resource.data.authorId
+          && request.resource.data.babyId == resource.data.babyId
+          && request.resource.data.createdAt == resource.data.createdAt;
+        allow delete: if isMember(babyId)
+          && isAuthorOrOwner(babyId, resource.data);
       }
     }
 

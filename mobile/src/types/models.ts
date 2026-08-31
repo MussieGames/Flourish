@@ -76,6 +76,7 @@ export type EventType = 'milestone' | 'memory' | 'appointment';
 export interface CalendarEvent {
   id: string;
   babyId: string;
+  authorId: string;
   type: EventType;
   title: string;
   meta?: string;

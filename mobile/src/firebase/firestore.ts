@@ -240,10 +240,12 @@ export function subscribeJournal(
 // ── Calendar events ────────────────────────────────────────────────
 export async function addEvent(
   babyId: string,
+  authorId: string,
   input: Pick<CalendarEvent, 'type' | 'title' | 'meta' | 'date'>,
 ): Promise<string> {
   const ref = await addDoc(babySub(babyId, 'events'), {
     babyId,
+    authorId,
     type: input.type,
     title: sanitizeText(input.title, 80),
     meta: input.meta ? sanitizeText(input.meta, 120) : '',

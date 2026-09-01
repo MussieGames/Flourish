@@ -56,28 +56,59 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const profileUnsub = useRef<(() => void) | null>(null);
   const babiesUnsub = useRef<(() => void) | null>(null);
+  const authGeneration = useRef(0);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (nextUser) => {
+      const generation = authGeneration.current + 1;
+      authGeneration.current = generation;
       profileUnsub.current?.();
       babiesUnsub.current?.();
       profileUnsub.current = null;
       babiesUnsub.current = null;
 
       if (nextUser) {
+        const uid = nextUser.uid;
         setUser(nextUser);
+        setProfile(null);
+        setBabies([]);
+        setBabiesLoaded(false);
+        setActiveBabyId(null);
         try {
           await ensureUserProfile(nextUser);
         } catch (err) {
           console.warn('[Flourish] ensureUserProfile failed', err);
         }
-        setBabiesLoaded(false);
-        profileUnsub.current = subscribeUserProfile(nextUser.uid, setProfile);
-        babiesUnsub.current = subscribeBabies(nextUser.uid, (next) => {
-          setBabies(next);
-          setBabiesLoaded(true);
-          setActiveBabyId((current) => current ?? next[0]?.id ?? null);
-        });
+        if (authGeneration.current !== generation || auth.currentUser?.uid !== uid) {
+          return;
+        }
+        profileUnsub.current = subscribeUserProfile(
+          uid,
+          (next) => {
+            if (authGeneration.current === generation) setProfile(next);
+          },
+          (err) => {
+            if (authGeneration.current !== generation) return;
+            console.warn('[Flourish] subscribeUserProfile failed', err);
+            setProfile(null);
+          },
+        );
+        babiesUnsub.current = subscribeBabies(
+          uid,
+          (next) => {
+            if (authGeneration.current !== generation) return;
+            setBabies(next);
+            setBabiesLoaded(true);
+            setActiveBabyId((current) => current ?? next[0]?.id ?? null);
+          },
+          (err) => {
+            if (authGeneration.current !== generation) return;
+            console.warn('[Flourish] subscribeBabies failed', err);
+            setBabies([]);
+            setBabiesLoaded(true);
+            setActiveBabyId(null);
+          },
+        );
       } else {
         setUser(null);
         setProfile(null);
@@ -89,6 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => {
+      authGeneration.current += 1;
       unsub();
       profileUnsub.current?.();
       babiesUnsub.current?.();

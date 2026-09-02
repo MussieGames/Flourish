@@ -20,8 +20,12 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function hasVerifiedEmail() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
     function isUser(uid) {
-      return isSignedIn() && request.auth.uid == uid;
+      return hasVerifiedEmail() && request.auth.uid == uid;
     }
 
     function babyData(babyId) {
@@ -29,11 +33,11 @@ service cloud.firestore {
     }
 
     function isMember(babyId) {
-      return isSignedIn() && request.auth.uid in babyData(babyId).memberIds;
+      return hasVerifiedEmail() && request.auth.uid in babyData(babyId).memberIds;
     }
 
     function isOwner(babyId) {
-      return isSignedIn() && request.auth.uid == babyData(babyId).ownerId;
+      return hasVerifiedEmail() && request.auth.uid == babyData(babyId).ownerId;
     }
 
     function isNonEmptyString(value, max) {
@@ -61,9 +65,9 @@ service cloud.firestore {
 
     // ── Babies ─────────────────────────────────────────────────────────
     match /babies/{babyId} {
-      allow read: if isSignedIn() && request.auth.uid in resource.data.memberIds;
+      allow read: if hasVerifiedEmail() && request.auth.uid in resource.data.memberIds;
 
-      allow create: if isSignedIn()
+      allow create: if hasVerifiedEmail()
         && request.resource.data.ownerId == request.auth.uid
         && request.resource.data.memberIds is list
         && request.resource.data.memberIds.hasOnly([request.auth.uid])

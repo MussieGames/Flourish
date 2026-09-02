@@ -23,6 +23,10 @@ service firebase.storage {
       return request.auth != null;
     }
 
+    function hasVerifiedEmail() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
     function isValidMedia() {
       return request.resource.size < 15 * 1024 * 1024
         && (
@@ -32,11 +36,11 @@ service firebase.storage {
     }
 
     match /babies/{babyId}/memories/{uid}/{fileName} {
-      allow read: if isSignedIn();
-      allow create, update: if isSignedIn()
+      allow read: if hasVerifiedEmail();
+      allow create, update: if hasVerifiedEmail()
         && request.auth.uid == uid
         && isValidMedia();
-      allow delete: if isSignedIn() && request.auth.uid == uid;
+      allow delete: if hasVerifiedEmail() && request.auth.uid == uid;
     }
 
     match /{allPaths=**} {

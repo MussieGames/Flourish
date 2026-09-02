@@ -19,6 +19,7 @@ function RootNavigator() {
   const { ready: lockReady } = useAppLock();
   const segments = useSegments();
   const router = useRouter();
+  const emailVerified = user?.emailVerified ?? false;
 
   const bootstrapping = initializing || !lockReady;
 
@@ -27,10 +28,16 @@ function RootNavigator() {
 
     const seg = segments as string[];
     const inAuthGroup = seg[0] === '(auth)';
+    const onVerifyEmail = inAuthGroup && seg[1] === 'verify-email';
     const onOnboarding = seg[0] === 'onboarding';
 
     if (!user) {
       if (!inAuthGroup) router.replace('/(auth)/welcome');
+      return;
+    }
+
+    if (!emailVerified) {
+      if (!onVerifyEmail) router.replace('/(auth)/verify-email');
       return;
     }
 
@@ -44,7 +51,7 @@ function RootNavigator() {
     if (babiesLoaded && babies.length > 0 && (inAuthGroup || onOnboarding || atRoot)) {
       router.replace('/(tabs)');
     }
-  }, [bootstrapping, user, babies.length, babiesLoaded, segments, router]);
+  }, [bootstrapping, user, emailVerified, babies.length, babiesLoaded, segments, router]);
 
   if (bootstrapping) {
     return <View style={{ flex: 1, backgroundColor: colors.ink }} />;

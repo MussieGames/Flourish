@@ -12,8 +12,9 @@ rules, and Cloud Functions.
 - **Strong passwords** enforced client-side (`src/lib/validation.ts`): minimum
   10 characters with upper/lower/number/symbol, surfaced with a live strength
   meter.
-- **Email verification** is requested on sign-up; the app shows a persistent,
-  non-blocking prompt until the address is verified.
+- **Email verification** is required before the app creates or reads private
+  family data. Unverified sessions can only resend/check verification or sign
+  out.
 - **Account-enumeration resistance**: sign-in and password-reset flows return
   identical, generic messaging regardless of whether the email exists
   (`src/lib/errors.ts`, `forgot-password.tsx`).
@@ -32,6 +33,9 @@ project's waitlist rules live separately in [`firestore.rules`](./firestore.rule
 - **Private by default.** A baby document carries an `ownerId` and an explicit
   `memberIds` allow-list. Reads require `request.auth.uid in memberIds`. There
   are no public reads and no cross-account access.
+- **Verified identities only.** App Firestore and Storage rules require
+  `request.auth.token.email_verified == true` before allowing private data
+  access.
 - **Ownership is immutable.** Updates cannot reassign `ownerId`, and the owner
   must always remain a member.
 - **Shape validation.** Every `create`/`update` validates field types, allowed

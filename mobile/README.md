@@ -67,9 +67,9 @@ npm run start        # then press i (iOS), a (Android), or scan the QR in Expo G
 
 See [`../SECURITY.md`](../SECURITY.md) for the full security model. Highlights:
 
-- **Auth**: email/password with strong-password enforcement, email
-  verification, and persistent sessions via AsyncStorage. Generic error
-  messages avoid leaking whether an account exists.
+- **Auth**: email/password with strong-password enforcement, verified-email
+  gating before private data access, and persistent sessions via AsyncStorage.
+  Generic error messages avoid leaking whether an account exists.
 - **Firestore/Storage Rules**: every record is private to its owner + an
   explicit family allow-list. Default-deny, shape-validated writes.
 - **App Check**: attests requests genuinely come from the app.

@@ -40,7 +40,7 @@ interface AuthContextValue {
   signUp: (email: string, password: string, babyName?: string) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   resendVerification: () => Promise<void>;
-  reloadUser: () => Promise<void>;
+  reloadUser: () => Promise<boolean>;
   signOutUser: () => Promise<void>;
 }
 
@@ -57,43 +57,91 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const profileUnsub = useRef<(() => void) | null>(null);
   const babiesUnsub = useRef<(() => void) | null>(null);
 
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (nextUser) => {
-      profileUnsub.current?.();
-      babiesUnsub.current?.();
-      profileUnsub.current = null;
-      babiesUnsub.current = null;
+  const stopPrivateSubscriptions = useCallback(() => {
+    profileUnsub.current?.();
+    babiesUnsub.current?.();
+    profileUnsub.current = null;
+    babiesUnsub.current = null;
+  }, []);
 
-      if (nextUser) {
-        setUser(nextUser);
-        try {
-          await ensureUserProfile(nextUser);
-        } catch (err) {
-          console.warn('[Flourish] ensureUserProfile failed', err);
-        }
-        setBabiesLoaded(false);
-        profileUnsub.current = subscribeUserProfile(nextUser.uid, setProfile);
-        babiesUnsub.current = subscribeBabies(nextUser.uid, (next) => {
+  const clearPrivateState = useCallback((loaded = false) => {
+    setProfile(null);
+    setBabies([]);
+    setBabiesLoaded(loaded);
+    setActiveBabyId(null);
+  }, []);
+
+  const startPrivateSubscriptions = useCallback(
+    async (nextUser: User) => {
+      stopPrivateSubscriptions();
+      clearPrivateState(false);
+
+      try {
+        await nextUser.getIdToken(true);
+      } catch (err) {
+        console.warn('[Flourish] refresh auth token failed', err);
+      }
+
+      if (auth.currentUser?.uid !== nextUser.uid || !auth.currentUser.emailVerified) {
+        return;
+      }
+
+      try {
+        await ensureUserProfile(nextUser);
+      } catch (err) {
+        console.warn('[Flourish] ensureUserProfile failed', err);
+      }
+
+      if (auth.currentUser?.uid !== nextUser.uid || !auth.currentUser.emailVerified) {
+        return;
+      }
+
+      profileUnsub.current = subscribeUserProfile(
+        nextUser.uid,
+        setProfile,
+        (err) => console.warn('[Flourish] subscribeUserProfile failed', err),
+      );
+      babiesUnsub.current = subscribeBabies(
+        nextUser.uid,
+        (next) => {
           setBabies(next);
           setBabiesLoaded(true);
           setActiveBabyId((current) => current ?? next[0]?.id ?? null);
-        });
+        },
+        (err) => {
+          console.warn('[Flourish] subscribeBabies failed', err);
+          setBabies([]);
+          setBabiesLoaded(true);
+          setActiveBabyId(null);
+        },
+      );
+    },
+    [clearPrivateState, stopPrivateSubscriptions],
+  );
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (nextUser) => {
+      stopPrivateSubscriptions();
+
+      if (nextUser) {
+        setUser(nextUser);
+        if (nextUser.emailVerified) {
+          await startPrivateSubscriptions(nextUser);
+        } else {
+          clearPrivateState(true);
+        }
       } else {
         setUser(null);
-        setProfile(null);
-        setBabies([]);
-        setBabiesLoaded(false);
-        setActiveBabyId(null);
+        clearPrivateState(false);
       }
       setInitializing(false);
     });
 
     return () => {
       unsub();
-      profileUnsub.current?.();
-      babiesUnsub.current?.();
+      stopPrivateSubscriptions();
     };
-  }, []);
+  }, [clearPrivateState, startPrivateSubscriptions, stopPrivateSubscriptions]);
 
   const signIn = useCallback(async (email: string, password: string) => {
     const cleanEmail = email.trim().toLowerCase();
@@ -133,11 +181,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const reloadUser = useCallback(async () => {
-    if (auth.currentUser) {
-      await auth.currentUser.reload();
-      setUser(auth.currentUser ? { ...auth.currentUser } as User : null);
+    if (!auth.currentUser) return false;
+    await auth.currentUser.reload();
+    const current = auth.currentUser;
+    setUser(
+      current
+        ? ({
+            ...current,
+            uid: current.uid,
+            email: current.email,
+            displayName: current.displayName,
+            emailVerified: current.emailVerified,
+          } as User)
+        : null,
+    );
+    if (current?.emailVerified) {
+      await startPrivateSubscriptions(current);
+    } else {
+      stopPrivateSubscriptions();
+      clearPrivateState(true);
     }
-  }, []);
+    return current?.emailVerified ?? false;
+  }, [clearPrivateState, startPrivateSubscriptions, stopPrivateSubscriptions]);
 
   const signOutUser = useCallback(async () => {
     await signOut(auth);

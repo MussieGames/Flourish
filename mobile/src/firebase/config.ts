@@ -19,6 +19,13 @@ type FirebaseEnv = {
   measurementId?: string;
 };
 
+const FIREBASE_PLACEHOLDER_MARKER = 'REPLACE_WITH';
+
+function readRequiredEnvValue(value: string | undefined): string {
+  const normalized = value?.trim() ?? '';
+  return normalized.includes(FIREBASE_PLACEHOLDER_MARKER) ? '' : normalized;
+}
+
 /**
  * Reads the Firebase web config from EXPO_PUBLIC_* env vars. These values
  * identify the project and are safe to ship in the client bundle — real
@@ -26,12 +33,14 @@ type FirebaseEnv = {
  */
 function readFirebaseEnv(): FirebaseEnv {
   const env: FirebaseEnv = {
-    apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY ?? '',
-    authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN ?? '',
-    projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID ?? '',
-    storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET ?? '',
-    messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID ?? '',
-    appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID ?? '',
+    apiKey: readRequiredEnvValue(process.env.EXPO_PUBLIC_FIREBASE_API_KEY),
+    authDomain: readRequiredEnvValue(process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN),
+    projectId: readRequiredEnvValue(process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID),
+    storageBucket: readRequiredEnvValue(process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET),
+    messagingSenderId: readRequiredEnvValue(
+      process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    ),
+    appId: readRequiredEnvValue(process.env.EXPO_PUBLIC_FIREBASE_APP_ID),
     measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID,
   };
 
@@ -42,7 +51,7 @@ function readFirebaseEnv(): FirebaseEnv {
   if (missing.length > 0) {
     // Surface a clear, actionable error rather than a cryptic Firebase crash.
     console.warn(
-      `[Flourish] Missing Firebase config: ${missing.join(
+      `[Flourish] Missing or placeholder Firebase config: ${missing.join(
         ', ',
       )}. Copy .env.example to .env and fill in the values from the Firebase console.`,
     );

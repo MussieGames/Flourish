@@ -8,7 +8,9 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "validate:firebase-env": "node scripts/validate-firebase-env.js",
+    "eas-build-pre-install": "npm run validate:firebase-env"
   },
   "dependencies": {
     "@expo-google-fonts/cormorant-garamond": "^0.4.1",

@@ -48,7 +48,9 @@ npm run start        # then press i (iOS), a (Android), or scan the QR in Expo G
 > (development) and `flourish-app` (production) — separate from the marketing
 > site. See the repo root `README.md` → "Creating the app Firebase projects",
 > the security rules in [`firebase/`](firebase/), and build profiles in
-> [`eas.json`](eas.json) (dev config → `.env`, prod config → `eas.json`).
+> [`eas.json`](eas.json). Local dev reads `.env`; EAS builds read
+> `EXPO_PUBLIC_FIREBASE_*` values from the EAS environment and fail if any
+> required Firebase value is missing.
 
 > Native modules (`expo-secure-store`, `expo-local-authentication`,
 > `expo-image-picker`) require a **development build** or a production build for

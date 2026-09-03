@@ -85,7 +85,10 @@ Create them once:
 
 Then wire it up:
 - Put the **dev** web config into `mobile/.env` (from `mobile/.env.example`).
-- Put the **prod** web config into `mobile/eas.json` (production profile).
+- Put **EAS build** web config into EAS environment variables named
+  `EXPO_PUBLIC_FIREBASE_*` for each build environment/profile. The mobile app
+  validates these before EAS builds so placeholders or missing values cannot
+  produce a broken release.
 - Put both **Project IDs** into `mobile/firebase/.firebaserc`.
 
 ## Deploying the app's security rules

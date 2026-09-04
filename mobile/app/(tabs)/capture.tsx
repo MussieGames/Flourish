@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText, Button, Hero, SectionLabel } from '@/components';
 import { useAuth } from '@/context/AuthContext';
 import { addMemory } from '@/firebase/firestore';
-import { uploadMemoryAsset } from '@/firebase/storage';
+import { MAX_UPLOAD_BYTES, uploadMemoryAsset } from '@/firebase/storage';
 import { friendlyError } from '@/lib/errors';
 import { sanitizeText } from '@/lib/validation';
 import { colors, fonts, radius } from '@/theme';
@@ -18,7 +18,10 @@ interface Picked {
   uri: string;
   contentType: string;
   kind: MemoryKind;
+  fileSize?: number;
 }
+
+const MAX_UPLOAD_MB = Math.floor(MAX_UPLOAD_BYTES / (1024 * 1024));
 
 export default function Capture() {
   const insets = useSafeAreaInsets();
@@ -61,11 +64,17 @@ export default function Capture() {
   const handleResult = (result: ImagePicker.ImagePickerResult) => {
     if (result.canceled || !result.assets?.length) return;
     const asset = result.assets[0];
+    if (asset.fileSize !== undefined && asset.fileSize > MAX_UPLOAD_BYTES) {
+      setPicked(null);
+      Alert.alert('File too large', `Please choose a photo or video under ${MAX_UPLOAD_MB} MB.`);
+      return;
+    }
     const isVideo = asset.type === 'video';
     setPicked({
       uri: asset.uri,
       contentType: guessContentType(asset, isVideo ? 'video/mp4' : 'image/jpeg'),
       kind: isVideo ? 'video' : 'photo',
+      fileSize: asset.fileSize,
     });
   };
 
@@ -78,6 +87,7 @@ export default function Capture() {
         user.uid,
         picked.uri,
         picked.contentType,
+        picked.fileSize,
       );
       await addMemory(activeBaby.id, user.uid, {
         kind: picked.kind,

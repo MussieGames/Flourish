@@ -5,7 +5,7 @@ import {
 } from 'firebase/storage';
 import { storage } from './config';
 
-const MAX_UPLOAD_BYTES = 15 * 1024 * 1024; // 15 MB — mirrors Storage Rules.
+export const MAX_UPLOAD_BYTES = 15 * 1024 * 1024; // 15 MB — mirrors Storage Rules.
 const ALLOWED_PREFIXES = ['image/', 'video/'];
 
 /**
@@ -18,9 +18,14 @@ export async function uploadMemoryAsset(
   uid: string,
   localUri: string,
   contentType: string,
+  knownSizeBytes?: number,
 ): Promise<string> {
   if (!ALLOWED_PREFIXES.some((p) => contentType.startsWith(p))) {
     throw new Error('Only photos and videos can be uploaded.');
+  }
+
+  if (knownSizeBytes !== undefined && knownSizeBytes > MAX_UPLOAD_BYTES) {
+    throw new Error('That file is too large (max 15 MB).');
   }
 
   const response = await fetch(localUri);

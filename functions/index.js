@@ -136,9 +136,10 @@ exports.addWaitlistEmail = onRequest(
 
       await db.collection("auto_reply").add({
         to: normalizedEmail,
-        template: {
+        message: {},
+        sendGrid: {
           templateId: SENDGRID_TEMPLATE_ID,
-          data: {
+          dynamicTemplateData: {
             email: normalizedEmail,
           },
         },

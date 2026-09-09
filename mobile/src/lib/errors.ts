@@ -1,9 +1,16 @@
 /** Maps Firebase error codes to calm, human, non-leaky messages. */
+function firebaseErrorCode(error: unknown): string {
+  return typeof error === 'object' && error !== null && 'code' in error
+    ? String((error as { code: unknown }).code)
+    : '';
+}
+
+export function isUserNotFoundAuthError(error: unknown): boolean {
+  return firebaseErrorCode(error) === 'auth/user-not-found';
+}
+
 export function friendlyAuthError(error: unknown): string {
-  const code =
-    typeof error === 'object' && error !== null && 'code' in error
-      ? String((error as { code: unknown }).code)
-      : '';
+  const code = firebaseErrorCode(error);
 
   switch (code) {
     case 'auth/invalid-email':

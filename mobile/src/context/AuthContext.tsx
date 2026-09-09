@@ -26,6 +26,7 @@ import {
 } from '@/firebase/firestore';
 import type { Baby, UserProfile } from '@/types/models';
 import { checkPassword, isValidEmail } from '@/lib/validation';
+import { isUserNotFoundAuthError } from '@/lib/errors';
 
 interface AuthContextValue {
   initializing: boolean;
@@ -125,7 +126,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const resetPassword = useCallback(async (email: string) => {
     const cleanEmail = email.trim().toLowerCase();
     if (!isValidEmail(cleanEmail)) throw new Error('Please enter a valid email address.');
-    await sendPasswordResetEmail(auth, cleanEmail);
+    try {
+      await sendPasswordResetEmail(auth, cleanEmail);
+    } catch (error) {
+      // Password reset must not reveal whether a family account exists.
+      if (isUserNotFoundAuthError(error)) return;
+      throw error;
+    }
   }, []);
 
   const resendVerification = useCallback(async () => {

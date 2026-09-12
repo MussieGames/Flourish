@@ -2,7 +2,7 @@ import { useFonts } from 'expo-font';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { LockScreen } from '@/components/LockScreen';
@@ -16,11 +16,25 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 
 function RootNavigator() {
   const { initializing, user, babies, babiesLoaded } = useAuth();
-  const { ready: lockReady } = useAppLock();
+  const { ready: lockReady, enabled: lockEnabled, lock } = useAppLock();
   const segments = useSegments();
   const router = useRouter();
+  const previousUserId = useRef<string | null>(null);
 
   const bootstrapping = initializing || !lockReady;
+
+  useEffect(() => {
+    if (bootstrapping) return;
+
+    const currentUserId = user?.uid ?? null;
+    const previous = previousUserId.current;
+
+    if (lockEnabled && previous && previous !== currentUserId) {
+      lock();
+    }
+
+    previousUserId.current = currentUserId;
+  }, [bootstrapping, lock, lockEnabled, user?.uid]);
 
   useEffect(() => {
     if (bootstrapping) return;

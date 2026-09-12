@@ -21,6 +21,7 @@ interface AppLockContextValue {
   enabled: boolean;
   locked: boolean;
   unlock: () => Promise<boolean>;
+  lock: () => void;
   setEnabled: (enabled: boolean) => Promise<boolean>;
 }
 
@@ -68,6 +69,10 @@ export function AppLockProvider({ children }: { children: ReactNode }) {
     return ok;
   }, []);
 
+  const lock = useCallback(() => {
+    if (enabled) setLocked(true);
+  }, [enabled]);
+
   const setEnabled = useCallback(async (next: boolean) => {
     if (next) {
       const ok = await authenticate('Confirm it’s you to turn on App Lock');
@@ -81,7 +86,7 @@ export function AppLockProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppLockContext.Provider
-      value={{ ready, supported, enabled, locked, unlock, setEnabled }}
+      value={{ ready, supported, enabled, locked, unlock, lock, setEnabled }}
     >
       {children}
     </AppLockContext.Provider>

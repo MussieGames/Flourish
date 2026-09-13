@@ -44,6 +44,41 @@ service cloud.firestore {
       return value is string && value.size() <= max;
     }
 
+    function isNullableBoundedString(value, max) {
+      return value == null || isBoundedString(value, max);
+    }
+
+    function isValidMemory(data, babyId) {
+      return data.keys().hasOnly([
+          'babyId',
+          'authorId',
+          'kind',
+          'title',
+          'caption',
+          'storagePath',
+          'takenAt',
+          'createdAt',
+        ])
+        && data.keys().hasAll([
+          'babyId',
+          'authorId',
+          'kind',
+          'title',
+          'caption',
+          'storagePath',
+          'takenAt',
+          'createdAt',
+        ])
+        && data.babyId == babyId
+        && data.authorId is string
+        && data.kind in ['photo', 'video', 'note']
+        && isNonEmptyString(data.title, 80)
+        && isBoundedString(data.caption, 500)
+        && isNullableBoundedString(data.storagePath, 500)
+        && data.takenAt is timestamp
+        && data.createdAt is timestamp;
+    }
+
     // ── Users ──────────────────────────────────────────────────────────
     match /users/{uid} {
       allow read: if isUser(uid);
@@ -81,10 +116,15 @@ service cloud.firestore {
         allow read: if isMember(babyId);
         allow create: if isMember(babyId)
           && request.resource.data.authorId == request.auth.uid
-          && request.resource.data.kind in ['photo', 'video', 'note']
-          && isNonEmptyString(request.resource.data.title, 80)
-          && isBoundedString(request.resource.data.caption, 500);
-        allow update, delete: if isMember(babyId)
+          && isValidMemory(request.resource.data, babyId);
+        allow update: if isMember(babyId)
+          && (resource.data.authorId == request.auth.uid || isOwner(babyId))
+          && isValidMemory(request.resource.data, babyId)
+          && request.resource.data.babyId == resource.data.babyId
+          && request.resource.data.authorId == resource.data.authorId
+          && request.resource.data.takenAt == resource.data.takenAt
+          && request.resource.data.createdAt == resource.data.createdAt;
+        allow delete: if isMember(babyId)
           && (resource.data.authorId == request.auth.uid || isOwner(babyId));
       }
 

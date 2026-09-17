@@ -195,9 +195,8 @@ export function subscribeMemories(
   babyId: string,
   cb: (memories: Memory[]) => void,
   onError?: (e: Error) => void,
-  max = 50,
 ): () => void {
-  const q = query(babySub(babyId, 'memories'), orderBy('createdAt', 'desc'), fbLimit(max));
+  const q = query(babySub(babyId, 'memories'), orderBy('createdAt', 'desc'));
   return onSnapshot(
     q,
     (snap) => cb(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Memory)),
@@ -227,9 +226,8 @@ export function subscribeJournal(
   babyId: string,
   cb: (entries: JournalEntry[]) => void,
   onError?: (e: Error) => void,
-  max = 50,
 ): () => void {
-  const q = query(babySub(babyId, 'journal'), orderBy('createdAt', 'desc'), fbLimit(max));
+  const q = query(babySub(babyId, 'journal'), orderBy('createdAt', 'desc'));
   return onSnapshot(
     q,
     (snap) => cb(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as JournalEntry)),

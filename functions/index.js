@@ -11,7 +11,10 @@ const RECAPTCHA_SITE_KEY = "6Lfef0UtAAAAAIJMlp0Ls7nGKcZfninytqC9gDBC";
 const PROJECT_ID = "flourish-7b8c8";
 const SERVICE_ACCOUNT = "firebase-adminsdk-fbsvc@flourish-7b8c8.iam.gserviceaccount.com";
 const SENDGRID_TEMPLATE_ID = "d-d05b9e636230405b9b39b4362dc44174";
-const MIN_RECAPTCHA_SCORE = 0.1;
+// reCAPTCHA Enterprise scores 0.0 (almost certainly a bot) to 1.0. 0.1 admits
+// virtually every bot, which defeats the point of assessing at all.
+const MIN_RECAPTCHA_SCORE = 0.5;
+const MAX_FIELD_LENGTHS = { page: 80, source: 80, userAgent: 500 };
 const ALLOWED_ORIGINS = [
   "https://www.goflourish.com.au",
   "https://goflourish.com.au",
@@ -19,6 +22,13 @@ const ALLOWED_ORIGINS = [
 
 function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+/** Coerces untrusted input to a bounded string, or null. */
+function boundedString(value, max) {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed ? trimmed.slice(0, max) : null;
 }
 
 async function verifyRecaptcha(recaptchaToken, userAgent, userIpAddress) {
@@ -106,13 +116,10 @@ exports.addWaitlistEmail = onRequest(
       }
 
       if (!recaptcha.valid) {
+        // Logged for tuning, but never returned — echoing the score, hostname
+        // and reason hands an attacker a dial to tune against.
         console.warn("reCAPTCHA rejected:", recaptcha.reason, "score:", recaptcha.score);
-        return res.status(403).json({
-          error: "Security validation failed. Bot detected.",
-          reason: recaptcha.reason,
-          score: recaptcha.score,
-          hostname: recaptcha.hostname,
-        });
+        return res.status(403).json({ error: "Security validation failed." });
       }
 
       const existing = await db
@@ -125,12 +132,17 @@ exports.addWaitlistEmail = onRequest(
         return res.status(200).json({ message: "Successfully added to waitlist!" });
       }
 
+      const now = admin.firestore.FieldValue.serverTimestamp();
       await db.collection("waitlist").add({
         email: normalizedEmail,
-        timestamp: admin.firestore.FieldValue.serverTimestamp(),
-        page: page || "unknown",
-        source: source || null,
-        userAgent: userAgent || null,
+        // Both names are written: `createdAt` is what the site and the
+        // Firestore-triggered confirmation emailer read, `timestamp` is kept
+        // for existing documents and any consumer still reading it.
+        createdAt: now,
+        timestamp: now,
+        page: boundedString(page, MAX_FIELD_LENGTHS.page) || "unknown",
+        source: boundedString(source, MAX_FIELD_LENGTHS.source),
+        userAgent: boundedString(userAgent, MAX_FIELD_LENGTHS.userAgent),
         recaptchaScore: recaptcha.score,
       });
 

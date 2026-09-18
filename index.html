@@ -861,15 +861,17 @@
   </div>
 </footer>
 
+<!-- reCAPTCHA Enterprise. Signups are verified server-side by the
+     addWaitlistEmail Cloud Function; the site key below is public by design. -->
+<script src="https://www.google.com/recaptcha/enterprise.js?render=6Lfef0UtAAAAAIJMlp0Ls7nGKcZfninytqC9gDBC"></script>
+
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
   import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-analytics.js";
-  import {
-    addDoc,
-    collection,
-    getFirestore,
-    serverTimestamp,
-  } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+
+  const RECAPTCHA_SITE_KEY = "6Lfef0UtAAAAAIJMlp0Ls7nGKcZfninytqC9gDBC";
+  const WAITLIST_ENDPOINT =
+    "https://australia-southeast1-flourish-7b8c8.cloudfunctions.net/addWaitlistEmail";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBN-XRhWhKbZ0Adh5q6Xq6PBL9ggpYztag",
@@ -883,7 +885,23 @@
 
   const app = initializeApp(firebaseConfig);
   getAnalytics(app);
-  const db = getFirestore(app);
+
+  /** Resolves a short-lived reCAPTCHA Enterprise token, or null if unavailable. */
+  function getRecaptchaToken() {
+    return new Promise((resolve) => {
+      if (!window.grecaptcha?.enterprise) return resolve(null);
+      try {
+        grecaptcha.enterprise.ready(() => {
+          grecaptcha.enterprise
+            .execute(RECAPTCHA_SITE_KEY, { action: 'SUBMIT' })
+            .then(resolve)
+            .catch(() => resolve(null));
+        });
+      } catch {
+        resolve(null);
+      }
+    });
+  }
 
   // Nav scroll effect
   const nav = document.getElementById('mainNav');
@@ -944,14 +962,24 @@
     btn.disabled = true;
 
     try {
-      // Writes to Firestore waitlist → sendWaitlistConfirmation emails via Resend
-      await addDoc(collection(db, 'waitlist'), {
-        email,
-        source: inputId === 'heroEmail' ? 'cta-hero' : 'cta-footer',
-        page: inputId === 'heroEmail' ? 'hero section' : 'cta section',
-        createdAt: serverTimestamp(),
-        userAgent: navigator.userAgent.slice(0, 500),
+      // Goes through the Cloud Function so every signup is reCAPTCHA-verified
+      // server-side. Clients cannot write to the waitlist collection directly.
+      const recaptchaToken = await getRecaptchaToken();
+      if (!recaptchaToken) throw new Error('recaptcha_unavailable');
+
+      const res = await fetch(WAITLIST_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          recaptchaToken,
+          source: inputId === 'heroEmail' ? 'cta-hero' : 'cta-footer',
+          page: inputId === 'heroEmail' ? 'hero section' : 'cta section',
+          userAgent: navigator.userAgent.slice(0, 500),
+        }),
       });
+
+      if (!res.ok) throw new Error(`waitlist_${res.status}`);
 
       btn.textContent = "✓ You're in!";
       btn.classList.remove('loading');

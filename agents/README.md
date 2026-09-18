@@ -52,7 +52,9 @@ feels wrong — flag it and let a human decide.
 Full wiring, hardening, and acceptance tests are in
 [`n8n-setup.md`](n8n-setup.md). The short version:
 
-- **Self-host in `australia-southeast1`.** n8n Cloud runs offshore.
+- **n8n Cloud runs in Frankfurt** — no Australian region exists. Fine for
+  building pre-launch; before the first workflow handles customer data, either
+  name Germany in the privacy policy or self-host in `australia-southeast1`.
 - **Your model provider is offshore regardless** — an AU-hosted n8n does not
   change that. It is a cross-border disclosure and belongs in the privacy policy
   before the first run.

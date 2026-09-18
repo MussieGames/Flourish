@@ -20,14 +20,36 @@ An **AI Agent** node with a chat model sub-node attached.
 Paste the prompt as-is. Markdown headings and tables survive fine, and the
 numbered rules give you something to point at when output drifts: "you broke 1.3".
 
-## Two things to decide before you build
+## Three things to decide before you build
 
-**Your model provider is offshore.** OpenAI and Anthropic both process in the US.
-Self-hosting n8n in Australia does not change that — the moment a waitlist email
-or a support message reaches the model, personal information has crossed a border.
-Under APP 8 that disclosure belongs in the privacy policy *before* the first run,
-not after. Check that training on API data is off (default for both) and turn on
-zero-retention if your account offers it.
+**Where n8n runs — currently n8n Cloud, in Germany.** The instance is
+`goflourish.app.n8n.cloud`. As of 2026 n8n Cloud runs on Azure in **Frankfurt**,
+with no region selection and no Australian region; backups stay in the same
+country. So every record a workflow touches is processed in the EU.
+
+That is survivable, and it is a disclosure question rather than a security one —
+the EU has strong protections and n8n encrypts data at rest and in transit. But
+it is an APP 8 cross-border disclosure, so it has to be named in the privacy
+policy *before* real data flows. Two honest options:
+
+| | n8n Cloud (today) | Self-hosted, `australia-southeast1` |
+|---|---|---|
+| Data location | Frankfurt, Germany | Sydney |
+| APP 8 | Disclosure — must be in the privacy policy | Sidestepped entirely |
+| Effort | None, already running | A container, a domain, TLS, upgrades, backups |
+| Good for | Building and testing now, with no real user data | Anything carrying customer data at scale |
+
+While Flourish is pre-launch and the only real data is a waitlist of email
+addresses, Cloud is a reasonable place to build. The gate is **the first
+workflow that processes customer data in production** — before that runs, either
+name Germany as a recipient in the privacy policy, or move to Sydney.
+
+**Your model provider is offshore too.** OpenAI and Anthropic both process in the
+US, so moving n8n to Sydney does not give you end-to-end Australian residency —
+the moment a waitlist email or support message reaches the model, personal
+information has crossed a border. Under APP 8 that disclosure belongs in the
+privacy policy before the first run. Check that training on API data is off
+(default for both) and turn on zero-retention if your account offers it.
 
 **Nothing in this workflow may touch the app's Firestore.** The CRM agent works
 with waitlist and support data in the CTA project (`flourish-7b8c8`). The memory
@@ -61,9 +83,10 @@ EXECUTIONS_DATA_MAX_AGE=72
 N8N_ENCRYPTION_KEY=<generated, backed up, never in the repo>
 ```
 
-**Self-host in `australia-southeast1`** — Cloud Run or a small Compute Engine
-instance. n8n Cloud is offshore and adds a second border crossing you'd have to
-disclose.
+On n8n Cloud the instance environment variables above aren't available to you —
+the workflow-level settings are all you have, so set them per workflow and treat
+that as the limit of your control. Full control needs self-hosting (Cloud Run or
+a small Compute Engine instance in `australia-southeast1`).
 
 **Never give n8n the Firebase Admin service account key.** The agent authenticates
 *to* Flourish through narrow endpoints, never *as* Flourish. The app's rules deny
@@ -73,6 +96,57 @@ tool undoes the entire security model in one credential.
 **Pass identifiers, not payloads.** Give a node an order id or ticket id and let
 it fetch what it needs at the moment it needs it, rather than carrying personal
 information through every node of the workflow.
+
+---
+
+## Connecting Cursor to n8n (MCP)
+
+n8n exposes an instance-level MCP server, which lets Cursor search, trigger, and
+— from n8n v2.13 — **edit** workflows. It's worth having: building a review queue
+by clicking through a browser is slow, and it means workflow definitions can be
+exported into this repo and reviewed like code instead of living only in n8n's
+database.
+
+The config is committed at [`.cursor/mcp.json`](../.cursor/mcp.json), so it is
+scoped to this repo:
+
+```json
+{
+  "mcpServers": {
+    "n8n": {
+      "type": "streamable-http",
+      "url": "https://goflourish.app.n8n.cloud/mcp-server/http"
+    }
+  }
+}
+```
+
+**Project-scoped, not `~/.cursor/mcp.json`.** A global entry would hand every
+project you open — including unrelated work — tools that can edit Flourish
+workflows. Scoping it here also means anyone cloning the repo gets it.
+
+Before it will work, in n8n: **Settings → Instance-level MCP → Enable MCP access**
+(owner or admin), then toggle **Available in MCP** on each workflow you want
+reachable. Nothing is exposed by default. Restart Cursor, and complete the OAuth
+flow when prompted — the tools stay invisible until you do.
+
+### Two cautions
+
+**Keep the allowlist narrow.** There's a bulk "Manage MCP access" option for a
+whole project or folder. Don't use it. Expose the workflows you're actively
+building and nothing else, because every exposed workflow is something an agent
+can rewrite.
+
+**MCP is a read path into a model's context.** This is the same boundary as rule 2
+in [`README.md`](README.md), pointed at the *development* agent rather than the CRM
+agent: if execution data is being saved, an agent with MCP access can pull
+execution payloads — real waitlist emails, real support messages — into a model
+context, with none of the CRM prompt's rules applying. The hardening above is
+therefore a **prerequisite** for connecting MCP, not a later cleanup. Turn
+execution-data saving off first.
+
+OAuth ties the connection to your own n8n user, so the agent inherits whatever you
+can do. On a single-operator instance that's everything.
 
 ---
 

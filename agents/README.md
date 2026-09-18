@@ -5,7 +5,7 @@ intended to run in n8n (self-hosted) or any orchestrator.
 
 | Agent | File | Status |
 |---|---|---|
-| CRM | [`crm-agent.md`](crm-agent.md) | Defined |
+| CRM | [`crm-agent.md`](crm-agent.md) | Ready to deploy — see [`n8n-setup.md`](n8n-setup.md) |
 | Orchestrator | — | Not built. Escalations go to Shamus. |
 | Marketing | — | Not built. Do not build before the voice files are settled. |
 | Feedback / insight | — | Not built. Needs the `feedback` collection first. |
@@ -17,11 +17,14 @@ intended to run in n8n (self-hosted) or any orchestrator.
 Every Flourish agent — existing and future — obeys these five rules. Copy this
 section into any new agent definition.
 
-**1. Load the brand files; hold no facts of your own.**
+**1. The brand files are upstream of every prompt.**
 [`brand/VOICE.md`](../brand/VOICE.md) governs how we speak.
 [`brand/PRODUCT-FACTS.md`](../brand/PRODUCT-FACTS.md) governs what is true.
-Never hardcode pricing, features, or promises into a prompt — that is how they
-drift out of sync with the product and with each other.
+
+A deployed prompt has to be self-contained, so facts do get copied into it — but
+only in a block marked `FACTS:BEGIN` / `FACTS:END`, and only ever *downstream*.
+Change `PRODUCT-FACTS.md` first, then re-sync. A price that lives in three places
+is how Heirloom ended up described as a third membership tier.
 
 **2. The memory library is out of scope.**
 No photos, no journal entries, no dates of birth, no home addresses — for any
@@ -46,21 +49,21 @@ feels wrong — flag it and let a human decide.
 
 ## Running these safely
 
-If these run in n8n:
+Full wiring, hardening, and acceptance tests are in
+[`n8n-setup.md`](n8n-setup.md). The short version:
 
-- **Self-host in `australia-southeast1`.** n8n Cloud runs offshore, and pushing
-  Australian users' personal information through it is a cross-border disclosure
-  that would have to be named in the privacy policy first.
-- **Turn off execution-data saving** for any workflow touching personal
-  information. n8n stores payloads in execution history by default, which would
-  quietly park customer data outside Firestore and outside our rules.
+- **Self-host in `australia-southeast1`.** n8n Cloud runs offshore.
+- **Your model provider is offshore regardless** — an AU-hosted n8n does not
+  change that. It is a cross-border disclosure and belongs in the privacy policy
+  before the first run.
+- **Turn off execution-data saving**, including on failures. n8n stores payloads
+  in execution history by default, which parks customer data outside Firestore
+  and outside our rules.
 - **Never give n8n the Firebase Admin service account key.** Agents authenticate
-  *to* Flourish through narrow endpoints, never *as* Flourish. The app's rules
-  deny all client access and only the Admin SDK writes; handing that key to a
-  workflow tool undoes the entire model.
-- **Prefer opaque identifiers.** Pass an order or ticket id and let the workflow
-  fetch what it needs just in time, rather than carrying personal information
-  through every node.
+  *to* Flourish through narrow endpoints, never *as* Flourish.
+- **Pass identifiers, not payloads.** Let a node fetch what it needs just in time.
+- **Enforce the review queue in the workflow**, not the prompt. If a send node is
+  reachable without passing the human approval step, rule 3 is decoration.
 
 ## Suggested build order
 

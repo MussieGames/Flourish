@@ -75,9 +75,12 @@ the app, and every operations agent:
 - [`brand/PRODUCT-FACTS.md`](brand/PRODUCT-FACTS.md) — pricing, the waitlist
   promise, the Heirloom book, and which claims are shipped vs. copy-only.
 
-**Change a price or a promise here first**, then update the app and site copy to
-match. [`agents/`](agents/) holds the CRM and ops agent definitions, which load
-both files rather than hardcoding facts.
+**Change a price or a promise here first**, then update the app and site copy —
+and any agent prompt — to match.
+
+[`agents/`](agents/) holds the CRM and ops agent definitions, including a
+paste-ready [CRM system prompt](agents/crm-agent.md) and
+[n8n wiring notes](agents/n8n-setup.md).
 
 ---
 

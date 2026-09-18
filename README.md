@@ -20,6 +20,12 @@ Flourish/
 │     ├─ firestore.rules, storage.rules
 │     └─ firebase.json, .firebaserc
 │
+├─ brand/                            ← voice + product facts (source of truth)
+│  ├─ VOICE.md                       ←    how Flourish speaks
+│  └─ PRODUCT-FACTS.md               ←    pricing, promises, what's built
+│
+├─ agents/                           ← CRM / ops agent definitions
+│
 └─ SECURITY.md                       ← full security & privacy model
 ```
 
@@ -59,6 +65,19 @@ npm run start          # then press i (iOS) / a (Android)
 ```
 
 See [`mobile/README.md`](mobile/README.md) for the full guide.
+
+## 3) Brand voice & agents
+
+Two reference files hold the things that must stay consistent across the website,
+the app, and every operations agent:
+
+- [`brand/VOICE.md`](brand/VOICE.md) — how Flourish speaks, with do/don't pairs.
+- [`brand/PRODUCT-FACTS.md`](brand/PRODUCT-FACTS.md) — pricing, the waitlist
+  promise, the Heirloom book, and which claims are shipped vs. copy-only.
+
+**Change a price or a promise here first**, then update the app and site copy to
+match. [`agents/`](agents/) holds the CRM and ops agent definitions, which load
+both files rather than hardcoding facts.
 
 ---
 

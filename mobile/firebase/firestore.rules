@@ -10,11 +10,20 @@ rules_version = '2';
 // Security model: a baby's data is private by default. Every document is owned
 // by exactly one parent (`ownerId`) and visible only to an explicit allow-list
 // of family members (`memberIds`). No public reads, no cross-account access.
-// Every write is shape-validated. Default-deny everything else.
+// Every write is shape-validated on BOTH create and update, with a closed
+// allow-list of field names so a tampered client cannot inject extra fields.
+// Default-deny everything else.
+//
+// Two things a client may never write, because they are money or privacy:
+//   • `users.plan`      — entitlements are server-side only (Admin SDK).
+//   • `babies/*/journal` — owner-only, not visible to invited family.
 // ═══════════════════════════════════════════════════════════════════════════
 
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // Owner + up to 10 invited family members (Bloom's sharing limit).
+    function maxMembers() { return 11; }
 
     function isSignedIn() {
       return request.auth != null;
@@ -44,81 +53,185 @@ service cloud.firestore {
       return value is string && value.size() <= max;
     }
 
+    function isOptionalString(value, max) {
+      return value == null || isBoundedString(value, max);
+    }
+
+    // Field is absent, or present and a string within `max`.
+    function optionalStringField(data, field, max) {
+      return !(field in data) || isOptionalString(data[field], max);
+    }
+
+    // `resource` is null when Firestore evaluates an update rule against a
+    // document that does not exist yet; guard so that denies cleanly rather
+    // than raising an evaluation error.
+    function unchanged(field) {
+      return resource != null
+        && request.resource.data[field] == resource.data[field];
+    }
+
     // ── Users ──────────────────────────────────────────────────────────
+    // `plan` is an entitlement. A client that could write it could grant
+    // itself Bloom or an Heirloom book for free, so it is server-only:
+    // fixed to 'seedling' at create, immutable thereafter. Real billing
+    // (App Store / Play) must set it via the Admin SDK.
     match /users/{uid} {
+      function validUser() {
+        return request.resource.data.keys().hasOnly([
+            'uid', 'email', 'displayName', 'plan', 'appLockEnabled', 'createdAt'
+          ])
+          && request.resource.data.uid == uid
+          && optionalStringField(request.resource.data, 'email', 320)
+          && optionalStringField(request.resource.data, 'displayName', 120)
+          && (!('appLockEnabled' in request.resource.data)
+              || request.resource.data.appLockEnabled is bool);
+      }
+
       allow read: if isUser(uid);
 
       allow create: if isUser(uid)
-        && request.resource.data.uid == uid
-        && request.resource.data.plan in ['seedling', 'bloom', 'heirloom'];
+        && validUser()
+        && request.resource.data.plan == 'seedling';
 
       allow update: if isUser(uid)
-        && request.resource.data.uid == resource.data.uid
-        && request.resource.data.plan in ['seedling', 'bloom', 'heirloom'];
+        && validUser()
+        && unchanged('uid')
+        && unchanged('plan');
 
       allow delete: if false;
     }
 
     // ── Babies ─────────────────────────────────────────────────────────
     match /babies/{babyId} {
+      function validBaby() {
+        return request.resource.data.keys().hasOnly([
+            'ownerId', 'memberIds', 'name', 'birthDate', 'createdAt', 'updatedAt'
+          ])
+          && isNonEmptyString(request.resource.data.name, 40)
+          && request.resource.data.memberIds is list
+          && request.resource.data.memberIds.size() >= 1
+          && request.resource.data.memberIds.size() <= maxMembers()
+          && optionalStringField(request.resource.data, 'birthDate', 10);
+      }
+
       allow read: if isSignedIn() && request.auth.uid in resource.data.memberIds;
 
       allow create: if isSignedIn()
+        && validBaby()
         && request.resource.data.ownerId == request.auth.uid
-        && request.resource.data.memberIds is list
         && request.resource.data.memberIds.hasOnly([request.auth.uid])
-        && isNonEmptyString(request.resource.data.name, 40);
+        && request.resource.data.memberIds.hasAll([request.auth.uid]);
 
+      // Only the owner may rename, set a birth date, or change who can see it.
       allow update: if isOwner(babyId)
-        && request.resource.data.ownerId == resource.data.ownerId
-        && request.resource.data.ownerId in request.resource.data.memberIds
-        && isNonEmptyString(request.resource.data.name, 40);
+        && validBaby()
+        && unchanged('ownerId')
+        && request.resource.data.ownerId in request.resource.data.memberIds;
 
       allow delete: if isOwner(babyId);
 
       // ── Memories ─────────────────────────────────────────────────────
+      // Visible to every invited family member. Photos, videos and notes.
       match /memories/{memoryId} {
+        function validMemory() {
+          return request.resource.data.keys().hasOnly([
+              'babyId', 'authorId', 'kind', 'title', 'caption', 'storagePath',
+              'takenAt', 'createdAt'
+            ])
+            && request.resource.data.kind in ['photo', 'video', 'note']
+            && isNonEmptyString(request.resource.data.title, 80)
+            && optionalStringField(request.resource.data, 'caption', 500)
+            && optionalStringField(request.resource.data, 'storagePath', 400);
+        }
+
         allow read: if isMember(babyId);
+
         allow create: if isMember(babyId)
+          && validMemory()
           && request.resource.data.authorId == request.auth.uid
-          && request.resource.data.kind in ['photo', 'video', 'note']
-          && isNonEmptyString(request.resource.data.title, 80)
-          && isBoundedString(request.resource.data.caption, 500);
-        allow update, delete: if isMember(babyId)
+          && request.resource.data.babyId == babyId;
+
+        // Shape is re-validated on update, and authorship cannot be rewritten
+        // to frame another member or to escape the author/owner edit check.
+        allow update: if isMember(babyId)
+          && (resource.data.authorId == request.auth.uid || isOwner(babyId))
+          && validMemory()
+          && unchanged('authorId')
+          && unchanged('babyId');
+
+        allow delete: if isMember(babyId)
           && (resource.data.authorId == request.auth.uid || isOwner(babyId));
       }
 
       // ── Milestones ───────────────────────────────────────────────────
       match /milestones/{milestoneId} {
+        function validMilestone() {
+          return request.resource.data.keys().hasOnly([
+              'babyId', 'key', 'label', 'emoji', 'typicalAge', 'status',
+              'authorId', 'capturedAt', 'createdAt'
+            ])
+            && isNonEmptyString(request.resource.data.label, 80)
+            && request.resource.data.status in ['upcoming', 'captured']
+            && optionalStringField(request.resource.data, 'key', 60)
+            && optionalStringField(request.resource.data, 'emoji', 8)
+            && optionalStringField(request.resource.data, 'typicalAge', 40);
+        }
+
         allow read: if isMember(babyId);
-        allow create: if isMember(babyId)
-          && isNonEmptyString(request.resource.data.label, 80)
-          && request.resource.data.status in ['upcoming', 'captured'];
-        allow update: if isMember(babyId)
-          && request.resource.data.status in ['upcoming', 'captured'];
+        allow create: if isMember(babyId) && validMilestone();
+        allow update: if isMember(babyId) && validMilestone();
         allow delete: if isOwner(babyId);
       }
 
       // ── Journal ──────────────────────────────────────────────────────
+      // OWNER ONLY — deliberately not readable by invited family. This is a
+      // parent's private writing about their own child, and the product
+      // promises it stays theirs. Sharing is for memories, never for this.
       match /journal/{entryId} {
-        allow read: if isMember(babyId);
-        allow create: if isMember(babyId)
+        function validJournal() {
+          return request.resource.data.keys().hasOnly([
+              'babyId', 'authorId', 'body', 'mood', 'tags', 'storagePath',
+              'createdAt'
+            ])
+            && isBoundedString(request.resource.data.body, 4000)
+            && request.resource.data.tags is list
+            && request.resource.data.tags.size() <= 8
+            && optionalStringField(request.resource.data, 'mood', 8)
+            && optionalStringField(request.resource.data, 'storagePath', 400);
+        }
+
+        allow read: if isOwner(babyId);
+
+        allow create: if isOwner(babyId)
+          && validJournal()
           && request.resource.data.authorId == request.auth.uid
-          && isBoundedString(request.resource.data.body, 4000)
-          && request.resource.data.tags is list
-          && request.resource.data.tags.size() <= 8;
-        allow update, delete: if isMember(babyId)
-          && (resource.data.authorId == request.auth.uid || isOwner(babyId));
+          && request.resource.data.babyId == babyId;
+
+        allow update: if isOwner(babyId)
+          && validJournal()
+          && unchanged('authorId')
+          && unchanged('babyId');
+
+        allow delete: if isOwner(babyId);
       }
 
       // ── Calendar events ──────────────────────────────────────────────
       match /events/{eventId} {
+        function validEvent() {
+          return request.resource.data.keys().hasOnly([
+              'babyId', 'type', 'title', 'meta', 'date', 'createdAt'
+            ])
+            && request.resource.data.type in ['milestone', 'memory', 'appointment']
+            && isNonEmptyString(request.resource.data.title, 80)
+            && isNonEmptyString(request.resource.data.date, 10)
+            && optionalStringField(request.resource.data, 'meta', 120);
+        }
+
         allow read: if isMember(babyId);
-        allow create: if isMember(babyId)
-          && request.resource.data.type in ['milestone', 'memory', 'appointment']
-          && isNonEmptyString(request.resource.data.title, 80)
-          && isNonEmptyString(request.resource.data.date, 10);
-        allow update, delete: if isMember(babyId);
+        allow create: if isMember(babyId) && validEvent()
+          && request.resource.data.babyId == babyId;
+        allow update: if isMember(babyId) && validEvent() && unchanged('babyId');
+        allow delete: if isMember(babyId);
       }
     }
 

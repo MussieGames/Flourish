@@ -4,7 +4,6 @@ import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText, Button, InfoBox, SectionLabel } from '@/components';
 import { useAuth } from '@/context/AuthContext';
-import { updateUserPlan } from '@/firebase/firestore';
 import { colors, fonts, radius } from '@/theme';
 
 const SEEDLING_FEATURES = [
@@ -35,40 +34,24 @@ const HEIRLOOM_FEATURES = [
 export default function Plan() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user, profile } = useAuth();
+  const { profile } = useAuth();
   const currentPlan = profile?.plan ?? 'seedling';
   const onSeedling = currentPlan === 'seedling';
   const onBloom = currentPlan === 'bloom' || currentPlan === 'heirloom';
 
   const chooseBloom = () => {
     Alert.alert(
-      'Upgrade to Bloom',
-      'In the production app this opens secure in-app billing via the App Store / Google Play. For this preview build we’ll switch your membership directly.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Continue',
-          onPress: () => {
-            if (user) updateUserPlan(user.uid, 'bloom').catch(() => {});
-          },
-        },
-      ],
+      'Bloom',
+      'Bloom is $8 a month — unlimited photos and videos, every first, and sharing with the family you choose.\n\nWe haven’t opened payments yet. When we do it goes through the App Store or Google Play, and this is where you’ll start.',
+      [{ text: 'Got it' }],
     );
   };
 
   const orderHeirloom = () => {
     Alert.alert(
-      'Order the Heirloom',
-      'This is the book — not another membership. You’ll pick the pictures, add their name (and a date if you want), and approve a proof that shows the posting address. The cover is sage and gold; Flourish sits quietly in the background. Twelve months of Bloom is included.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Continue',
-          onPress: () => {
-            if (user) updateUserPlan(user.uid, 'heirloom').catch(() => {});
-          },
-        },
-      ],
+      'The Heirloom',
+      'This is the book — not another membership. You’ll pick the pictures, add their name (and a date if you want), and approve a proof that shows the posting address. The cover is sage and gold; Flourish sits quietly in the background. Twelve months of Bloom is included.\n\nOrdering isn’t open yet. Nothing has been charged.',
+      [{ text: 'Got it' }],
     );
   };
 

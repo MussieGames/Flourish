@@ -64,9 +64,10 @@ export function subscribeUserProfile(
   );
 }
 
-export async function updateUserPlan(uid: string, plan: PlanId): Promise<void> {
-  await updateDoc(doc(usersCol, uid), { plan });
-}
+// NOTE: there is deliberately no client-side plan writer. `plan` is an
+// entitlement — a client that could set it could grant itself Bloom or an
+// Heirloom book for free. Security Rules reject any client write to the field;
+// real billing must update it server-side from a verified store receipt.
 
 // ── Babies ─────────────────────────────────────────────────────────
 function mapBaby(snap: QueryDocumentSnapshot<DocumentData>): Baby {

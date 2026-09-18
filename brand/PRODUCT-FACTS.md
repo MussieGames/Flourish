@@ -162,9 +162,10 @@ not state them as available, and should flag them for correction.
   codebase produces one.
 - **"25 milestones tracked"** as a Seedling cap — **copy only.** Not enforced in
   code.
-- **Billing** — **not built.** The plans screen changes `plan` directly as a
-  preview. Real billing will be App Store / Google Play, and a client cannot be
-  allowed to set its own plan.
+- **Billing** — **not built.** The plans screen explains each option and says
+  payments aren't open yet; nothing is charged and no membership changes. Real
+  billing will be App Store / Google Play, and `plan` is server-only — the app
+  cannot set its own membership.
 
 ## Undecided — escalate, don't answer
 

@@ -242,8 +242,8 @@ Do not repeat these. Flag them for correction.
   ships **10** default firsts, plus parent-added ones.
 - **"Yearly video montage"** (Bloom feature list) — **[NOT BUILT]**.
 - **Seedling's 25-firsts cap** — **[COPY ONLY]**, not enforced in code.
-- **Billing** — **[NOT BUILT]**. The plans screen is a preview. Real billing will
-  be App Store / Google Play.
+- **Billing** — **[NOT BUILT]**. The plans screen says payments aren't open yet;
+  nothing is charged. Real billing will be App Store / Google Play.
 
 ## Undecided — escalate, never answer
 

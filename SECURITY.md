@@ -33,12 +33,25 @@ project's waitlist rules live separately in [`firestore.rules`](./firestore.rule
   `memberIds` allow-list. Reads require `request.auth.uid in memberIds`. There
   are no public reads and no cross-account access.
 - **Ownership is immutable.** Updates cannot reassign `ownerId`, and the owner
-  must always remain a member.
-- **Shape validation.** Every `create`/`update` validates field types, allowed
-  enum values (`plan`, `kind`, `status`, event `type`), and length caps so a
-  tampered client cannot inject unexpected or oversized fields.
+  must always remain a member. `memberIds` is capped at 11 (owner + Bloom's 10).
+- **Entitlements are server-only.** `users.plan` is fixed to `seedling` at
+  creation and **immutable from any client thereafter**. A client that could
+  write it could grant itself Bloom or an Heirloom book for free, so real
+  billing must set it with the Admin SDK from a verified store receipt.
+- **The journal is owner-only.** Invited family can read memories; they cannot
+  read, write, or delete journal entries. A parent's private writing about their
+  own child stays theirs.
+- **Shape validation on create *and* update.** Both paths validate field types,
+  enum values (`kind`, `status`, event `type`), and length caps, and use a
+  closed `hasOnly` allow-list of field names so a tampered client cannot inject
+  unexpected fields or grow a document past its caps on a later write.
 - **Authorship.** Memories/journal entries record the `authorId`; only the
-  author or the baby's owner may edit or delete them.
+  author or the baby's owner may edit or delete them, and `authorId`/`babyId`
+  cannot be rewritten by an update.
+- **Tested.** [`mobile/firebase/tests/`](./mobile/firebase/tests/) exercises
+  both rule sets against the emulator, covering each of the above plus a
+  happy-path suite asserting that every write the real client performs still
+  succeeds.
 - **Project isolation.** Because the app has its own Firebase project, a
   misconfiguration or abuse on the public marketing/CTA project can never reach
   family data, and vice-versa. (The CTA **waitlist** collection is locked to
@@ -48,15 +61,24 @@ project's waitlist rules live separately in [`firestore.rules`](./firestore.rule
 
 See [`mobile/firebase/storage.rules`](./mobile/firebase/storage.rules).
 
-- Media lives at an owner-scoped, unguessable path
-  `babies/{babyId}/memories/{uid}/{file}`.
+- Media lives at `babies/{babyId}/memories/{uid}/{file}`. The filename is **not**
+  a security boundary — it is generated client-side and must never be treated as
+  a secret.
 - **Writes** are restricted to the authenticated uploader and validated for
-  **content type** (image/video only) and **size** (< 15 MB) — mirroring the
-  client checks in `src/firebase/storage.ts`.
-- **Reads** require authentication plus knowledge of the full unguessable path.
-  Storage Rules cannot query Firestore for membership; for stricter per-member
-  enforcement, serve media via signed URLs from a Cloud Function or adopt a
-  custom-claims membership model. (Documented trade-off.)
+  **size** (0 < n < 15 MB) and **content type** against an explicit allow-list
+  (`image/jpeg|png|heic|heif|webp`, `video/mp4|quicktime`) — mirroring
+  `src/firebase/storage.ts`. The list is explicit rather than `image/*` because
+  a wildcard also admits `image/svg+xml`, which can carry script.
+- **Reads are restricted to the uploader.** Storage Rules cannot query Firestore,
+  so they cannot check baby-membership; authorisation therefore cannot depend on
+  path secrecy, and the only enforceable rule is uid equality. Today this is not
+  a functional limitation, because no invite flow ships yet and every member of a
+  baby is its owner.
+- **Before family sharing ships**, viewing another member's upload needs either
+  custom auth claims carrying the caller's `babyIds`, or short-lived signed URLs
+  minted by a Cloud Function that checks Firestore. Widening `read` back to "any
+  signed-in user" is not an option — that would let any account holding a path
+  read another family's photos.
 
 ## 4. App Check
 
@@ -94,6 +116,23 @@ data is sent to Firestore. The same limits are enforced again by Security Rules.
   committed to source**. Only the *public* reCAPTCHA site key appears in code,
   which is expected. Email confirmations are sent server-side via the Firestore
   "Trigger Email" flow (`mail` / `auto_reply` collections, locked to clients).
+
+## 9. Waitlist signups
+
+The `waitlist` collection is **server-only**: clients can neither read nor write
+it. Signups go through `addWaitlistEmail`, which requires a reCAPTCHA Enterprise
+token, asserts a minimum score, and writes with the Admin SDK.
+
+This matters because the alternative was actively exploitable. The page
+previously wrote to Firestore directly and never called the function at all, and
+the rules permitted unauthenticated creates — so the reCAPTCHA check could be
+skipped entirely by posting to the Firestore REST API. Since a create triggers a
+confirmation email, that allowed unlimited junk signups **and** sending mail from
+the Flourish domain to arbitrary addresses on demand. Both paths are now closed,
+and `mobile/firebase/tests/cta-rules.test.mjs` asserts they stay closed.
+
+Rejections deliberately return a generic error. Echoing the score, hostname, or
+reason back to the caller hands an attacker a dial to tune against.
 
 ## 8. Transport & platform
 

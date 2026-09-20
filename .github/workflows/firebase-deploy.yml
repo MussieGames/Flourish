@@ -34,17 +34,31 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: Enable reCAPTCHA Enterprise API
-        continue-on-error: true
-        run: gcloud services enable recaptchaenterprise.googleapis.com --project=flourish-7b8c8
-
-      - name: Grant reCAPTCHA Enterprise Agent role
-        continue-on-error: true
+      - name: Verify reCAPTCHA Enterprise API is enabled
         run: |
-          gcloud projects add-iam-policy-binding flourish-7b8c8 \
-            --member="serviceAccount:firebase-adminsdk-fbsvc@flourish-7b8c8.iam.gserviceaccount.com" \
-            --role="roles/recaptchaenterprise.agent" \
-            --condition=None
+          enabled_service="$(gcloud services list \
+            --enabled \
+            --project=flourish-7b8c8 \
+            --filter='config.name=recaptchaenterprise.googleapis.com' \
+            --format='value(config.name)')"
+
+          if [ -z "$enabled_service" ]; then
+            echo "::error::reCAPTCHA Enterprise API is not enabled, or this workflow cannot verify it."
+            exit 1
+          fi
+
+      - name: Verify reCAPTCHA Enterprise Agent role
+        run: |
+          service_account="serviceAccount:firebase-adminsdk-fbsvc@flourish-7b8c8.iam.gserviceaccount.com"
+          assigned_role="$(gcloud projects get-iam-policy flourish-7b8c8 \
+            --flatten='bindings[].members' \
+            --filter="bindings.role=roles/recaptchaenterprise.agent AND bindings.members=${service_account}" \
+            --format='value(bindings.role)')"
+
+          if [ -z "$assigned_role" ]; then
+            echo "::error::${service_account} is missing roles/recaptchaenterprise.agent, or this workflow cannot verify it."
+            exit 1
+          fi
 
       - name: Install Firebase CLI
         run: npm install -g firebase-tools

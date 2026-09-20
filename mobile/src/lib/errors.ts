@@ -9,7 +9,7 @@ export function friendlyAuthError(error: unknown): string {
     case 'auth/invalid-email':
       return 'That email address doesn’t look quite right.';
     case 'auth/email-already-in-use':
-      return 'An account already exists for this email. Try signing in.';
+      return 'We couldn’t create an account with those details. Try signing in, or use a different email.';
     case 'auth/weak-password':
       return 'Please choose a stronger password.';
     // Deliberately identical message for wrong-password / user-not-found /

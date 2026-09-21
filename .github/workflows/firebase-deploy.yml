@@ -6,7 +6,6 @@ on:
       - main
     paths:
       - 'functions/**'
-      - 'firestore.rules'
       - 'firebase.json'
       - '.firebaserc'
       - '.github/workflows/firebase-deploy.yml'
@@ -57,5 +56,5 @@ jobs:
             --force \
             --non-interactive || true
 
-      - name: Deploy functions and Firestore rules
-        run: firebase deploy --only functions,firestore:rules --project flourish-7b8c8 --non-interactive --force
+      - name: Deploy functions
+        run: firebase deploy --only functions --project flourish-7b8c8 --non-interactive --force

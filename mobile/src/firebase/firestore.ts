@@ -32,6 +32,8 @@ import type { User } from 'firebase/auth';
 
 const usersCol = collection(db, 'users');
 const babiesCol = collection(db, 'babies');
+const MAX_MILESTONE_DOCS = 100;
+const MAX_EVENT_DOCS = 500;
 
 const babySub = (babyId: string, name: string) =>
   collection(db, 'babies', babyId, name);
@@ -155,8 +157,13 @@ export function subscribeMilestones(
   cb: (milestones: Milestone[]) => void,
   onError?: (e: Error) => void,
 ): () => void {
-  return onSnapshot(
+  const q = query(
     babySub(babyId, 'milestones'),
+    orderBy('createdAt', 'asc'),
+    fbLimit(MAX_MILESTONE_DOCS),
+  );
+  return onSnapshot(
+    q,
     (snap) => {
       const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Milestone);
       cb(items);
@@ -258,8 +265,13 @@ export function subscribeEvents(
   cb: (events: CalendarEvent[]) => void,
   onError?: (e: Error) => void,
 ): () => void {
-  return onSnapshot(
+  const q = query(
     babySub(babyId, 'events'),
+    orderBy('date', 'asc'),
+    fbLimit(MAX_EVENT_DOCS),
+  );
+  return onSnapshot(
+    q,
     (snap) => cb(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as CalendarEvent)),
     (err) => onError?.(err),
   );

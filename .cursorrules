@@ -1,0 +1,9 @@
+# Flourish — AI / LLM rules
+
+For all AI and LLM features, we strictly use Firebase Genkit and Vertex AI.
+
+- NEVER use the standard `@google/generative-ai` SDK.
+- NEVER expose API keys in the frontend.
+- All AI requests must route through a single centralized Genkit flow.
+- All Firebase Cloud Functions must use `enforceAppCheck: true`.
+- Always implement Google Cloud DLP for PII redaction before sending data to the LLM.

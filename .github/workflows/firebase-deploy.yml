@@ -38,6 +38,15 @@ jobs:
         continue-on-error: true
         run: gcloud services enable recaptchaenterprise.googleapis.com --project=flourish-7b8c8
 
+      - name: Enable Vertex AI, DLP, and Model Armor APIs
+        continue-on-error: true
+        run: |
+          gcloud services enable \
+            aiplatform.googleapis.com \
+            dlp.googleapis.com \
+            modelarmor.googleapis.com \
+            --project=flourish-7b8c8
+
       - name: Grant reCAPTCHA Enterprise Agent role
         continue-on-error: true
         run: |

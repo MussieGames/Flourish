@@ -1,6 +1,7 @@
 const { onRequest } = require("firebase-functions/v2/https");
 const { RecaptchaEnterpriseServiceClient } = require("@google-cloud/recaptcha-enterprise");
 const admin = require("firebase-admin");
+const { secureAiPipeline } = require("./lib/secureAiPipeline");
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -151,3 +152,6 @@ exports.addWaitlistEmail = onRequest(
     }
   }
 );
+
+// Centralized Genkit AI pipeline. The only supported LLM entry point.
+exports.secureAiPipeline = secureAiPipeline;

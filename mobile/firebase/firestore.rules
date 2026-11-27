@@ -44,6 +44,71 @@ service cloud.firestore {
       return value is string && value.size() <= max;
     }
 
+    function isNullableBoundedString(value, max) {
+      return value == null || isBoundedString(value, max);
+    }
+
+    function isStringListUpTo8(value, max) {
+      return value is list
+        && value.size() <= 8
+        && (value.size() < 1 || isBoundedString(value[0], max))
+        && (value.size() < 2 || isBoundedString(value[1], max))
+        && (value.size() < 3 || isBoundedString(value[2], max))
+        && (value.size() < 4 || isBoundedString(value[3], max))
+        && (value.size() < 5 || isBoundedString(value[4], max))
+        && (value.size() < 6 || isBoundedString(value[5], max))
+        && (value.size() < 7 || isBoundedString(value[6], max))
+        && (value.size() < 8 || isBoundedString(value[7], max));
+    }
+
+    function isValidJournalCreate(babyId) {
+      return request.resource.data.keys().hasOnly([
+          'babyId', 'authorId', 'body', 'mood', 'tags', 'storagePath', 'createdAt'
+        ])
+        && request.resource.data.keys().hasAll(['babyId', 'authorId', 'body', 'tags', 'createdAt'])
+        && request.resource.data.babyId == babyId
+        && request.resource.data.authorId == request.auth.uid
+        && isBoundedString(request.resource.data.body, 4000)
+        && (!('mood' in request.resource.data)
+            || isNullableBoundedString(request.resource.data.mood, 16))
+        && isStringListUpTo8(request.resource.data.tags, 24)
+        && (!('storagePath' in request.resource.data)
+            || isNullableBoundedString(request.resource.data.storagePath, 512))
+        && request.resource.data.createdAt is timestamp;
+    }
+
+    function isValidMilestoneCreate(babyId) {
+      return request.resource.data.keys().hasOnly([
+          'babyId', 'key', 'label', 'emoji', 'typicalAge', 'status', 'authorId', 'capturedAt', 'createdAt'
+        ])
+        && request.resource.data.keys().hasAll([
+          'babyId', 'key', 'label', 'emoji', 'typicalAge', 'status', 'authorId', 'createdAt'
+        ])
+        && request.resource.data.babyId == babyId
+        && request.resource.data.authorId == request.auth.uid
+        && isBoundedString(request.resource.data.key, 80)
+        && isNonEmptyString(request.resource.data.label, 80)
+        && isBoundedString(request.resource.data.emoji, 16)
+        && isBoundedString(request.resource.data.typicalAge, 40)
+        && request.resource.data.status in ['upcoming', 'captured']
+        && (!('capturedAt' in request.resource.data) || request.resource.data.capturedAt is timestamp)
+        && request.resource.data.createdAt is timestamp;
+    }
+
+    function isValidEventCreate(babyId) {
+      return request.resource.data.keys().hasOnly([
+          'babyId', 'type', 'title', 'meta', 'date', 'createdAt'
+        ])
+        && request.resource.data.keys().hasAll(['babyId', 'type', 'title', 'date', 'createdAt'])
+        && request.resource.data.babyId == babyId
+        && request.resource.data.type in ['milestone', 'memory', 'appointment']
+        && isNonEmptyString(request.resource.data.title, 80)
+        && (!('meta' in request.resource.data)
+            || isNullableBoundedString(request.resource.data.meta, 120))
+        && isNonEmptyString(request.resource.data.date, 10)
+        && request.resource.data.createdAt is timestamp;
+    }
+
     // ── Users ──────────────────────────────────────────────────────────
     match /users/{uid} {
       allow read: if isUser(uid);
@@ -92,8 +157,7 @@ service cloud.firestore {
       match /milestones/{milestoneId} {
         allow read: if isMember(babyId);
         allow create: if isMember(babyId)
-          && isNonEmptyString(request.resource.data.label, 80)
-          && request.resource.data.status in ['upcoming', 'captured'];
+          && isValidMilestoneCreate(babyId);
         allow update: if isMember(babyId)
           && request.resource.data.status in ['upcoming', 'captured'];
         allow delete: if isOwner(babyId);
@@ -103,10 +167,7 @@ service cloud.firestore {
       match /journal/{entryId} {
         allow read: if isMember(babyId);
         allow create: if isMember(babyId)
-          && request.resource.data.authorId == request.auth.uid
-          && isBoundedString(request.resource.data.body, 4000)
-          && request.resource.data.tags is list
-          && request.resource.data.tags.size() <= 8;
+          && isValidJournalCreate(babyId);
         allow update, delete: if isMember(babyId)
           && (resource.data.authorId == request.auth.uid || isOwner(babyId));
       }
@@ -115,9 +176,7 @@ service cloud.firestore {
       match /events/{eventId} {
         allow read: if isMember(babyId);
         allow create: if isMember(babyId)
-          && request.resource.data.type in ['milestone', 'memory', 'appointment']
-          && isNonEmptyString(request.resource.data.title, 80)
-          && isNonEmptyString(request.resource.data.date, 10);
+          && isValidEventCreate(babyId);
         allow update, delete: if isMember(babyId);
       }
     }
